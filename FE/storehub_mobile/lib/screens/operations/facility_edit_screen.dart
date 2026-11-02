@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/safe_dispose.dart';
+import '../../core/utils/vi_labels.dart';
 import '../../models/facility_management_models.dart';
 import '../../services/admin_api_service.dart';
 import '../../services/facility_admin_api_service.dart';
@@ -726,6 +727,9 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.of(context).size.width,
+      ),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(
@@ -739,111 +743,215 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
                     '')
                 .toUpperCase()
                 .replaceAll('ROLE_', '');
-            if (rawRole != 'FACILITY_MANAGER') return false;
+            if (rawRole == 'ADMIN') return false;
             if (query.isEmpty) return true;
-            final haystack = [u['fullName'], u['email'], u['username']]
+            final haystack = [
+              u['fullName'],
+              u['email'],
+              u['username'],
+              ViLabels.role(rawRole),
+              rawRole,
+            ]
                 .whereType<String>()
                 .join(' ')
                 .toLowerCase();
             return haystack.contains(query);
           }).toList();
-          return SizedBox(
-            height: MediaQuery.of(ctx).size.height * 0.7,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Thêm Quản lý cơ sở (Facility Manager)',
+
+          filtered.sort((a, b) {
+            final rA = (a['roleName']?.toString() ??
+                    (a['role'] is Map
+                        ? a['role']['name']?.toString()
+                        : a['role']?.toString()) ??
+                    '')
+                .toUpperCase()
+                .replaceAll('ROLE_', '');
+            final rB = (b['roleName']?.toString() ??
+                    (b['role'] is Map
+                        ? b['role']['name']?.toString()
+                        : b['role']?.toString()) ??
+                    '')
+                .toUpperCase()
+                .replaceAll('ROLE_', '');
+            int score(String r) {
+              if (r == 'FACILITY_MANAGER') return 0;
+              if (r == 'STAFF') return 1;
+              return 2;
+            }
+            final cmp = score(rA).compareTo(score(rB));
+            if (cmp != 0) return cmp;
+            final nA = (a['fullName']?.toString() ??
+                    a['username']?.toString() ??
+                    '')
+                .toLowerCase();
+            final nB = (b['fullName']?.toString() ??
+                    b['username']?.toString() ??
+                    '')
+                .toLowerCase();
+            return nA.compareTo(nB);
+          });
+
+          final bottomInset = MediaQuery.of(ctx).viewInsets.bottom;
+          return SafeArea(
+            child: Container(
+              width: MediaQuery.of(ctx).size.width,
+              height: MediaQuery.of(ctx).size.height * 0.75,
+              padding: EdgeInsets.only(bottom: bottomInset),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text('Thêm Quản lý cơ sở (Facility Manager)',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Một cơ sở có thể có nhiều tài khoản quản lý cùng phụ trách. '
+                          'Hệ thống sẽ cấp vai trò Quản lý cơ sở cho tài khoản được gán.',
                           style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Một cơ sở có thể có nhiều tài khoản quản lý cùng phụ trách.',
-                        style: TextStyle(
-                            fontSize: 12, color: AppColors.onSurfaceVariant),
-                      ),
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: searchController,
-                        onChanged: (_) => setSheet(() {}),
-                        decoration: const InputDecoration(
-                            hintText: 'Tìm theo tên hoặc email',
-                            prefixIcon: Icon(Icons.search)),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: filtered.isEmpty
-                      ? const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(24),
-                            child: Text(
-                              'Chưa có tài khoản nào thuộc role Facility Manager. '
-                              'Hãy tạo tài khoản và gán role này ở mục Người dùng & vai trò.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  color: AppColors.onSurfaceVariant,
-                                  fontSize: 13),
-                            ),
+                              fontSize: 12, color: AppColors.onSurfaceVariant),
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextField(
+                            controller: searchController,
+                            onChanged: (_) => setSheet(() {}),
+                            decoration: const InputDecoration(
+                                hintText: 'Tìm theo tên, email hoặc vai trò',
+                                prefixIcon: Icon(Icons.search)),
                           ),
-                        )
-                      : ListView.builder(
-                          itemCount: filtered.length,
-                          itemBuilder: (context, index) {
-                            final u = filtered[index];
-                            final userId = u['id']?.toString() ?? '';
-                            final name = u['fullName']?.toString() ??
-                                u['username']?.toString() ??
-                                '';
-                            final managed = managedFacility[userId];
-                            final isAlreadyAssigned =
-                                currentManagerIds.contains(userId);
-                            return Container(
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 6),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey.shade200),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(24),
+                              child: Text(
+                                'Không tìm thấy tài khoản phù hợp để gán quản lý.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    color: AppColors.onSurfaceVariant,
+                                    fontSize: 13),
                               ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  CircleAvatar(
-                                    backgroundColor: isAlreadyAssigned
-                                        ? AppColors.success
-                                        : AppColors.primaryContainer,
-                                    child: Text(
-                                      name.isNotEmpty
-                                          ? name[0].toUpperCase()
-                                          : 'M',
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold),
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: filtered.length,
+                            itemBuilder: (context, index) {
+                              final u = filtered[index];
+                              final userId = u['id']?.toString() ?? '';
+                              final name = u['fullName']?.toString() ??
+                                  u['username']?.toString() ??
+                                  '';
+                              final rawRole = (u['roleName']?.toString() ??
+                                      (u['role'] is Map
+                                          ? u['role']['name']?.toString()
+                                          : u['role']?.toString()) ??
+                                      '')
+                                  .toUpperCase()
+                                  .replaceAll('ROLE_', '');
+                              final roleLabel = ViLabels.role(rawRole);
+                              final managed = managedFacility[userId];
+                              final isAlreadyAssigned =
+                                  currentManagerIds.contains(userId);
+                              return Container(
+                                margin: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 6),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.grey.shade200),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    CircleAvatar(
+                                      backgroundColor: isAlreadyAssigned
+                                          ? AppColors.success
+                                          : AppColors.primaryContainer,
+                                      child: Text(
+                                        name.isNotEmpty
+                                            ? name[0].toUpperCase()
+                                            : 'M',
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold),
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(name,
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Flexible(
+                                                child: Text(
+                                                  name,
+                                                  style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      fontSize: 14),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: rawRole ==
+                                                          'FACILITY_MANAGER'
+                                                      ? AppColors.primary
+                                                          .withValues(
+                                                              alpha: 0.12)
+                                                      : (rawRole == 'STAFF'
+                                                          ? Colors.orange
+                                                              .withValues(
+                                                                  alpha: 0.15)
+                                                          : Colors
+                                                              .grey.shade200),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  roleLabel,
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: rawRole ==
+                                                            'FACILITY_MANAGER'
+                                                        ? AppColors.primary
+                                                        : (rawRole == 'STAFF'
+                                                            ? Colors.deepOrange
+                                                            : Colors
+                                                                .grey.shade700),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            u['email']?.toString() ?? '',
                                             style: const TextStyle(
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 14)),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          u['email']?.toString() ?? '',
-                                          style: const TextStyle(
-                                              fontSize: 12,
-                                              color: AppColors.onSurfaceVariant),
-                                        ),
+                                                fontSize: 12,
+                                                color:
+                                                    AppColors.onSurfaceVariant),
+                                          ),
                                         const SizedBox(height: 2),
                                         Text(
                                           isAlreadyAssigned
@@ -944,8 +1052,9 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
                 ),
               ],
             ),
-          );
-        },
+          ),
+        );
+      },
       ),
     );
     disposeAfterRouteCloses([searchController]);

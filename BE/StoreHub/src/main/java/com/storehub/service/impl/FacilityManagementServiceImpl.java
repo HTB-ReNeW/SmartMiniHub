@@ -20,6 +20,8 @@ import com.storehub.repository.StorageUnitRepository;
 import com.storehub.repository.UnitTypeRepository;
 import com.storehub.repository.UserRepository;
 import com.storehub.entity.FacilityAccess;
+import com.storehub.entity.Role;
+import com.storehub.repository.RoleRepository;
 import com.storehub.service.FacilityManagementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -64,6 +66,7 @@ public class FacilityManagementServiceImpl
     private final StaffWorkloadService staffWorkloadService;
     private final com.storehub.repository.DepositDeductionRepository depositDeductions;
     private final com.storehub.service.NotificationService notificationService;
+    private final RoleRepository roleRepository;
 
     @Transactional(readOnly = true)
     public AssignedFacilityResponse myFacility(String email) {
@@ -378,10 +381,14 @@ public class FacilityManagementServiceImpl
         User user = users.findByIdForUpdate(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (!Boolean.TRUE.equals(user.getIsActive())
-                || user.getRole() == null
-                || !role.equals(user.getRole().getName())) {
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
             throw new AppException(ErrorCode.INVALID_REQUEST);
+        }
+
+        if (user.getRole() == null || !role.equals(user.getRole().getName())) {
+            Role targetRole = roleRepository.findByName(role)
+                    .orElseThrow(() -> new AppException(ErrorCode.INVALID_REQUEST));
+            user.setRole(targetRole);
         }
 
         if (managerEmail != null

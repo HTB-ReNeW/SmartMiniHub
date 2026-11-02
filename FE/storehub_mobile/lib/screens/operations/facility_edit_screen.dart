@@ -68,17 +68,17 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
   final _lateFeeController = TextEditingController();
   final _minMonthsController = TextEditingController();
   final _renewalWindowController = TextEditingController();
-  final _fullRefundHoursController = TextEditingController();
-  final _partialRefundHoursController = TextEditingController();
-  final _partialRefundPercentController = TextEditingController();
+  final _fullRefundHoursController = TextEditingController(text: '24');
+  final _partialRefundHoursController = TextEditingController(text: '24');
+  final _partialRefundPercentController = TextEditingController(text: '50.0');
   final _returnNoticeController = TextEditingController();
   final _refundSlaController = TextEditingController();
   final _graceController = TextEditingController();
   final _accessDisableController = TextEditingController();
   final _sealingController = TextEditingController();
   final _managementFeeController = TextEditingController();
-  final _discountMonthsController = TextEditingController();
-  final _discountPercentController = TextEditingController();
+  final _discountMonthsController = TextEditingController(text: '0');
+  final _discountPercentController = TextEditingController(text: '0.0');
   final _maxAdvanceReservationDaysController = TextEditingController();
   final _prohibitedItemsController = TextEditingController();
   final _termsAndConditionsController = TextEditingController();
@@ -185,9 +185,9 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
           _renewalWindowController.text =
               (policy['renewalWindowDays'] ?? '').toString();
           _fullRefundHoursController.text =
-              (policy['cancellationFullRefundHours'] ?? '').toString();
+              (policy['cancellationFullRefundHours'] ?? '24').toString();
           _partialRefundHoursController.text =
-              (policy['cancellationPartialRefundHours'] ?? '').toString();
+              (policy['cancellationPartialRefundHours'] ?? '24').toString();
           _partialRefundPercentController.text =
               (policy['cancellationPartialRefundPercent'] ?? '').toString();
           _returnNoticeController.text =
@@ -515,14 +515,12 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     final accessDisable = int.tryParse(_accessDisableController.text);
     final sealing = int.tryParse(_sealingController.text);
     final managementFee = double.tryParse(_managementFeeController.text);
-    final discountMonths = int.tryParse(_discountMonthsController.text);
-    final discountPercent = double.tryParse(_discountPercentController.text);
+    final discountMonths = int.tryParse(_discountMonthsController.text) ?? 0;
+    final discountPercent = double.tryParse(_discountPercentController.text) ?? 0.0;
     final maxAdvanceDays = int.tryParse(_maxAdvanceReservationDaysController.text) ?? 14;
 
     if (deposit == null ||
         managementFee == null ||
-        discountMonths == null ||
-        discountPercent == null ||
         lateFee == null ||
         minMonths == null ||
         renewalWindow == null ||
@@ -1528,19 +1526,11 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
           ),
           _section(
             icon: Icons.sell_outlined,
-            title: 'Phí phát sinh & giảm giá',
-            subtitle:
-                'Phí quản lý = 0 nghĩa là miễn phí. Giảm giá từ 0 tháng = không giảm giá.',
+            title: 'Phí quản lý',
+            subtitle: 'Phí quản lý = 0 nghĩa là miễn phí.',
             children: [
               _policyField(_managementFeeController, 'Phí quản lý',
                   suffix: 'VND / tháng'),
-              _gap,
-              _pair(
-                _policyField(_discountMonthsController, 'Giảm giá từ',
-                    int_: true, suffix: 'tháng'),
-                _policyField(_discountPercentController, 'Mức giảm tiền thuê',
-                    suffix: '%'),
-              ),
             ],
           ),
           _section(
@@ -1551,7 +1541,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
               _pair(
                 _policyField(_fullRefundHoursController, 'Hoàn 100% nếu hủy trước',
                     int_: true, suffix: 'giờ'),
-                _policyField(_partialRefundHoursController, 'Hoàn một phần nếu hủy trước',
+                _policyField(_partialRefundHoursController, 'Hoàn một phần nếu hủy sau',
                     int_: true, suffix: 'giờ'),
               ),
               _gap,

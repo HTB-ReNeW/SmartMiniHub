@@ -9,7 +9,6 @@ import '../../widgets/notification_badge_button.dart';
 import '../common/transaction_history_screen.dart';
 import 'activity_log_screen.dart';
 import '../operations/facility_management_screen.dart';
-import 'role_permission_screen.dart';
 import 'user_management_screen.dart';
 import '../operations/reports_screen.dart';
 

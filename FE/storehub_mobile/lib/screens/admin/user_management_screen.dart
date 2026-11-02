@@ -178,6 +178,35 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   Future<void> _toggleActive(Map user) async {
     final userId = user['id']?.toString() ?? '';
     final wasActive = user['isActive'] == true;
+    if (wasActive) {
+      final identity = user['email']?.toString() ??
+          user['username']?.toString() ?? userId;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Vô hiệu hóa tài khoản?'),
+          content: Text(
+            'Bạn có chắc muốn vô hiệu hóa tài khoản "$identity"? '
+            'Tài khoản này sẽ không thể đăng nhập cho đến khi được kích hoạt lại.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Vô hiệu hóa'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
     try {
       await _adminService.toggleUserActive(userId);
       _loadUsers();

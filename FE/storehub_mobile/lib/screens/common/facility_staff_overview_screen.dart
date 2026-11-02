@@ -146,9 +146,9 @@ class _FacilityStaffOverviewScreenState
         title: const Text('Cơ sở & Nhân sự hệ thống'),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
+          labelColor: AppColors.secondary,
+          unselectedLabelColor: AppColors.textSecondary,
+          indicatorColor: AppColors.secondary,
           indicatorWeight: 3,
           tabs: [
             Tab(

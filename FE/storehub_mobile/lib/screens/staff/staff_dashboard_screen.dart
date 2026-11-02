@@ -12,7 +12,6 @@ import '../../widgets/state_views.dart';
 import '../../widgets/photo_preview_dialog.dart';
 import '../../widgets/notification_badge_button.dart';
 import '../common/profile_screen.dart';
-import '../common/transaction_history_screen.dart';
 import '../common/gate_pass_verify_screen.dart';
 
 class StaffDashboardScreen extends StatefulWidget {
@@ -1311,18 +1310,6 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                 builder: (_) => StaffTicketScreen(
                   facilityId: facilityId,
                   staffId: widget.user.id,
-                ),
-              ),
-            );
-          }),
-          const SizedBox(width: 8),
-          tile(Icons.receipt_long_outlined, 'Giao dịch', () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => TransactionHistoryScreen(
-                  userRole: widget.user.roleName,
-                  facilityId: facilityId,
                 ),
               ),
             );

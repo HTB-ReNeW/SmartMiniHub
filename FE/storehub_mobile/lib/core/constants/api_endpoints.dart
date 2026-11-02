@@ -174,6 +174,8 @@ class ApiEndpoints {
   static const String reportExport = '/reports/export';
 
   // ---- Unit type pricing (UnitTypeController) ----
+  static const String unitTypesEndpoint = '/unit-types';
+  static String unitTypeDetail(String unitTypeId) => '/unit-types/$unitTypeId';
   static String unitTypePrice(String unitTypeId) =>
       '/unit-types/$unitTypeId/price';
 

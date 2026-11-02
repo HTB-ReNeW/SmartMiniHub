@@ -732,7 +732,14 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
         builder: (ctx, setSheet) {
           final query = searchController.text.trim().toLowerCase();
           final filtered = users.whereType<Map>().where((u) {
-            if (u['roleName']?.toString() != 'FACILITY_MANAGER') return false;
+            final rawRole = (u['roleName']?.toString() ??
+                    (u['role'] is Map
+                        ? u['role']['name']?.toString()
+                        : u['role']?.toString()) ??
+                    '')
+                .toUpperCase()
+                .replaceAll('ROLE_', '');
+            if (rawRole != 'FACILITY_MANAGER') return false;
             if (query.isEmpty) return true;
             final haystack = [u['fullName'], u['email'], u['username']]
                 .whereType<String>()
@@ -795,36 +802,71 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
                             final managed = managedFacility[userId];
                             final isAlreadyAssigned =
                                 currentManagerIds.contains(userId);
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: isAlreadyAssigned
-                                    ? AppColors.success
-                                    : AppColors.primaryContainer,
-                                child: Text(
-                                  name.isNotEmpty
-                                      ? name[0].toUpperCase()
-                                      : 'M',
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold),
-                                ),
+                            return Container(
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 6),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade200),
                               ),
-                              title: Text(name,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600)),
-                              subtitle: Text(
-                                '${u['email'] ?? ''}\n'
-                                '${isAlreadyAssigned ? 'Đang quản lý cơ sở này' : (managed == null ? 'Chưa quản lý cơ sở nào' : 'Đang quản lý: $managed')}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isAlreadyAssigned
-                                      ? AppColors.success
-                                      : AppColors.onSurfaceVariant,
-                                ),
-                              ),
-                              isThreeLine: true,
-                              trailing: isAlreadyAssigned
-                                  ? Container(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  CircleAvatar(
+                                    backgroundColor: isAlreadyAssigned
+                                        ? AppColors.success
+                                        : AppColors.primaryContainer,
+                                    child: Text(
+                                      name.isNotEmpty
+                                          ? name[0].toUpperCase()
+                                          : 'M',
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(name,
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 14)),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          u['email']?.toString() ?? '',
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.onSurfaceVariant),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          isAlreadyAssigned
+                                              ? 'Đang quản lý cơ sở này'
+                                              : (managed == null
+                                                  ? 'Chưa quản lý cơ sở nào'
+                                                  : 'Đang quản lý: $managed'),
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: isAlreadyAssigned
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                            color: isAlreadyAssigned
+                                                ? AppColors.success
+                                                : AppColors.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  if (isAlreadyAssigned)
+                                    Container(
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
@@ -849,7 +891,8 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
                                         ],
                                       ),
                                     )
-                                  : ElevatedButton.icon(
+                                  else
+                                    ElevatedButton.icon(
                                       style: ElevatedButton.styleFrom(
                                         visualDensity: VisualDensity.compact,
                                         padding: const EdgeInsets.symmetric(
@@ -893,6 +936,8 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
                                         }
                                       },
                                     ),
+                                ],
+                              ),
                             );
                           },
                         ),

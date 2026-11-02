@@ -193,12 +193,8 @@ class _FacilityManagementScreenState extends State<FacilityManagementScreen> {
                     return AppEmptyState(
                       icon: Icons.warehouse_outlined,
                       title: 'Chưa có cơ sở nào',
-                      message: widget.canAssignManager
-                          ? 'Business Manager cần tạo cơ sở trước khi bạn gán quản lý.'
-                          : 'Bấm nút bên dưới để tạo cơ sở kho đầu tiên.',
-                      action: widget.canAssignManager
-                          ? null
-                          : ElevatedButton.icon(
+                      message: 'Bấm nút bên dưới để tạo cơ sở kho.',
+                      action: ElevatedButton.icon(
                         onPressed: () async {
                           final created = await Navigator.push<bool>(
                             context,
@@ -320,14 +316,13 @@ class _FacilityManagementScreenState extends State<FacilityManagementScreen> {
           ),
         ],
       ),
-      floatingActionButton: widget.canAssignManager
-          ? null
-          : FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final created = await Navigator.push<bool>(
             context,
-            MaterialPageRoute(builder: (_) => FacilityEditScreen(
-                                    canAssignManager: widget.canAssignManager)),
+            MaterialPageRoute(
+                builder: (_) => FacilityEditScreen(
+                    canAssignManager: widget.canAssignManager)),
           );
           if (created == true) _load();
         },

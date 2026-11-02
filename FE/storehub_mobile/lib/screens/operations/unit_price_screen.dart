@@ -60,6 +60,83 @@ class _UnitPriceScreenState extends State<UnitPriceScreen> {
     } catch (_) {}
   }
 
+  List<FacilityModel> get _uniqueFacilities {
+    final Map<String, FacilityModel> map = {};
+    for (final f in _facilities) {
+      if (f.id.isNotEmpty && !map.containsKey(f.id)) {
+        map[f.id] = f;
+      }
+    }
+    return map.values.toList();
+  }
+
+  Future<void> _showBranchPicker() async {
+    final list = _uniqueFacilities;
+    if (list.isEmpty) return;
+    final selected = await showModalBottomSheet<FacilityModel>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Text(
+                'Chọn chi nhánh áp dụng % tiền cọc',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const Divider(height: 1),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: list.length,
+                itemBuilder: (context, index) {
+                  final f = list[index];
+                  final isSelected = f.id == _selectedFacility?.id;
+                  return ListTile(
+                    leading: Icon(
+                      Icons.storefront_outlined,
+                      color: isSelected ? AppColors.primary : Colors.grey,
+                    ),
+                    title: Text(
+                      f.name,
+                      style: TextStyle(
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected ? AppColors.primary : null,
+                      ),
+                    ),
+                    subtitle: Text(
+                      f.city.isNotEmpty
+                          ? '${f.city} • ${f.address}'
+                          : f.address,
+                      style: const TextStyle(fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: isSelected
+                        ? const Icon(Icons.check_circle,
+                            color: AppColors.primary)
+                        : null,
+                    onTap: () => Navigator.pop(ctx, f),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (selected != null) {
+      _onFacilityChanged(selected);
+    }
+  }
+
   void _onFacilityChanged(FacilityModel? facility) {
     if (facility == null) return;
     setState(() {
@@ -233,40 +310,44 @@ class _UnitPriceScreenState extends State<UnitPriceScreen> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _facilities.isEmpty
-                      ? const Text('Đang tải cơ sở...',
-                          style: TextStyle(fontSize: 12, color: Colors.grey))
-                      : DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedFacility?.id,
-                            isExpanded: true,
-                            icon: const Icon(Icons.arrow_drop_down,
-                                color: AppColors.primary),
-                            items: _facilities.map((f) {
-                              return DropdownMenuItem<String>(
-                                value: f.id,
-                                child: Text(
-                                  f.name,
-                                  style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (val) {
-                              final found = _facilities.firstWhere(
-                                (x) => x.id == val,
-                                orElse: () => _facilities.first,
-                              );
-                              _onFacilityChanged(found);
-                            },
+                  child: InkWell(
+                    onTap: _uniqueFacilities.isEmpty ? null : _showBranchPicker,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _selectedFacility?.name ??
+                                  (_uniqueFacilities.isNotEmpty
+                                      ? _uniqueFacilities.first.name
+                                      : 'Đang tải cơ sở...'),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0F172A),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
+                          const Icon(Icons.arrow_drop_down,
+                              color: AppColors.primary, size: 20),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -410,14 +491,18 @@ class _UnitPriceScreenState extends State<UnitPriceScreen> {
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text(
-                                            item['typeName']?.toString() ?? '',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 15,
-                                              color: Color(0xFF0F172A),
+                                          Expanded(
+                                            child: Text(
+                                              item['typeName']?.toString() ?? '',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 15,
+                                                color: Color(0xFF0F172A),
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
+                                          const SizedBox(width: 8),
                                           Container(
                                             padding: const EdgeInsets.symmetric(
                                                 horizontal: 7, vertical: 2),

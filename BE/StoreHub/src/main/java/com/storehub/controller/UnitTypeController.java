@@ -26,7 +26,7 @@ public class UnitTypeController {
     private final UnitTypeManagementService unitTypeManagementService;
 
     @PostMapping
-    @PreAuthorize("hasRole('BUSINESS_MANAGER') and hasAuthority('UNIT_TYPE_CREATE')")
+    @PreAuthorize("hasAnyRole('BUSINESS_MANAGER', 'ADMIN') and hasAuthority('UNIT_TYPE_CREATE')")
     @Operation(summary = "Tạo mới loại kho (kích thước, diện tích, giá thuê, tiền cọc)")
     public ResponseEntity<ApiResponse<UnitTypeCatalogResponse>> createUnitType(
             @Valid @RequestBody CreateUnitTypeRequest request
@@ -39,7 +39,7 @@ public class UnitTypeController {
     }
 
     @PutMapping("/{unitTypeId}")
-    @PreAuthorize("hasRole('BUSINESS_MANAGER') and hasAuthority('UNIT_TYPE_UPDATE')")
+    @PreAuthorize("hasAnyRole('BUSINESS_MANAGER', 'ADMIN') and hasAuthority('UNIT_TYPE_UPDATE')")
     @Operation(summary = "Cập nhật loại kho (tên, kích thước, diện tích, giá thuê, tiền cọc)")
     public ResponseEntity<ApiResponse<UnitTypeCatalogResponse>> updateUnitType(
             @PathVariable UUID unitTypeId,
@@ -53,7 +53,7 @@ public class UnitTypeController {
     }
 
     @PutMapping("/{unitTypeId}/price")
-    @PreAuthorize("hasRole('BUSINESS_MANAGER') and hasAuthority('UNIT_TYPE_UPDATE')")
+    @PreAuthorize("hasAnyRole('BUSINESS_MANAGER', 'ADMIN') and hasAuthority('UNIT_TYPE_UPDATE')")
     @Operation(summary = "Cập nhật giá thuê tháng và tiền cọc của loại kho")
     public ResponseEntity<ApiResponse<UnitTypeCatalogResponse>> updatePrice(
             @PathVariable UUID unitTypeId,

@@ -180,13 +180,26 @@ class _UnitPriceScreenState extends State<UnitPriceScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: const Text('Giá loại kho'),
+        title: const Text('Cấu hình loại kho'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Tạo loại kho',
-            onPressed: _create,
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: FilledButton.icon(
+              onPressed: _create,
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('Thêm loại kho'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
+          const SizedBox(width: 12),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -194,7 +207,7 @@ class _UnitPriceScreenState extends State<UnitPriceScreen> {
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text(
-          'Tạo loại kho',
+          'Thêm loại kho',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
@@ -270,6 +283,40 @@ class _UnitPriceScreenState extends State<UnitPriceScreen> {
               ],
             ),
           ),
+          // Action banner to add unit type
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Danh sách loại kho',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _create,
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Thêm loại kho'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 1,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    textStyle: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
           Expanded(
             child: FutureBuilder<List<dynamic>>(
               future: _future,
@@ -294,10 +341,19 @@ class _UnitPriceScreenState extends State<UnitPriceScreen> {
                     .toList();
 
                 if (items.isEmpty) {
-                  return const AppEmptyState(
-                    icon: Icons.price_change_outlined,
+                  return AppEmptyState(
+                    icon: Icons.inventory_2_outlined,
                     title: 'Chưa có loại kho',
                     message: 'Chưa có loại kho nào trong hệ thống.',
+                    action: ElevatedButton.icon(
+                      onPressed: _create,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Thêm loại kho'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
                   );
                 }
 

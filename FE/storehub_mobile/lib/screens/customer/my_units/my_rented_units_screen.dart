@@ -358,6 +358,14 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      tooltip: 'Quay lại',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => Navigator.pop(sheetContext),
+                    ),
+                    const SizedBox(width: 8),
                     const Icon(Icons.history_edu,
                         color: AppColors.primaryContainer),
                     const SizedBox(width: 8),
@@ -370,6 +378,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.close),
+                      tooltip: 'Đóng',
                       onPressed: () => Navigator.pop(sheetContext),
                     ),
                   ],

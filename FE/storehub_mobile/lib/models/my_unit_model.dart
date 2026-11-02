@@ -74,14 +74,8 @@ class MyUnitModel {
       : 'Đang chờ quản lý xác nhận ngăn kho';
   bool get hasLateFeeDue => overdueFeeOutstanding > 0;
 
-  /// Chưa tới ngày được gia hạn theo chính sách của cơ sở (chỉ gia hạn trong N ngày cuối).
-  bool get renewalNotYetOpen {
-    final opens = renewalOpensDate;
-    if (opens == null) return false;
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    return today.isBefore(DateTime(opens.year, opens.month, opens.day));
-  }
+  /// Khách hàng có thể gia hạn thuê bất cứ lúc nào khi hợp đồng đang hoạt động
+  bool get renewalNotYetOpen => false;
 
   double? get monthlyRate {
     if (rentalMonths == null || rentalMonths == 0) return null;

@@ -1,17 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:storehub_mobile/core/theme/app_theme.dart';
+import 'package:storehub_mobile/models/facility_management_models.dart';
+import 'package:storehub_mobile/screens/operations/facility_edit_screen.dart';
+import 'package:storehub_mobile/services/admin_api_service.dart';
+import 'package:storehub_mobile/services/facility_admin_api_service.dart';
+import 'package:storehub_mobile/services/facility_ops_api_service.dart';
+
+class MockAdminApiService extends AdminApiService {
+  @override
+  Future<List<dynamic>> getUsers() async {
+    return [
+      {
+        'id': 'u1',
+        'fullName': 'Nguyễn Quản Lý 1',
+        'email': 'mgr1@storehub.com',
+        'username': 'mgr1',
+        'roleName': 'FACILITY_MANAGER',
+        'facilityId': null,
+      },
+      {
+        'id': 'u2',
+        'fullName': 'Trần Quản Lý 2',
+        'email': 'mgr2@storehub.com',
+        'username': 'mgr2',
+        'roleName': 'FACILITY_MANAGER',
+        'facilityId': null,
+      },
+    ];
+  }
+}
+
+class MockFacilityAdminApiService extends FacilityAdminApiService {
+  @override
+  Future<List<dynamic>> getFacilities({String? search}) async {
+    return [];
+  }
+}
+
+class MockFacilityOpsApiService extends FacilityOpsApiService {
+  @override
+  Future<List<FacilityStaffModel>> getFacilityManagers(String facilityId) async {
+    return [];
+  }
+}
 
 void main() {
-  testWidgets('Assign manager sheet does not throw BoxConstraints forces an infinite width',
+  testWidgets(
+      'FacilityManagerAssignmentSheet renders with AppTheme without BoxConstraints infinite width error',
       (tester) async {
-    final searchController = TextEditingController();
-    final users = [
-      {'id': '1', 'fullName': 'Manager One', 'email': 'm1@gmail.com', 'roleName': 'FACILITY_MANAGER'},
-      {'id': '2', 'fullName': 'Manager Two', 'email': 'm2@gmail.com', 'roleName': 'FACILITY_MANAGER'},
-    ];
-
     await tester.pumpWidget(
       MaterialApp(
+        theme: AppTheme.lightTheme,
         home: Scaffold(
           body: Builder(
             builder: (context) => ElevatedButton(
@@ -19,80 +59,40 @@ void main() {
                 showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
-                  shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-                  builder: (ctx) => StatefulBuilder(
-                    builder: (ctx, setSheet) {
-                      final query = searchController.text.trim().toLowerCase();
-                      final filtered = users.where((u) {
-                        final rawRole = (u['roleName']?.toString() ?? '').toUpperCase();
-                        if (rawRole != 'FACILITY_MANAGER') return false;
-                        if (query.isEmpty) return true;
-                        return u['fullName']!.toLowerCase().contains(query);
-                      }).toList();
-
-                      return SizedBox(
-                        height: MediaQuery.of(ctx).size.height * 0.7,
-                        child: Column(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Thêm Quản lý cơ sở (Facility Manager)',
-                                      style: TextStyle(
-                                          fontSize: 16, fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 10),
-                                  TextField(
-                                    controller: searchController,
-                                    decoration: const InputDecoration(
-                                        hintText: 'Tìm theo tên hoặc email',
-                                        prefixIcon: Icon(Icons.search)),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Expanded(
-                              child: ListView.builder(
-                                itemCount: filtered.length,
-                                itemBuilder: (context, index) {
-                                  final u = filtered[index];
-                                  return ListTile(
-                                    title: Text(u['fullName']!),
-                                    subtitle: Text(u['email']!),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                  builder: (ctx) => FacilityManagerAssignmentSheet(
+                    facilityId: 'f1',
+                    facilityName: 'StoreHub Thu Duc',
+                    currentManagerIds: const {},
+                    adminApiService: MockAdminApiService(),
+                    facilityService: MockFacilityAdminApiService(),
+                    opsService: MockFacilityOpsApiService(),
+                    onManagerAssigned: () async {},
                   ),
                 );
               },
-              child: const Text('Open'),
+              child: const Text('Open Sheet'),
             ),
           ),
         ),
       ),
     );
 
-    // Open sheet
-    await tester.tap(find.text('Open'));
+    // Tap to open sheet
+    await tester.tap(find.text('Open Sheet'));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 500));
 
-    expect(find.text('Thêm Quản lý cơ sở (Facility Manager)'), findsOneWidget);
+    // Verify sheet title is rendered
+    expect(find.text('Gán Quản lý cơ sở (Facility Manager)'), findsOneWidget);
+
+    // Verify users are loaded and rendered
+    expect(find.text('Nguyễn Quản Lý 1'), findsOneWidget);
+    expect(find.text('Trần Quản Lý 2'), findsOneWidget);
+
+    // Verify the "Gán" action buttons are rendered
+    expect(find.text('Gán'), findsNWidgets(2));
+
+    // Verify NO layout exceptions occurred!
     expect(tester.takeException(), isNull);
-
-    // Now tap the TextField to focus it (soft keyboard simulation)
-    await tester.tap(find.byType(TextField));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-
-    final ex = tester.takeException();
-    expect(ex, isNull);
   });
 }

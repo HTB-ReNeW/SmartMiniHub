@@ -141,13 +141,14 @@ class _UnitPriceScreenState extends State<UnitPriceScreen> {
     if (facility == null) return;
     setState(() {
       _selectedFacility = facility;
+      _future = _catalog.getUnitTypes(facilityId: facility.id);
     });
     _loadPolicyForFacility(facility.id);
   }
 
   void _reload() {
     setState(() {
-      _future = _catalog.getUnitTypes();
+      _future = _catalog.getUnitTypes(facilityId: _selectedFacility?.id);
     });
   }
 
@@ -157,10 +158,10 @@ class _UnitPriceScreenState extends State<UnitPriceScreen> {
   }
 
   Future<void> _create() async {
-    final result = await showDialog<_UnitTypeFormData>(
+    final result = await showDialog<UnitTypeFormData>(
       context: context,
       barrierDismissible: true,
-      builder: (dialogContext) => _UnitTypeFormDialog(
+      builder: (dialogContext) => UnitTypeFormDialog(
         title: 'Tạo loại kho mới',
         isCreate: true,
         initialTypeName: '',
@@ -206,10 +207,10 @@ class _UnitPriceScreenState extends State<UnitPriceScreen> {
     final rawPrice = _num(unitType['basePricePerMonth']);
     final rawArea = _num(unitType['areaSqm']);
 
-    final result = await showDialog<_UnitTypeFormData>(
+    final result = await showDialog<UnitTypeFormData>(
       context: context,
       barrierDismissible: true,
-      builder: (dialogContext) => _UnitTypeFormDialog(
+      builder: (dialogContext) => UnitTypeFormDialog(
         title: 'Chỉnh sửa kho - ${unitType['typeName'] ?? ''}',
         isCreate: false,
         initialTypeName: unitType['typeName']?.toString() ?? '',
@@ -259,24 +260,12 @@ class _UnitPriceScreenState extends State<UnitPriceScreen> {
       appBar: AppBar(
         title: const Text('Cấu hình loại kho'),
         actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: FilledButton.icon(
-              onPressed: _create,
-              icon: const Icon(Icons.add, size: 16),
-              label: const Text('Thêm loại kho'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-            ),
+          IconButton(
+            icon: const Icon(Icons.add_rounded),
+            tooltip: 'Thêm loại kho',
+            onPressed: _create,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 4),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -364,38 +353,16 @@ class _UnitPriceScreenState extends State<UnitPriceScreen> {
               ],
             ),
           ),
-          // Action banner to add unit type
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Danh sách loại kho',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: _create,
-                  icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Thêm loại kho'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 1,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    textStyle: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
+          // Section header
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 14, 16, 8),
+            child: Text(
+              'Danh sách loại kho',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0F172A),
+              ),
             ),
           ),
           Expanded(
@@ -581,14 +548,14 @@ class _UnitPriceScreenState extends State<UnitPriceScreen> {
   }
 }
 
-class _UnitTypeFormData {
+class UnitTypeFormData {
   final String typeName;
   final String dimensions;
   final double areaSqm;
   final double price;
   final double deposit;
 
-  const _UnitTypeFormData({
+  const UnitTypeFormData({
     required this.typeName,
     required this.dimensions,
     required this.areaSqm,
@@ -597,7 +564,7 @@ class _UnitTypeFormData {
   });
 }
 
-class _UnitTypeFormDialog extends StatefulWidget {
+class UnitTypeFormDialog extends StatefulWidget {
   final String title;
   final bool isCreate;
   final String initialTypeName;
@@ -607,7 +574,8 @@ class _UnitTypeFormDialog extends StatefulWidget {
   final double depositPercentage;
   final String facilityName;
 
-  const _UnitTypeFormDialog({
+  const UnitTypeFormDialog({
+    super.key,
     required this.title,
     required this.isCreate,
     required this.initialTypeName,
@@ -619,14 +587,17 @@ class _UnitTypeFormDialog extends StatefulWidget {
   });
 
   @override
-  State<_UnitTypeFormDialog> createState() => _UnitTypeFormDialogState();
+  State<UnitTypeFormDialog> createState() => _UnitTypeFormDialogState();
 }
 
-class _UnitTypeFormDialogState extends State<_UnitTypeFormDialog> {
+class _UnitTypeFormDialogState extends State<UnitTypeFormDialog> {
   late final TextEditingController _nameController;
-  late final TextEditingController _dimensionsController;
+  late final TextEditingController _lengthController;
+  late final TextEditingController _widthController;
+  late final TextEditingController _heightController;
   late final TextEditingController _areaController;
   late final TextEditingController _priceController;
+  bool _isCustomArea = false;
   final _formKey = GlobalKey<FormState>();
   final NumberFormat _currency =
       NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
@@ -635,12 +606,45 @@ class _UnitTypeFormDialogState extends State<_UnitTypeFormDialog> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.initialTypeName);
-    _dimensionsController =
-        TextEditingController(text: widget.initialDimensions);
+
+    // Phân tích kích thước Dài x Rộng x Cao ban đầu
+    double len = 1.0;
+    double wid = 1.0;
+    double hei = 2.0;
+    final dim = widget.initialDimensions.trim();
+    final match3 = RegExp(
+            r'([\d.]+)\s*m?\s*[xX*×]\s*([\d.]+)\s*m?\s*[xX*×]\s*([\d.]+)\s*m?')
+        .firstMatch(dim);
+    if (match3 != null) {
+      len = double.tryParse(match3.group(1)!) ?? 1.0;
+      wid = double.tryParse(match3.group(2)!) ?? 1.0;
+      hei = double.tryParse(match3.group(3)!) ?? 2.0;
+    } else {
+      final match2 = RegExp(r'([\d.]+)\s*m?\s*[xX*×]\s*([\d.]+)\s*m?')
+          .firstMatch(dim);
+      if (match2 != null) {
+        len = double.tryParse(match2.group(1)!) ?? 1.0;
+        wid = double.tryParse(match2.group(2)!) ?? 1.0;
+        hei = 2.0;
+      } else if (widget.initialAreaSqm > 0) {
+        len = 1.0;
+        wid = widget.initialAreaSqm;
+        hei = 2.0;
+      }
+    }
+
+    _lengthController =
+        TextEditingController(text: _formatNumber(len));
+    _widthController =
+        TextEditingController(text: _formatNumber(wid));
+    _heightController =
+        TextEditingController(text: _formatNumber(hei));
+
+    final autoArea = (len * wid * 100).round() / 100.0;
+    _isCustomArea = false;
+
     _areaController = TextEditingController(
-      text: widget.initialAreaSqm > 0
-          ? widget.initialAreaSqm.toString()
-          : '1.0',
+      text: _formatNumber(autoArea),
     );
     _priceController = TextEditingController(
       text: widget.initialPrice > 0
@@ -649,13 +653,93 @@ class _UnitTypeFormDialogState extends State<_UnitTypeFormDialog> {
     );
   }
 
+  static String _formatNumber(double val) {
+    if (val == val.roundToDouble()) {
+      return val.toInt().toString();
+    }
+    return val.toString();
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
-    _dimensionsController.dispose();
+    _lengthController.dispose();
+    _widthController.dispose();
+    _heightController.dispose();
     _areaController.dispose();
     _priceController.dispose();
     super.dispose();
+  }
+
+  double get _lenVal => double.tryParse(_lengthController.text.trim()) ?? 1.0;
+  double get _widthVal => double.tryParse(_widthController.text.trim()) ?? 1.0;
+  double get _heightVal => double.tryParse(_heightController.text.trim()) ?? 2.0;
+
+  double get _calculatedArea {
+    if (_isCustomArea) {
+      return double.tryParse(_areaController.text.trim()) ?? (_lenVal * _widthVal);
+    }
+    return (_lenVal * _widthVal * 100).round() / 100.0;
+  }
+
+  double get _calculatedVolume {
+    return (_lenVal * _widthVal * _heightVal * 100).round() / 100.0;
+  }
+
+  String get _formattedDimensions {
+    return '${_formatNumber(_lenVal)}m x ${_formatNumber(_widthVal)}m x ${_formatNumber(_heightVal)}m';
+  }
+
+  void _onDimensionChanged() {
+    if (!_isCustomArea) {
+      _recomputeAreaFromDimensions();
+    }
+    setState(() {});
+  }
+
+  void _recomputeAreaFromDimensions() {
+    final area = (_lenVal * _widthVal * 100).round() / 100.0;
+    _areaController.text = _formatNumber(area);
+  }
+
+  Widget _presetChip(String label, double l, double w, double h) {
+    final isSelected = (_lenVal - l).abs() < 0.05 &&
+        (_widthVal - w).abs() < 0.05 &&
+        (_heightVal - h).abs() < 0.05;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _lengthController.text = _formatNumber(l);
+          _widthController.text = _formatNumber(w);
+          _heightController.text = _formatNumber(h);
+          _isCustomArea = false;
+          _recomputeAreaFromDimensions();
+        });
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary
+              : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primary
+                : const Color(0xFFE2E8F0),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 10.5,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            color: isSelected ? Colors.white : const Color(0xFF475569),
+          ),
+        ),
+      ),
+    );
   }
 
   double? _parseAmount(String? value) {
@@ -682,20 +766,19 @@ class _UnitTypeFormDialogState extends State<_UnitTypeFormDialog> {
   void _submit() {
     if (_formKey.currentState?.validate() ?? false) {
       final name = _nameController.text.trim();
-      final dimensions = _dimensionsController.text.trim();
-      final area = double.tryParse(_areaController.text.trim());
+      final dimensions = _formattedDimensions;
+      final area = _calculatedArea;
       final price = _parseAmount(_priceController.text);
       final deposit = _calculatedDeposit;
 
       if (name.isNotEmpty &&
           dimensions.isNotEmpty &&
-          area != null &&
           area > 0 &&
           price != null &&
           price > 0) {
         Navigator.pop(
           context,
-          _UnitTypeFormData(
+          UnitTypeFormData(
             typeName: name,
             dimensions: dimensions,
             areaSqm: area,
@@ -774,12 +857,15 @@ class _UnitTypeFormDialogState extends State<_UnitTypeFormDialog> {
                           Icon(Icons.info_outline,
                               size: 14, color: AppColors.primary),
                           SizedBox(width: 6),
-                          Text(
-                            'Phân định logic doanh thu & bảo đảm:',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF334155),
+                          Expanded(
+                            child: Text(
+                              'Phân định logic doanh thu & bảo đảm:',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF334155),
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -841,104 +927,167 @@ class _UnitTypeFormDialogState extends State<_UnitTypeFormDialog> {
                 ),
                 const SizedBox(height: 14),
 
-                // Kích thước & Diện tích
+                // Kích thước & Diện tích (Trực quan, tự động tính toán)
+                const Row(
+                  children: [
+                    Icon(Icons.straighten, size: 16, color: AppColors.primary),
+                    SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Kích thước kho (Dài × Rộng × Cao)',
+                        style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF334155)),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                // 3 ô nhập Dài - Rộng - Cao
                 Row(
                   children: [
                     Expanded(
-                      flex: 3,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Kích thước (D x R x C)',
-                            style: TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF334155)),
-                          ),
-                          const SizedBox(height: 6),
+                          const Text('Chiều Dài',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF64748B))),
+                          const SizedBox(height: 4),
                           TextFormField(
-                            controller: _dimensionsController,
+                            controller: _lengthController,
+                            keyboardType:
+                                const TextInputType.numberWithOptions(
+                                    decimal: true),
+                            onChanged: (_) => _onDimensionChanged(),
                             decoration: InputDecoration(
-                              prefixIcon: const Icon(Icons.straighten, size: 18),
-                              hintText: 'VD: 1m x 1m x 1m',
+                              suffixText: 'm',
+                              hintText: '2.0',
                               filled: true,
                               fillColor: const Color(0xFFF8FAFC),
                               contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 12),
+                                  horizontal: 10, vertical: 10),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(10),
                                 borderSide:
                                     const BorderSide(color: Color(0xFFCBD5E1)),
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(10),
                                 borderSide:
                                     const BorderSide(color: Color(0xFFE2E8F0)),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(10),
                                 borderSide: const BorderSide(
                                     color: AppColors.primary, width: 1.5),
                               ),
                             ),
-                            validator: (val) {
-                              if (val == null || val.trim().isEmpty) {
-                                return 'Vui lòng nhập kích thước';
-                              }
+                            validator: (v) {
+                              final d = double.tryParse(v ?? '');
+                              if (d == null || d <= 0) return '> 0';
                               return null;
                             },
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Expanded(
-                      flex: 2,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Diện tích',
-                            style: TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF334155)),
-                          ),
-                          const SizedBox(height: 6),
+                          const Text('Chiều Rộng',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF64748B))),
+                          const SizedBox(height: 4),
                           TextFormField(
-                            controller: _areaController,
+                            controller: _widthController,
                             keyboardType:
                                 const TextInputType.numberWithOptions(
                                     decimal: true),
+                            onChanged: (_) => _onDimensionChanged(),
                             decoration: InputDecoration(
-                              suffixText: 'm²',
-                              hintText: 'VD: 1.0',
+                              suffixText: 'm',
+                              hintText: '3.0',
                               filled: true,
                               fillColor: const Color(0xFFF8FAFC),
                               contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 12),
+                                  horizontal: 10, vertical: 10),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(10),
                                 borderSide:
                                     const BorderSide(color: Color(0xFFCBD5E1)),
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(10),
                                 borderSide:
                                     const BorderSide(color: Color(0xFFE2E8F0)),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(10),
                                 borderSide: const BorderSide(
                                     color: AppColors.primary, width: 1.5),
                               ),
                             ),
-                            validator: (val) {
-                              final d = double.tryParse(val ?? '');
-                              if (d == null || d <= 0) {
-                                return 'Lớn hơn 0';
-                              }
+                            validator: (v) {
+                              final d = double.tryParse(v ?? '');
+                              if (d == null || d <= 0) return '> 0';
+                              return null;
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Chiều Cao',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF64748B))),
+                          const SizedBox(height: 4),
+                          TextFormField(
+                            controller: _heightController,
+                            keyboardType:
+                                const TextInputType.numberWithOptions(
+                                    decimal: true),
+                            onChanged: (_) => setState(() {}),
+                            decoration: InputDecoration(
+                              suffixText: 'm',
+                              hintText: '2.5',
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 10),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide:
+                                    const BorderSide(color: Color(0xFFCBD5E1)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide:
+                                    const BorderSide(color: Color(0xFFE2E8F0)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: const BorderSide(
+                                    color: AppColors.primary, width: 1.5),
+                              ),
+                            ),
+                            validator: (v) {
+                              final d = double.tryParse(v ?? '');
+                              if (d == null || d <= 0) return '> 0';
                               return null;
                             },
                           ),
@@ -946,6 +1095,202 @@ class _UnitTypeFormDialogState extends State<_UnitTypeFormDialog> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 8),
+
+                // Gợi ý nhanh kích thước phổ biến
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      const Text('Gợi ý:',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF94A3B8),
+                              fontWeight: FontWeight.w500)),
+                      const SizedBox(width: 6),
+                      _presetChip('1×1×1m', 1, 1, 1),
+                      const SizedBox(width: 4),
+                      _presetChip('1.5×2×2m', 1.5, 2, 2),
+                      const SizedBox(width: 4),
+                      _presetChip('2×2×2.5m', 2, 2, 2.5),
+                      const SizedBox(width: 4),
+                      _presetChip('2×3×2.5m', 2, 3, 2.5),
+                      const SizedBox(width: 4),
+                      _presetChip('3×3×3m', 3, 3, 3),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Card hiển thị kết quả tính Diện tích & Thể tích tự động
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.calculate_outlined,
+                              size: 15, color: Color(0xFF1D4ED8)),
+                          const SizedBox(width: 5),
+                          const Expanded(
+                            child: Text(
+                              'Tự động tính Diện tích & Thể tích',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E40AF),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                _isCustomArea = !_isCustomArea;
+                                if (!_isCustomArea) {
+                                  _recomputeAreaFromDimensions();
+                                }
+                              });
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 4, vertical: 2),
+                              child: Text(
+                                _isCustomArea
+                                    ? 'Khóa tự động'
+                                    : 'Sửa diện tích lẻ',
+                                style: const TextStyle(
+                                  fontSize: 10.5,
+                                  color: Color(0xFF2563EB),
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border:
+                                    Border.all(color: const Color(0xFFDBEAFE)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Diện tích sàn',
+                                      style: TextStyle(
+                                          fontSize: 10.5,
+                                          color: Color(0xFF64748B),
+                                          fontWeight: FontWeight.w500)),
+                                  const SizedBox(height: 2),
+                                  if (_isCustomArea)
+                                    SizedBox(
+                                      height: 28,
+                                      child: TextFormField(
+                                        controller: _areaController,
+                                        keyboardType: const TextInputType
+                                            .numberWithOptions(decimal: true),
+                                        style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF1E40AF)),
+                                        decoration: const InputDecoration(
+                                          isDense: true,
+                                          contentPadding: EdgeInsets.zero,
+                                          border: InputBorder.none,
+                                          suffixText: 'm²',
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    Text(
+                                      '${_calculatedArea.toStringAsFixed(_calculatedArea.truncateToDouble() == _calculatedArea ? 1 : 2)} m²',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF1E40AF),
+                                      ),
+                                    ),
+                                  Text(
+                                    _isCustomArea
+                                        ? '(Tùy chỉnh thủ công)'
+                                        : 'Dài × Rộng (${_lenVal}m × ${_widthVal}m)',
+                                    style: const TextStyle(
+                                        fontSize: 9.5,
+                                        color: Color(0xFF94A3B8)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border:
+                                    Border.all(color: const Color(0xFFDBEAFE)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Thể tích chứa',
+                                      style: TextStyle(
+                                          fontSize: 10.5,
+                                          color: Color(0xFF64748B),
+                                          fontWeight: FontWeight.w500)),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${_calculatedVolume.toStringAsFixed(_calculatedVolume.truncateToDouble() == _calculatedVolume ? 1 : 2)} m³',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF0369A1),
+                                    ),
+                                  ),
+                                  Text(
+                                    'D × R × C (${_formatNumber(_lenVal)}m × ${_formatNumber(_widthVal)}m × ${_formatNumber(_heightVal)}m)',
+                                    style: const TextStyle(
+                                        fontSize: 9.5,
+                                        color: Color(0xFF94A3B8)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '📏 Chuẩn định dạng: $_formattedDimensions',
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF3B82F6),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 14),
 
@@ -1004,15 +1349,17 @@ class _UnitTypeFormDialogState extends State<_UnitTypeFormDialog> {
 
                 // Tiền cọc bảo đảm (READ-ONLY, tự động tính theo % tiền cọc)
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Tiền cọc bảo đảm',
-                      style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF334155)),
+                    const Expanded(
+                      child: Text(
+                        'Tiền cọc bảo đảm',
+                        style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF334155)),
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),

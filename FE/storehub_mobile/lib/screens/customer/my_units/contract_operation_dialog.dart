@@ -553,74 +553,212 @@ class _ContractOperationDialogState extends State<ContractOperationDialog> {
 
   Widget _buildExtendForm() {
     final unit = widget.unit;
+    final monthlyPrice = unit.monthlyRate ??
+        (unit.totalRentalFee > 0 && (unit.rentalMonths ?? 0) > 0
+            ? unit.totalRentalFee / unit.rentalMonths!
+            : 0.0);
+    final estimatedFee = monthlyPrice * _extraMonths;
+    final projectedEndDate = unit.endDate != null
+        ? DateTime(
+            unit.endDate!.year,
+            unit.endDate!.month + _extraMonths,
+            unit.endDate!.day,
+          )
+        : null;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // 1. Thẻ thông tin ngăn kho & thời hạn hiện tại
         Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(12),
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Ngăn ${unit.unitCode}',
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              if (unit.monthlyRate != null)
-                Text(
-                    'Giá hiện tại: ${_currency.format(unit.monthlyRate)} / tháng',
-                    style: const TextStyle(fontSize: 12)),
-              if (unit.endDate != null)
-                Text('Ngày hết hạn hiện tại: ${_dateFmt.format(unit.endDate!)}',
-                    style: const TextStyle(fontSize: 12)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.warehouse_outlined,
+                            size: 16, color: AppColors.primary),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Ngăn ${unit.unitCode}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                    ],
+                  ),
+                  if (monthlyPrice > 0)
+                    Text(
+                      '${_currency.format(monthlyPrice)} / tháng',
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                ],
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Hạn hiện tại:',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                  Text(
+                    unit.endDate != null
+                        ? _dateFmt.format(unit.endDate!)
+                        : 'Chưa xác định',
+                    style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              if (projectedEndDate != null) ...[
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Hạn mới sau gia hạn:',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF059669),
+                          fontWeight: FontWeight.w600)),
+                    Text(
+                      _dateFmt.format(projectedEndDate),
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF059669),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
         const SizedBox(height: 16),
-        const Text('Gia hạn thêm bao nhiêu tháng?',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+
+        // 2. Chọn thời gian gia hạn
+        const Text(
+          'Chọn thời gian gia hạn thêm:',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+        ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: [1, 3, 6, 12].map((m) {
+          children: [1, 2, 3, 6, 12].map((m) {
             final selected = _extraMonths == m;
             return ChoiceChip(
               label: Text('+$m tháng'),
               selected: selected,
+              selectedColor: AppColors.primary,
+              labelStyle: TextStyle(
+                fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                color: selected ? Colors.white : const Color(0xFF334155),
+              ),
               onSelected: (_) => setState(() => _extraMonths = m),
             );
           }).toList(),
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            const Text('Tùy chọn:', style: TextStyle(fontSize: 12)),
-            IconButton(
-              icon: const Icon(Icons.remove_circle_outline),
-              onPressed: _extraMonths > 1
-                  ? () => setState(() => _extraMonths--)
-                  : null,
-            ),
-            Text('$_extraMonths tháng',
-                style: const TextStyle(fontWeight: FontWeight.bold)),
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline),
-              onPressed: _extraMonths < 36
-                  ? () => setState(() => _extraMonths++)
-                  : null,
-            ),
-          ],
+
+        // Stepper tùy chỉnh số tháng
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Số tháng tùy chọn:',
+                  style: TextStyle(fontSize: 12.5, color: Color(0xFF475569))),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline, size: 22),
+                    color: _extraMonths > 1
+                        ? AppColors.primary
+                        : Colors.grey.shade400,
+                    onPressed: _extraMonths > 1
+                        ? () => setState(() => _extraMonths--)
+                        : null,
+                  ),
+                  Container(
+                    constraints: const BoxConstraints(minWidth: 70),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '$_extraMonths tháng',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline, size: 22),
+                    color: _extraMonths < 36
+                        ? AppColors.primary
+                        : Colors.grey.shade400,
+                    onPressed: _extraMonths < 36
+                        ? () => setState(() => _extraMonths++)
+                        : null,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 4),
-        const Text(
-          'Phí gia hạn chính xác do hệ thống tính và hiển thị sau khi bạn xác nhận.',
-          style: TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
-        ),
+        const SizedBox(height: 14),
+
+        // Tạm tính chi phí
+        if (estimatedFee > 0)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Tạm tính phí gia hạn:',
+                    style: TextStyle(
+                        fontSize: 12.5,
+                        color: Color(0xFF1E40AF),
+                        fontWeight: FontWeight.w600)),
+                Text(
+                  _currency.format(estimatedFee),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E40AF),
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }
@@ -1294,62 +1432,253 @@ class _ContractOperationDialogState extends State<ContractOperationDialog> {
     final result = _result!;
     final transactionId = result['transactionId']?.toString() ?? '';
     final fee = num.tryParse(result['additionalFee']?.toString() ?? '') ?? 0;
+    final unit = widget.unit;
 
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text(widget.payOverdue ? 'Thanh toán phí trễ hạn' : 'Thanh toán phí gia hạn'),
-      content: SingleChildScrollView(
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      backgroundColor: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(22),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              widget.payOverdue
-                  ? 'Phí trễ hạn: ${_currency.format(fee)}'
-                  : 'Phí gia hạn: ${_currency.format(fee)}',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            // Header icon + Title + Close button
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: (widget.payOverdue ? AppColors.error : AppColors.primary)
+                        .withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    widget.payOverdue
+                        ? Icons.warning_amber_rounded
+                        : Icons.autorenew_rounded,
+                    color: widget.payOverdue ? AppColors.error : AppColors.primary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.payOverdue
+                            ? 'Thanh toán phí trễ hạn'
+                            : 'Thanh toán phí gia hạn',
+                        style: const TextStyle(
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Ngăn ${unit.unitCode} • ${unit.facilityName}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  onPressed: _isCancellingExtension
+                      ? null
+                      : () => Navigator.pop(context, true),
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              widget.payOverdue
-                  ? 'Thanh toán phí trễ hạn không làm gia hạn hợp đồng. Để khôi phục truy cập, hãy '
-                      'gia hạn hoặc hẹn trả kho.'
-                  : 'Hợp đồng chỉ được gia hạn sau khi thanh toán này được xác nhận.',
-              style: const TextStyle(
-                  fontSize: 12, color: AppColors.onSurfaceVariant),
+            const SizedBox(height: 18),
+
+            // Fee Invoice Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    widget.payOverdue ? 'Tổng phí trễ hạn' : 'Số tiền thanh toán gia hạn',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF64748B),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _currency.format(fee),
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      color: widget.payOverdue ? AppColors.error : AppColors.primary,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+                  ),
+                  if (transactionId.isNotEmpty)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Mã giao dịch:',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            transactionId,
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              fontFamily: 'monospace',
+                              color: Color(0xFF334155),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  if (!widget.payOverdue && unit.endDate != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Hạn hợp đồng hiện tại:',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        ),
+                        Text(
+                          _dateFmt.format(unit.endDate!),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Information Note
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBBF7D0)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.check_circle_outline, size: 16, color: Color(0xFF16A34A)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      widget.payOverdue
+                          ? 'Thanh toán phí trễ hạn để khôi phục quyền truy cập kho.'
+                          : 'Hợp đồng sẽ được tự động kích hoạt và kéo dài thời hạn ngay khi hoàn tất thanh toán VNPay.',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: Color(0xFF166534),
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Pay with VNPay Button
+            ElevatedButton(
+              onPressed: _isCancellingExtension ? null : _payWithVnpay,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF005BAA),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.payment, size: 18, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text(
+                    'Thanh toán qua VNPay',
+                    style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 8),
-            Text('Mã giao dịch: $transactionId',
-                style: const TextStyle(
-                    fontSize: 11, color: AppColors.onSurfaceVariant)),
+
+            // Secondary Actions Row
+            Row(
+              children: [
+                if (!widget.payOverdue)
+                  Expanded(
+                    child: TextButton(
+                      onPressed: _isCancellingExtension ? null : _cancelExtension,
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                      ),
+                      child: _isCancellingExtension
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text(
+                              'Hủy yêu cầu này',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                            ),
+                    ),
+                  ),
+                if (!widget.payOverdue) const SizedBox(width: 8),
+                Expanded(
+                  child: TextButton(
+                    onPressed: _isCancellingExtension
+                        ? null
+                        : () => Navigator.pop(context, true),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF64748B),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                    child: const Text(
+                      'Đóng (để sau)',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
-      actions: [
-        if (!widget.payOverdue)
-          TextButton(
-            onPressed: _isCancellingExtension ? null : _cancelExtension,
-            child: _isCancellingExtension
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Hủy yêu cầu',
-                    style: TextStyle(color: AppColors.error)),
-          ),
-        TextButton(
-          // true: server có thể đã tạo yêu cầu gia hạn treo -> màn danh sách cần tải lại
-          onPressed: _isCancellingExtension
-              ? null
-              : () => Navigator.pop(context, true),
-          child: const Text('Đóng'),
-        ),
-        ElevatedButton(
-          onPressed: _isCancellingExtension ? null : _payWithVnpay,
-          child: const Text('Thanh toán qua VNPay'),
-        ),
-      ],
     );
   }
 

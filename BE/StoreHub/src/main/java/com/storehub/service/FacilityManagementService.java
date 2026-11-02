@@ -57,6 +57,15 @@ public interface FacilityManagementService {
             String managerEmail
     );
 
+    List<FacilityStaffResponse> managers(
+            UUID facilityId
+    );
+
+    void unassignManager(
+            UUID facilityId,
+            UUID userId
+    );
+
     List<AssignableStaffResponse> assignableStaff(
             UUID facilityId,
             String managerEmail

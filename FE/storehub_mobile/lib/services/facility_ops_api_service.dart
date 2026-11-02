@@ -244,6 +244,25 @@ class FacilityOpsApiService {
     }
   }
 
+  // GET /facility/management/{facilityId}/managers
+  Future<List<FacilityStaffModel>> getFacilityManagers(String facilityId) async {
+    try {
+      final response = await _http.get(
+        ApiEndpoints.facilityManagers(facilityId),
+      );
+      final raw = response.data;
+      final list = (raw is Map && raw['data'] is List)
+          ? raw['data'] as List
+          : (raw is List ? raw : []);
+      return list
+          .whereType<Map>()
+          .map((m) => FacilityManagementMapper.staffFromJson(Map<String, dynamic>.from(m)))
+          .toList();
+    } on ApiException catch (error) {
+      throw _err(error, 'tải danh sách quản lý cơ sở');
+    }
+  }
+
   // PUT /facility/management/{facilityId}/managers/{userId} (ADMIN only).
   Future<FacilityStaffModel> assignManagerToFacility(
     String facilityId,
@@ -261,7 +280,24 @@ class FacilityOpsApiService {
         _unwrap(response.data),
       );
     } on ApiException catch (error) {
-      throw _err(error, 'thêm nhân viên');
+      throw _err(error, 'gán quản lý cho cơ sở');
+    }
+  }
+
+  // DELETE /facility/management/{facilityId}/managers/{userId} (ADMIN only).
+  Future<void> unassignManagerFromFacility(
+    String facilityId,
+    String userId,
+  ) async {
+    try {
+      await _http.delete(
+        ApiEndpoints.facilityUnassignManager(
+          facilityId,
+          userId,
+        ),
+      );
+    } on ApiException catch (error) {
+      throw _err(error, 'gỡ quản lý cơ sở');
     }
   }
 

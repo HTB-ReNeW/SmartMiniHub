@@ -30,6 +30,7 @@ class _FacilityStaffOverviewScreenState
 
   List<Map<String, dynamic>> _facilities = [];
   List<UserModel> _allStaff = [];
+  List<UserModel> _allManagers = [];
 
   // Filter & Search
   String _facilitySearchQuery = '';
@@ -63,10 +64,12 @@ class _FacilityStaffOverviewScreenState
       final results = await Future.wait([
         _facilityService.getFacilities(),
         _adminService.getStaffList(),
+        _adminService.getManagersList(),
       ]);
 
       final rawFacilities = results[0];
       final staffList = results[1] as List<UserModel>;
+      final managerList = results[2] as List<UserModel>;
 
       if (!mounted) return;
       setState(() {
@@ -74,6 +77,7 @@ class _FacilityStaffOverviewScreenState
             .map((f) => Map<String, dynamic>.from(f as Map))
             .toList();
         _allStaff = staffList;
+        _allManagers = managerList;
         _isLoading = false;
       });
     } catch (e) {
@@ -87,6 +91,10 @@ class _FacilityStaffOverviewScreenState
 
   List<UserModel> _getStaffForFacility(String facilityId) {
     return _allStaff.where((s) => s.facilityId == facilityId).toList();
+  }
+
+  List<UserModel> _getManagersForFacility(String facilityId) {
+    return _allManagers.where((m) => m.facilityId == facilityId).toList();
   }
 
   List<UserModel> get _unassignedStaff {
@@ -297,6 +305,23 @@ class _FacilityStaffOverviewScreenState
     final managerName = f['managerName']?.toString();
     final contactPhone = f['contactPhone']?.toString() ?? '';
     final staffInFacility = _getStaffForFacility(facilityId);
+    final managersInFacility = _getManagersForFacility(facilityId);
+    final String managerDisplayText;
+    if (managersInFacility.isNotEmpty) {
+      if (managersInFacility.length == 1) {
+        managerDisplayText =
+            'Quản lý: ${managersInFacility.first.fullName.isNotEmpty ? managersInFacility.first.fullName : managersInFacility.first.username}';
+      } else {
+        final names = managersInFacility
+            .map((m) => m.fullName.isNotEmpty ? m.fullName : m.username)
+            .join(', ');
+        managerDisplayText = 'Quản lý (${managersInFacility.length}): $names';
+      }
+    } else if (managerName != null && managerName.isNotEmpty) {
+      managerDisplayText = 'Quản lý: $managerName';
+    } else {
+      managerDisplayText = 'Chưa có quản lý';
+    }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -423,13 +448,11 @@ class _FacilityStaffOverviewScreenState
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          (managerName != null && managerName.isNotEmpty)
-                              ? 'Quản lý: $managerName'
-                              : 'Chưa có quản lý',
+                          managerDisplayText,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: (managerName != null && managerName.isNotEmpty)
+                            color: managerDisplayText != 'Chưa có quản lý'
                                 ? AppColors.onSurface
                                 : AppColors.onSurfaceVariant,
                           ),

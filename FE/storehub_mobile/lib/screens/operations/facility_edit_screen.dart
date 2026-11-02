@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/safe_dispose.dart';
+import '../../models/facility_management_models.dart';
 import '../../services/admin_api_service.dart';
 import '../../services/facility_admin_api_service.dart';
 import '../../services/facility_ops_api_service.dart';
@@ -53,7 +54,9 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
   List<String> _imageUrls = [];
   bool _isUploadingImage = false;
 
-  // Manager hiện tại của cơ sở (cập nhật ngay sau khi gán)
+  // Danh sách các Facility Manager của cơ sở
+  List<FacilityStaffModel> _managers = [];
+  bool _isLoadingManagers = false;
   String? _managerId;
   String? _managerName;
   String? _managerEmail;
@@ -124,7 +127,10 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     _managerId = f?['managerId']?.toString();
     _managerName = f?['managerName']?.toString();
 
-    if (_isEditing && !widget.assignOnly) _loadPolicy();
+    if (_isEditing) {
+      if (!widget.assignOnly) _loadPolicy();
+      _loadManagers();
+    }
   }
 
   @override
@@ -608,6 +614,85 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     }
   }
 
+  Future<void> _loadManagers() async {
+    final facilityId = widget.facility?['id']?.toString();
+    if (facilityId == null || facilityId.isEmpty) return;
+
+    setState(() => _isLoadingManagers = true);
+    try {
+      final list = await _opsService.getFacilityManagers(facilityId);
+      if (mounted) {
+        setState(() {
+          _managers = list;
+          _isLoadingManagers = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        if (_managers.isEmpty && _managerId != null && _managerName != null) {
+          _managers = [
+            FacilityStaffModel(
+              id: _managerId!,
+              fullName: _managerName!,
+              email: _managerEmail ?? '',
+              role: 'FACILITY_MANAGER',
+            )
+          ];
+        }
+        setState(() => _isLoadingManagers = false);
+      }
+    }
+  }
+
+  Future<void> _confirmRemoveManager(FacilityStaffModel mgr) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xác nhận gỡ quản lý'),
+        content: Text(
+            'Bạn có chắc muốn gỡ tài khoản "${mgr.fullName}" khỏi ban quản lý cơ sở này không?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Gỡ bỏ'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final facilityId = widget.facility!['id'].toString();
+      await _opsService.unassignManagerFromFacility(facilityId, mgr.id);
+      await _loadManagers();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã gỡ "${mgr.fullName}" khỏi ban quản lý cơ sở'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Không thể gỡ quản lý: ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
   Future<void> _openAssignManagerSheet() async {
     List<dynamic> users;
     try {
@@ -623,7 +708,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     }
     if (!mounted) return;
 
-    // managerId -> tên cơ sở đang quản lý (để Admin thấy ai đang quản lý cơ sở nào)
+    // managerId -> tên cơ sở đang quản lý
     final managedFacility = <String, String>{};
     try {
       final facilities = await _service.getFacilities();
@@ -638,6 +723,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     }
     if (!mounted) return;
 
+    final currentManagerIds = _managers.map((m) => m.id).toSet();
     final searchController = TextEditingController();
     await showModalBottomSheet(
       context: context,
@@ -665,9 +751,15 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Chọn Facility Manager cho cơ sở',
+                      const Text('Thêm Quản lý cơ sở (Facility Manager)',
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Một cơ sở có thể có nhiều tài khoản quản lý cùng phụ trách.',
+                        style: TextStyle(
+                            fontSize: 12, color: AppColors.onSurfaceVariant),
+                      ),
                       const SizedBox(height: 10),
                       TextField(
                         controller: searchController,
@@ -686,7 +778,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
                             padding: EdgeInsets.all(24),
                             child: Text(
                               'Chưa có tài khoản nào thuộc role Facility Manager. '
-                              'Hãy tạo tài khoản và gán role này ở mục Người dùng & phân quyền.',
+                              'Hãy tạo tài khoản và gán role này ở mục Người dùng & vai trò.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   color: AppColors.onSurfaceVariant,
@@ -703,54 +795,106 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
                                 u['username']?.toString() ??
                                 '';
                             final managed = managedFacility[userId];
-                            final isCurrent = userId == _managerId;
+                            final isAlreadyAssigned =
+                                currentManagerIds.contains(userId);
                             return ListTile(
-                              title: Text(name),
+                              leading: CircleAvatar(
+                                backgroundColor: isAlreadyAssigned
+                                    ? AppColors.success
+                                    : AppColors.primaryContainer,
+                                child: Text(
+                                  name.isNotEmpty
+                                      ? name[0].toUpperCase()
+                                      : 'M',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              title: Text(name,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600)),
                               subtitle: Text(
                                 '${u['email'] ?? ''}\n'
-                                '${managed == null ? 'Chưa quản lý cơ sở nào' : 'Đang quản lý: $managed'}',
-                                style: const TextStyle(fontSize: 12),
+                                '${isAlreadyAssigned ? 'Đang quản lý cơ sở này' : (managed == null ? 'Chưa quản lý cơ sở nào' : 'Đang quản lý: $managed')}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isAlreadyAssigned
+                                      ? AppColors.success
+                                      : AppColors.onSurfaceVariant,
+                                ),
                               ),
                               isThreeLine: true,
-                              trailing: isCurrent
-                                  ? const Icon(Icons.check_circle,
-                                      color: AppColors.success)
-                                  : null,
-                              onTap: () async {
-                                try {
-                                  // Đây là màn "Assign Facility Manager" nên phải gọi endpoint
-                                  // gán Manager (PUT /managers/{userId}), không phải endpoint
-                                  // gán Staff như trước đây.
-                                  await _opsService.assignManagerToFacility(
-                                      widget.facility!['id'].toString(),
-                                      userId);
-                                  if (mounted) {
-                                    setState(() {
-                                      _managerId = userId;
-                                      _managerName = name;
-                                      _managerEmail = u['email']?.toString();
-                                    });
-                                  }
-                                  if (!ctx.mounted) return;
-                                  Navigator.pop(ctx);
-                                  if (!mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                          'Đã gán $name làm Quản lý cơ sở'),
-                                      backgroundColor: AppColors.success,
+                              trailing: isAlreadyAssigned
+                                  ? Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.success
+                                            .withValues(alpha: 0.15),
+                                        borderRadius:
+                                            BorderRadius.circular(8),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.check_circle,
+                                              size: 14,
+                                              color: AppColors.success),
+                                          SizedBox(width: 4),
+                                          Text('Đang quản lý',
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: AppColors.success,
+                                                  fontWeight:
+                                                      FontWeight.bold)),
+                                        ],
+                                      ),
+                                    )
+                                  : ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        visualDensity: VisualDensity.compact,
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 4),
+                                      ),
+                                      icon: const Icon(Icons.add, size: 14),
+                                      label: const Text('Thêm',
+                                          style: TextStyle(fontSize: 12)),
+                                      onPressed: () async {
+                                        try {
+                                          await _opsService
+                                              .assignManagerToFacility(
+                                                  widget.facility!['id']
+                                                      .toString(),
+                                                  userId);
+                                          await _loadManagers();
+                                          if (!ctx.mounted) return;
+                                          Navigator.pop(ctx);
+                                          if (!mounted) return;
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                  'Đã thêm $name vào ban quản lý cơ sở'),
+                                              backgroundColor:
+                                                  AppColors.success,
+                                            ),
+                                          );
+                                        } catch (e) {
+                                          if (!ctx.mounted) return;
+                                          ScaffoldMessenger.of(ctx)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(e
+                                                  .toString()
+                                                  .replaceAll(
+                                                      'Exception: ', '')),
+                                              backgroundColor: AppColors.error,
+                                            ),
+                                          );
+                                        }
+                                      },
                                     ),
-                                  );
-                                } catch (e) {
-                                  if (!ctx.mounted) return;
-                                  ScaffoldMessenger.of(ctx).showSnackBar(
-                                    SnackBar(
-                                        content: Text(e
-                                            .toString()
-                                            .replaceAll('Exception: ', ''))),
-                                  );
-                                }
-                              },
                             );
                           },
                         ),
@@ -820,54 +964,144 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
   }
 
   Widget _buildManagerCard() {
-    final hasManager = _managerName != null && _managerName!.isNotEmpty;
-
     return _section(
       icon: Icons.manage_accounts_outlined,
-      title: 'Quản lý cơ sở',
-      subtitle: 'Người vận hành cơ sở này. Chỉ người được gán mới thấy và xử lý dữ liệu của cơ sở.',
+      title: 'Quản lý cơ sở (${_managers.length})',
+      subtitle:
+          'Các tài khoản phụ trách vận hành cơ sở này. Admin có thể thêm nhiều quản lý.',
       children: [
-        Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: hasManager
-                  ? AppColors.primaryContainer
-                  : AppColors.surfaceContainerHigh,
-              child: Icon(
-                hasManager ? Icons.person : Icons.person_off_outlined,
-                color: hasManager ? Colors.white : AppColors.onSurfaceVariant,
-                size: 20,
+        if (_isLoadingManagers)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(12),
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    hasManager ? _managerName! : 'Chưa gán quản lý',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 14),
+          )
+        else if (_managers.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainer.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.surfaceContainerHigh),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.person_off_outlined,
+                    color: AppColors.onSurfaceVariant, size: 20),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Chưa có quản lý cơ sở nào được gán.',
+                    style: TextStyle(
+                        fontSize: 13, color: AppColors.onSurfaceVariant),
                   ),
-                  if (hasManager &&
-                      _managerEmail != null &&
-                      _managerEmail!.isNotEmpty)
-                    Text(
-                      _managerEmail!,
+                ),
+              ],
+            ),
+          )
+        else
+          ..._managers.map((mgr) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.surfaceContainerHigh),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: AppColors.primaryContainer,
+                    radius: 18,
+                    child: Text(
+                      mgr.fullName.isNotEmpty
+                          ? mgr.fullName[0].toUpperCase()
+                          : 'M',
                       style: const TextStyle(
-                          fontSize: 12, color: AppColors.onSurfaceVariant),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                mgr.fullName,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600, fontSize: 13),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.secondaryContainer
+                                    .withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'Quản lý',
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.secondary),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (mgr.email.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            mgr.email,
+                            style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.onSurfaceVariant),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (widget.canAssignManager)
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline,
+                          color: AppColors.error, size: 20),
+                      tooltip: 'Gỡ khỏi cơ sở',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => _confirmRemoveManager(mgr),
                     ),
                 ],
               ),
-            ),
-          ],
-        ),
+            );
+          }),
         if (widget.canAssignManager) ...[
-          _gap,
+          const SizedBox(height: 6),
           OutlinedButton.icon(
             onPressed: _openAssignManagerSheet,
             icon: const Icon(Icons.person_add_alt, size: 16),
-            label: Text(hasManager ? 'Đổi quản lý' : 'Gán quản lý'),
+            label: Text(_managers.isEmpty
+                ? 'Gán quản lý cơ sở'
+                : 'Thêm quản lý cơ sở'),
           ),
         ],
       ],
@@ -929,16 +1163,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
                     onChanged: (v) => setState(() => _status = v ?? _status),
                   ),
                 ],
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Kho có máy lạnh 24/7'),
-                  subtitle: const Text(
-                      'Khách có thể lọc cơ sở theo mục này. Chỉ bật khi mọi ngăn '
-                      'đều có máy lạnh chạy suốt ngày.'),
-                  value: _airConditioned24h,
-                  onChanged: (value) =>
-                      setState(() => _airConditioned24h = value),
-                ),
+
                 const SizedBox(height: 6),
                 const Text(
                   'Giờ làm việc của cơ sở',

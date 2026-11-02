@@ -201,6 +201,10 @@ class ApiEndpoints {
       '/facility/management/$facilityId/staff/$userId';
   static String facilityAssignManager(String facilityId, String userId) =>
       '/facility/management/$facilityId/managers/$userId';
+  static String facilityManagers(String facilityId) =>
+      '/facility/management/$facilityId/managers';
+  static String facilityUnassignManager(String facilityId, String userId) =>
+      '/facility/management/$facilityId/managers/$userId';
   static String facilityConfirmedBookings(String facilityId) =>
       '/facility/management/$facilityId/bookings/confirmed';
   static String facilityContracts(String facilityId) =>

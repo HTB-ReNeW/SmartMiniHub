@@ -401,19 +401,17 @@ public class FacilityManagementServiceImpl
                     && !facilityId.equals(previousFacility.getId())
                     && previousFacility.getManager() != null
                     && userId.equals(previousFacility.getManager().getId())) {
-                previousFacility.setManager(null);
+                List<User> oldFacilityOtherManagers = users.findByFacility_IdAndRole_Name(previousFacility.getId(), "FACILITY_MANAGER")
+                        .stream()
+                        .filter(u -> !userId.equals(u.getId()) && Boolean.TRUE.equals(u.getIsActive()))
+                        .toList();
+                previousFacility.setManager(oldFacilityOtherManagers.isEmpty() ? null : oldFacilityOtherManagers.get(0));
             }
 
-            User previousManager = facility.getManager();
-
-            if (previousManager != null
-                    && !userId.equals(previousManager.getId())
-                    && previousManager.getFacility() != null
-                    && facilityId.equals(previousManager.getFacility().getId())) {
-                previousManager.setFacility(null);
+            // Cơ sở hiện tại: không loại bỏ các quản lý hiện tại, cho phép nhiều quản lý cơ sở
+            if (facility.getManager() == null) {
+                facility.setManager(user);
             }
-
-            facility.setManager(user);
         }
 
         user.setFacility(facility);
@@ -424,6 +422,49 @@ public class FacilityManagementServiceImpl
                 user.getEmail(),
                 role
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FacilityStaffResponse> managers(UUID facilityId) {
+        requireFacility(facilityId);
+
+        return users.findByFacility_IdAndRole_Name(facilityId, "FACILITY_MANAGER")
+                .stream()
+                .filter(user -> Boolean.TRUE.equals(user.getIsActive()))
+                .map(user -> new FacilityStaffResponse(
+                        user.getId(),
+                        user.getFullName(),
+                        user.getEmail(),
+                        "FACILITY_MANAGER"
+                ))
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void unassignManager(UUID facilityId, UUID userId) {
+        Facility facility = requireFacility(facilityId);
+
+        User manager = users.findByIdForUpdate(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if (manager.getRole() == null
+                || !"FACILITY_MANAGER".equals(manager.getRole().getName())
+                || manager.getFacility() == null
+                || !facilityId.equals(manager.getFacility().getId())) {
+            throw new AppException(ErrorCode.INVALID_REQUEST);
+        }
+
+        manager.setFacility(null);
+
+        if (facility.getManager() != null && userId.equals(facility.getManager().getId())) {
+            List<User> remainingManagers = users.findByFacility_IdAndRole_Name(facilityId, "FACILITY_MANAGER")
+                    .stream()
+                    .filter(u -> !userId.equals(u.getId()) && Boolean.TRUE.equals(u.getIsActive()))
+                    .toList();
+            facility.setManager(remainingManagers.isEmpty() ? null : remainingManagers.get(0));
+        }
     }
 
     @Transactional(readOnly = true)

@@ -100,6 +100,22 @@ class AdminApiService {
     }
   }
 
+  Future<List<UserModel>> getManagersList({String? facilityId, String? search}) async {
+    final all = <UserModel>[];
+    var page = 0;
+    while (true) {
+      final batch = await getUsersPage(
+        page: page++,
+        size: 50,
+        search: search ?? '',
+        roleName: 'FACILITY_MANAGER',
+        facilityId: facilityId,
+      );
+      all.addAll(batch.content.map(UserModel.fromJson));
+      if (batch.last) return all;
+    }
+  }
+
   Future<int> getStaffCount({String? facilityId}) async {
     try {
       final response = await _http.get(

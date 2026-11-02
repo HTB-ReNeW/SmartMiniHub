@@ -225,19 +225,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       );
                     },
                   ),
-                  const SizedBox(height: 10),
-                  _actionTile(
-                    icon: Icons.security,
-                    title: 'Vai trò & quyền hạn',
-                    subtitle: 'Cấu hình quyền của từng vai trò',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const RolePermissionScreen()),
-                      );
-                    },
-                  ),
+
                   const SizedBox(height: 10),
                   _actionTile(
                     icon: Icons.store_outlined,

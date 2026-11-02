@@ -23,7 +23,7 @@ WHERE rp.role_id = r.id
      OR p.name LIKE 'ROLE\_%'
      OR p.name LIKE 'PERMISSION\_%'
      OR p.name IN ('ACTIVITY_LOG_VIEW', 'LOGIN_HISTORY_VIEW',
-                   'STAFF_ASSIGNMENT_CREATE',
+                   'STAFF_ASSIGNMENT_CREATE', 'STAFF_ASSIGNMENT_DELETE', 'STAFF_ASSIGNMENT_VIEW',
                    'FACILITY_VIEW', 'POLICY_VIEW',
                    'PAYMENT_VIEW')
   );
@@ -39,7 +39,7 @@ WHERE r.name = 'ADMIN'
      OR p.name LIKE 'ROLE\_%'
      OR p.name LIKE 'PERMISSION\_%'
      OR p.name IN ('ACTIVITY_LOG_VIEW', 'LOGIN_HISTORY_VIEW',
-                   'STAFF_ASSIGNMENT_CREATE',
+                   'STAFF_ASSIGNMENT_CREATE', 'STAFF_ASSIGNMENT_DELETE', 'STAFF_ASSIGNMENT_VIEW',
                    'FACILITY_VIEW', 'POLICY_VIEW',
                    'PAYMENT_VIEW')
   )

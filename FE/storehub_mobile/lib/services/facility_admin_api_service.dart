@@ -237,10 +237,67 @@ class FacilityAdminApiService {
     }
   }
 
+  Future<Map<String, dynamic>> createUnitType({
+    required String typeName,
+    required String dimensions,
+    required double areaSqm,
+    required double basePricePerMonth,
+    required double depositAmount,
+    String? imageUrl,
+  }) async {
+    try {
+      final response = await _http.post(
+        ApiEndpoints.unitTypesEndpoint,
+        data: {
+          'typeName': typeName,
+          'dimensions': dimensions,
+          'areaSqm': areaSqm,
+          'basePricePerMonth': basePricePerMonth,
+          'depositAmount': depositAmount,
+          if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
+        },
+      );
+      return _unwrap(response.data);
+    } on ApiException catch (e) {
+      throw _err(e, 'tạo loại kho');
+    }
+  }
+
+  Future<Map<String, dynamic>> updateUnitType({
+    required String unitTypeId,
+    required String typeName,
+    required String dimensions,
+    required double areaSqm,
+    required double basePricePerMonth,
+    required double depositAmount,
+    String? imageUrl,
+  }) async {
+    try {
+      final response = await _http.put(
+        ApiEndpoints.unitTypeDetail(unitTypeId),
+        data: {
+          'typeName': typeName,
+          'dimensions': dimensions,
+          'areaSqm': areaSqm,
+          'basePricePerMonth': basePricePerMonth,
+          'depositAmount': depositAmount,
+          if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
+        },
+      );
+      return _unwrap(response.data);
+    } on ApiException catch (e) {
+      throw _err(e, 'cập nhật loại kho');
+    }
+  }
+
   Future<Map<String, dynamic>> updateUnitTypePrice({
     required String unitTypeId,
     required double basePricePerMonth,
     required double depositAmount,
+    String? typeName,
+    String? dimensions,
+    double? areaSqm,
+    String? imageUrl,
   }) async {
     try {
       final response = await _http.put(
@@ -248,6 +305,10 @@ class FacilityAdminApiService {
         data: {
           'basePricePerMonth': basePricePerMonth,
           'depositAmount': depositAmount,
+          if (typeName != null) 'typeName': typeName,
+          if (dimensions != null) 'dimensions': dimensions,
+          if (areaSqm != null) 'areaSqm': areaSqm,
+          if (imageUrl != null) 'imageUrl': imageUrl,
         },
       );
       return _unwrap(response.data);

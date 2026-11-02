@@ -20,6 +20,8 @@ import com.storehub.repository.StorageUnitRepository;
 import com.storehub.repository.UnitTypeRepository;
 import com.storehub.repository.UserRepository;
 import com.storehub.entity.FacilityAccess;
+import com.storehub.entity.Role;
+import com.storehub.repository.RoleRepository;
 import com.storehub.service.FacilityManagementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -64,6 +66,7 @@ public class FacilityManagementServiceImpl
     private final StaffWorkloadService staffWorkloadService;
     private final com.storehub.repository.DepositDeductionRepository depositDeductions;
     private final com.storehub.service.NotificationService notificationService;
+    private final RoleRepository roleRepository;
 
     @Transactional(readOnly = true)
     public AssignedFacilityResponse myFacility(String email) {
@@ -378,10 +381,14 @@ public class FacilityManagementServiceImpl
         User user = users.findByIdForUpdate(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (!Boolean.TRUE.equals(user.getIsActive())
-                || user.getRole() == null
-                || !role.equals(user.getRole().getName())) {
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
             throw new AppException(ErrorCode.INVALID_REQUEST);
+        }
+
+        if (user.getRole() == null || !role.equals(user.getRole().getName())) {
+            Role targetRole = roleRepository.findByName(role)
+                    .orElseThrow(() -> new AppException(ErrorCode.INVALID_REQUEST));
+            user.setRole(targetRole);
         }
 
         if (managerEmail != null
@@ -401,19 +408,17 @@ public class FacilityManagementServiceImpl
                     && !facilityId.equals(previousFacility.getId())
                     && previousFacility.getManager() != null
                     && userId.equals(previousFacility.getManager().getId())) {
-                previousFacility.setManager(null);
+                List<User> oldFacilityOtherManagers = users.findByFacility_IdAndRole_Name(previousFacility.getId(), "FACILITY_MANAGER")
+                        .stream()
+                        .filter(u -> !userId.equals(u.getId()) && Boolean.TRUE.equals(u.getIsActive()))
+                        .toList();
+                previousFacility.setManager(oldFacilityOtherManagers.isEmpty() ? null : oldFacilityOtherManagers.get(0));
             }
 
-            User previousManager = facility.getManager();
-
-            if (previousManager != null
-                    && !userId.equals(previousManager.getId())
-                    && previousManager.getFacility() != null
-                    && facilityId.equals(previousManager.getFacility().getId())) {
-                previousManager.setFacility(null);
+            // Cơ sở hiện tại: không loại bỏ các quản lý hiện tại, cho phép nhiều quản lý cơ sở
+            if (facility.getManager() == null) {
+                facility.setManager(user);
             }
-
-            facility.setManager(user);
         }
 
         user.setFacility(facility);
@@ -424,6 +429,49 @@ public class FacilityManagementServiceImpl
                 user.getEmail(),
                 role
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FacilityStaffResponse> managers(UUID facilityId) {
+        requireFacility(facilityId);
+
+        return users.findByFacility_IdAndRole_Name(facilityId, "FACILITY_MANAGER")
+                .stream()
+                .filter(user -> Boolean.TRUE.equals(user.getIsActive()))
+                .map(user -> new FacilityStaffResponse(
+                        user.getId(),
+                        user.getFullName(),
+                        user.getEmail(),
+                        "FACILITY_MANAGER"
+                ))
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void unassignManager(UUID facilityId, UUID userId) {
+        Facility facility = requireFacility(facilityId);
+
+        User manager = users.findByIdForUpdate(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if (manager.getRole() == null
+                || !"FACILITY_MANAGER".equals(manager.getRole().getName())
+                || manager.getFacility() == null
+                || !facilityId.equals(manager.getFacility().getId())) {
+            throw new AppException(ErrorCode.INVALID_REQUEST);
+        }
+
+        manager.setFacility(null);
+
+        if (facility.getManager() != null && userId.equals(facility.getManager().getId())) {
+            List<User> remainingManagers = users.findByFacility_IdAndRole_Name(facilityId, "FACILITY_MANAGER")
+                    .stream()
+                    .filter(u -> !userId.equals(u.getId()) && Boolean.TRUE.equals(u.getIsActive()))
+                    .toList();
+            facility.setManager(remainingManagers.isEmpty() ? null : remainingManagers.get(0));
+        }
     }
 
     @Transactional(readOnly = true)

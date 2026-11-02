@@ -12,7 +12,6 @@ import '../../widgets/state_views.dart';
 import '../../widgets/photo_preview_dialog.dart';
 import '../../widgets/notification_badge_button.dart';
 import '../common/profile_screen.dart';
-import '../common/transaction_history_screen.dart';
 import '../common/gate_pass_verify_screen.dart';
 
 class StaffDashboardScreen extends StatefulWidget {
@@ -174,24 +173,51 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      isCheckIn
-                          ? 'Bàn giao • Ngăn ${item.unitCode}'
-                          : 'Nghiệm thu • Ngăn ${item.unitCode}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item.customerName.isEmpty
-                          ? 'Khách hàng'
-                          : item.customerName,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.onSurfaceVariant,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        IconButton(
+                          onPressed: () => Navigator.pop(sheetContext),
+                          icon: const Icon(Icons.arrow_back),
+                          tooltip: 'Quay lại',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isCheckIn
+                                    ? 'Bàn giao • Ngăn ${item.unitCode}'
+                                    : 'Nghiệm thu • Ngăn ${item.unitCode}',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                item.customerName.isEmpty
+                                    ? 'Khách hàng'
+                                    : item.customerName,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(sheetContext),
+                          icon: const Icon(Icons.close),
+                          tooltip: 'Đóng',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
                     ),
                     if (isCheckIn) ...[
                       const SizedBox(height: 10),
@@ -608,6 +634,19 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                                   : 'Xác nhận nghiệm thu',
                             ),
                     ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: submitting
+                          ? null
+                          : () => Navigator.pop(sheetContext),
+                      icon: const Icon(Icons.arrow_back, size: 18),
+                      label: const Text('Quay lại'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        side: BorderSide(color: Colors.grey.shade300),
+                        foregroundColor: AppColors.onSurfaceVariant,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -651,6 +690,14 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                 ),
                 child: Row(
                   children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(sheetContext),
+                      icon: const Icon(Icons.arrow_back),
+                      tooltip: 'Quay lại',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -678,6 +725,7 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                         Navigator.pop(sheetContext);
                       },
                       icon: const Icon(Icons.close),
+                      tooltip: 'Đóng',
                     ),
                   ],
                 ),
@@ -1311,18 +1359,6 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                 builder: (_) => StaffTicketScreen(
                   facilityId: facilityId,
                   staffId: widget.user.id,
-                ),
-              ),
-            );
-          }),
-          const SizedBox(width: 8),
-          tile(Icons.receipt_long_outlined, 'Giao dịch', () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => TransactionHistoryScreen(
-                  userRole: widget.user.roleName,
-                  facilityId: facilityId,
                 ),
               ),
             );

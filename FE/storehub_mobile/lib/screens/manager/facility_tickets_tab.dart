@@ -315,7 +315,7 @@ class _FacilityTicketsTabState extends State<FacilityTicketsTab> {
                                   ),
                                   label: Text(
                                     ticket.assignedStaffName.isEmpty
-                                        ? 'Thêm nhân viên'
+                                        ? 'Phân công'
                                         : 'Phân công lại',
                                   ),
                                 ),

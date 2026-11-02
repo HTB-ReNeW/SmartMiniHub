@@ -33,11 +33,9 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
   final _dateTimeFmt = DateFormat('dd/MM/yyyy • HH:mm');
 
   // Chỉ gia hạn khi đã nhận kho; nếu đang treo yêu cầu gia hạn thì vẫn cho mở lại
-  // để thanh toán/hủy; nợ phí trễ hạn thì phải trả trước.
+  // để thanh toán/hủy; nợ phí trễ hạn thì phải trả trước. Khách hàng có thể gia hạn bất kỳ lúc nào.
   bool _canExtend(MyUnitModel unit) =>
-      unit.isActive &&
-      (unit.hasPendingExtension ||
-          (!unit.hasLateFeeDue && !unit.renewalNotYetOpen));
+      unit.isActive && (unit.hasPendingExtension || !unit.hasLateFeeDue);
 
   @override
   void initState() {
@@ -202,20 +200,15 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                         style: TextStyle(fontSize: 12))
                     : unit.hasPendingExtension
                         ? const Text(
-                            'Tiếp tục hoặc hủy yêu cầu gia hạn đang chờ',
-                            style: TextStyle(fontSize: 12))
+                            'Tiếp tục hoặc hủy yêu cầu gia hạn đang chờ thanh toán',
+                            style: TextStyle(fontSize: 12, color: AppColors.primary))
                         : unit.hasLateFeeDue
                             ? const Text(
                                 'Vui lòng thanh toán phí trễ hạn trước',
-                                style: TextStyle(fontSize: 12))
-                            : unit.renewalNotYetOpen
-                                ? Text(
-                                    'Chưa đến thời điểm gia hạn. Gia hạn mở từ '
-                                    '${_dateFmt.format(unit.renewalOpensDate!)} '
-                                    '(trong ${unit.endDate!.difference(unit.renewalOpensDate!).inDays} '
-                                    'ngày cuối trước ngày hết hạn ${_dateFmt.format(unit.endDate!)}).',
-                                    style: const TextStyle(fontSize: 12))
-                                : null,
+                                style: TextStyle(fontSize: 12, color: AppColors.error))
+                            : const Text(
+                                'Gia hạn thêm thời gian thuê bất cứ lúc nào',
+                                style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant)),
                 onTap: _canExtend(unit)
                     ? () {
                         Navigator.pop(ctx);
@@ -358,6 +351,14 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      tooltip: 'Quay lại',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => Navigator.pop(sheetContext),
+                    ),
+                    const SizedBox(width: 8),
                     const Icon(Icons.history_edu,
                         color: AppColors.primaryContainer),
                     const SizedBox(width: 8),
@@ -370,6 +371,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.close),
+                      tooltip: 'Đóng',
                       onPressed: () => Navigator.pop(sheetContext),
                     ),
                   ],

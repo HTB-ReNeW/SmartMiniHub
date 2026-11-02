@@ -499,126 +499,147 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 10),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          leading: CircleAvatar(
-                            backgroundColor: isActive
-                                ? AppColors.primaryContainer
-                                : AppColors.outline,
-                            child: Text(
-                              _initials(fullName),
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          title: Text(fullName,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 14)),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
                           onTap: () => _openUserDetail(user),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Text(
-                                  '${ViLabels.role(user['roleName']?.toString())} • @$username\n$email${phone.isNotEmpty ? ' • $phone' : ''}',
-                                  style: const TextStyle(
-                                      fontSize: 11,
-                                      color: AppColors.onSurfaceVariant),
+                                CircleAvatar(
+                                  backgroundColor: isActive
+                                      ? AppColors.primaryContainer
+                                      : AppColors.outline,
+                                  child: Text(
+                                    _initials(fullName),
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold),
+                                  ),
                                 ),
-                                if (user['facilityName'] != null &&
-                                    user['facilityName'].toString().isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primaryContainer
-                                          .withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(
-                                        color: AppColors.primaryContainer
-                                            .withValues(alpha: 0.3),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.storefront_rounded,
-                                            size: 11,
-                                            color: AppColors.primaryContainer),
-                                        const SizedBox(width: 4),
-                                        Flexible(
-                                          child: Text(
-                                            user['facilityCode'] != null
-                                                ? '[${user['facilityCode']}] ${user['facilityName']}'
-                                                : user['facilityName'].toString(),
-                                            style: const TextStyle(
-                                              fontSize: 10,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(fullName,
+                                          style: const TextStyle(
                                               fontWeight: FontWeight.bold,
-                                              color: AppColors.primaryContainer,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ] else if (user['roleName'] == 'STAFF') ...[
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.warningContainer
-                                          .withValues(alpha: 0.3),
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(
-                                        color: AppColors.warning
-                                            .withValues(alpha: 0.4),
+                                              fontSize: 14)),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${ViLabels.role(user['roleName']?.toString())} • @$username\n$email${phone.isNotEmpty ? ' • $phone' : ''}',
+                                        style: const TextStyle(
+                                            fontSize: 11,
+                                            color: AppColors.onSurfaceVariant),
                                       ),
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.warning_amber_rounded,
-                                            size: 11,
-                                            color: AppColors.warning),
-                                        SizedBox(width: 4),
-                                        Text(
-                                          'Chưa phân cơ sở',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.warning,
+                                      if (user['facilityName'] != null &&
+                                          user['facilityName']
+                                              .toString()
+                                              .isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primaryContainer
+                                                .withValues(alpha: 0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                            border: Border.all(
+                                              color: AppColors.primaryContainer
+                                                  .withValues(alpha: 0.3),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                  Icons.storefront_rounded,
+                                                  size: 11,
+                                                  color: AppColors
+                                                      .primaryContainer),
+                                              const SizedBox(width: 4),
+                                              Flexible(
+                                                child: Text(
+                                                  user['facilityCode'] != null
+                                                      ? '[${user['facilityCode']}] ${user['facilityName']}'
+                                                      : user['facilityName']
+                                                          .toString(),
+                                                  style: const TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: AppColors
+                                                        .primaryContainer,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ] else if (user['roleName'] ==
+                                          'STAFF') ...[
+                                        const SizedBox(height: 4),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.warningContainer
+                                                .withValues(alpha: 0.3),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                            border: Border.all(
+                                              color: AppColors.warning
+                                                  .withValues(alpha: 0.4),
+                                            ),
+                                          ),
+                                          child: const Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.warning_amber_rounded,
+                                                  size: 11,
+                                                  color: AppColors.warning),
+                                              SizedBox(width: 4),
+                                              Text(
+                                                'Chưa phân cơ sở',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppColors.warning,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ],
-                                    ),
+                                    ],
                                   ),
-                                ],
+                                ),
+                                const SizedBox(width: 8),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Switch(
+                                      value: isActive,
+                                      onChanged: (_) => _toggleActive(user),
+                                      activeThumbColor: AppColors.success,
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.badge_outlined,
+                                          size: 20),
+                                      tooltip: 'Gán vai trò',
+                                      onPressed: () => _showAssignRoleSheet(
+                                          userId, fullName, phone),
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
-                          ),
-                          isThreeLine: true,
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Switch(
-                                value: isActive,
-                                onChanged: (_) => _toggleActive(user),
-                                activeThumbColor: AppColors.success,
-                              ),
-                              IconButton(
-                                icon:
-                                    const Icon(Icons.badge_outlined, size: 20),
-                                tooltip: 'Gán vai trò',
-                                onPressed: () => _showAssignRoleSheet(
-                                    userId, fullName, phone),
-                              ),
-                            ],
                           ),
                         ),
                       );

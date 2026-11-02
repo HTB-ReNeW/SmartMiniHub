@@ -20,4 +20,9 @@ public class UpdateUnitTypePriceRequest {
     @NotNull(message = "Vui lòng nhập tiền cọc")
     @DecimalMin(value = "0.00", message = "Tiền cọc không được âm")
     private BigDecimal depositAmount;
+
+    private String typeName;
+    private String dimensions;
+    private Double areaSqm;
+    private String imageUrl;
 }

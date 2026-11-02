@@ -299,7 +299,10 @@ public class PricingServiceImpl implements PricingService {
         if (hoursBeforeStart >= booking.getCancellationFullRefundHours()) {
             return depositPaid;
         }
-        if (hoursBeforeStart >= booking.getCancellationPartialRefundHours()) {
+        int minHoursForPartial = booking.getCancellationPartialRefundHours().equals(booking.getCancellationFullRefundHours())
+                ? 0
+                : booking.getCancellationPartialRefundHours();
+        if (hoursBeforeStart >= minHoursForPartial && hoursBeforeStart >= 0) {
             return depositPaid
                     .multiply(BigDecimal.valueOf(booking.getCancellationPartialRefundPercent()))
                     .divide(ONE_HUNDRED, 0, RoundingMode.HALF_UP);

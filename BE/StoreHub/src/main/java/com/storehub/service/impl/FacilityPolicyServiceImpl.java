@@ -170,16 +170,8 @@ public class FacilityPolicyServiceImpl implements FacilityPolicyService {
 
     @Override
     public boolean isWithinRenewalWindow(UUID facilityId, LocalDate currentEndDate) {
-        return facilityPolicyRepository.findByFacility_Id(facilityId)
-                .map(policy -> {
-                    if (policy.getRenewalWindowDays() == null) {
-                        return true;
-                    }
-                    LocalDate windowOpensAt = currentEndDate.minusDays(policy.getRenewalWindowDays());
-                    LocalDate today = LocalDate.now();
-                    return !today.isBefore(windowOpensAt);
-                })
-                .orElse(true);
+        // Cho phép khách hàng gia hạn thuê bất cứ lúc nào trong thời gian thuê còn hiệu lực
+        return true;
     }
 
     @Override

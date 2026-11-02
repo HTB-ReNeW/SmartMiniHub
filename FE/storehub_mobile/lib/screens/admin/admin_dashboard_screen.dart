@@ -9,7 +9,6 @@ import '../../widgets/notification_badge_button.dart';
 import '../common/transaction_history_screen.dart';
 import 'activity_log_screen.dart';
 import '../operations/facility_management_screen.dart';
-import 'role_permission_screen.dart';
 import 'user_management_screen.dart';
 import '../operations/reports_screen.dart';
 
@@ -26,8 +25,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final _facilityAdminApiService = FacilityAdminApiService();
   bool _isLoading = true;
   int _totalUsers = 0;
-  int _totalRoles = 0;
-  int _totalPermissions = 0;
   int _activeUsers = 0;
   int _totalFacilities = 0;
   int _totalStaff = 0;
@@ -48,23 +45,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     try {
       final results = await Future.wait([
         _adminApiService.getUserSummary(),
-        _adminApiService.getRoles(),
-        _adminApiService.getPermissions(),
         _facilityAdminApiService.getFacilitiesCount(),
         _adminApiService.getStaffCount(),
       ]);
       final summary = results[0] as ({int total, int active});
-      final roles = results[1] as List<dynamic>;
-      final permissions = results[2] as List<dynamic>;
-      final facilityCount = results[3] as int;
-      final staffCount = results[4] as int;
+      final facilityCount = results[1] as int;
+      final staffCount = results[2] as int;
 
       if (!mounted) return;
       setState(() {
         _totalUsers = summary.total;
         _activeUsers = summary.active;
-        _totalRoles = roles.length;
-        _totalPermissions = permissions.length;
         _totalFacilities = facilityCount;
         _totalStaff = staffCount;
         _isLoading = false;
@@ -186,10 +177,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           AppColors.primaryContainer),
                       _statCard('Đang hoạt động', '$_activeUsers',
                           Icons.verified_user, AppColors.success),
-                      _statCard('Vai trò', '$_totalRoles', Icons.badge,
-                          AppColors.secondaryContainer),
-                      _statCard('Quyền hạn', '$_totalPermissions',
-                          Icons.lock_outline, AppColors.secondary),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -225,19 +212,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       );
                     },
                   ),
-                  const SizedBox(height: 10),
-                  _actionTile(
-                    icon: Icons.security,
-                    title: 'Vai trò & quyền hạn',
-                    subtitle: 'Cấu hình quyền của từng vai trò',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const RolePermissionScreen()),
-                      );
-                    },
-                  ),
+
                   const SizedBox(height: 10),
                   _actionTile(
                     icon: Icons.store_outlined,

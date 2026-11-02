@@ -80,9 +80,10 @@ class _BookingAssignmentScreenState extends State<BookingAssignmentScreen> {
           title: Text('Ngăn ${booking.unitCode}: lý do không bàn giao'),
           content: Text(lines.join('\n')),
           actions: [
-            TextButton(
+            TextButton.icon(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Đóng'),
+              icon: const Icon(Icons.arrow_back, size: 16),
+              label: const Text('Quay lại'),
             ),
           ],
         ),

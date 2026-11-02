@@ -17,6 +17,7 @@ import java.util.UUID;
 
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -31,6 +32,7 @@ class UnitTypePriceAuthorizationTest {
 
     private final String path = "/api/v1/unit-types/" + UUID.randomUUID() + "/price";
     private static final String BODY = "{\"basePricePerMonth\":500000,\"depositAmount\":500000}";
+    private static final String FULL_BODY = "{\"typeName\":\"Mini\",\"dimensions\":\"1x1x1\",\"areaSqm\":1.0,\"basePricePerMonth\":500000,\"depositAmount\":100000}";
 
     @Test
     void businessManagerRequiresTheUpdatePermission() throws Exception {
@@ -44,6 +46,21 @@ class UnitTypePriceAuthorizationTest {
                         .authorities(new SimpleGrantedAuthority("ROLE_BUSINESS_MANAGER"),
                                 new SimpleGrantedAuthority("UNIT_TYPE_UPDATE")))
                         .contentType("application/json").content(BODY))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void businessManagerRequiresTheCreatePermissionToCreateUnitType() throws Exception {
+        mvc.perform(post("/api/v1/unit-types").with(user("manager@example.com")
+                        .authorities(new SimpleGrantedAuthority("ROLE_BUSINESS_MANAGER")))
+                        .contentType("application/json").content(FULL_BODY))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(unitTypes);
+
+        mvc.perform(post("/api/v1/unit-types").with(user("manager@example.com")
+                        .authorities(new SimpleGrantedAuthority("ROLE_BUSINESS_MANAGER"),
+                                new SimpleGrantedAuthority("UNIT_TYPE_CREATE")))
+                        .contentType("application/json").content(FULL_BODY))
                 .andExpect(status().isOk());
     }
 

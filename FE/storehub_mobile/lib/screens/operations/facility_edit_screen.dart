@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/utils/safe_dispose.dart';
+import '../../core/utils/vi_labels.dart';
+import '../../models/facility_management_models.dart';
 import '../../services/admin_api_service.dart';
 import '../../services/facility_admin_api_service.dart';
 import '../../services/facility_ops_api_service.dart';
@@ -53,7 +54,9 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
   List<String> _imageUrls = [];
   bool _isUploadingImage = false;
 
-  // Manager hiện tại của cơ sở (cập nhật ngay sau khi gán)
+  // Danh sách các Facility Manager của cơ sở
+  List<FacilityStaffModel> _managers = [];
+  bool _isLoadingManagers = false;
   String? _managerId;
   String? _managerName;
   String? _managerEmail;
@@ -65,17 +68,17 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
   final _lateFeeController = TextEditingController();
   final _minMonthsController = TextEditingController();
   final _renewalWindowController = TextEditingController();
-  final _fullRefundHoursController = TextEditingController();
-  final _partialRefundHoursController = TextEditingController();
-  final _partialRefundPercentController = TextEditingController();
+  final _fullRefundHoursController = TextEditingController(text: '24');
+  final _partialRefundHoursController = TextEditingController(text: '24');
+  final _partialRefundPercentController = TextEditingController(text: '50.0');
   final _returnNoticeController = TextEditingController();
   final _refundSlaController = TextEditingController();
   final _graceController = TextEditingController();
   final _accessDisableController = TextEditingController();
   final _sealingController = TextEditingController();
   final _managementFeeController = TextEditingController();
-  final _discountMonthsController = TextEditingController();
-  final _discountPercentController = TextEditingController();
+  final _discountMonthsController = TextEditingController(text: '0');
+  final _discountPercentController = TextEditingController(text: '0.0');
   final _maxAdvanceReservationDaysController = TextEditingController();
   final _prohibitedItemsController = TextEditingController();
   final _termsAndConditionsController = TextEditingController();
@@ -124,7 +127,10 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     _managerId = f?['managerId']?.toString();
     _managerName = f?['managerName']?.toString();
 
-    if (_isEditing && !widget.assignOnly) _loadPolicy();
+    if (_isEditing) {
+      if (!widget.assignOnly) _loadPolicy();
+      _loadManagers();
+    }
   }
 
   @override
@@ -179,9 +185,9 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
           _renewalWindowController.text =
               (policy['renewalWindowDays'] ?? '').toString();
           _fullRefundHoursController.text =
-              (policy['cancellationFullRefundHours'] ?? '').toString();
+              (policy['cancellationFullRefundHours'] ?? '24').toString();
           _partialRefundHoursController.text =
-              (policy['cancellationPartialRefundHours'] ?? '').toString();
+              (policy['cancellationPartialRefundHours'] ?? '24').toString();
           _partialRefundPercentController.text =
               (policy['cancellationPartialRefundPercent'] ?? '').toString();
           _returnNoticeController.text =
@@ -509,14 +515,12 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     final accessDisable = int.tryParse(_accessDisableController.text);
     final sealing = int.tryParse(_sealingController.text);
     final managementFee = double.tryParse(_managementFeeController.text);
-    final discountMonths = int.tryParse(_discountMonthsController.text);
-    final discountPercent = double.tryParse(_discountPercentController.text);
+    final discountMonths = int.tryParse(_discountMonthsController.text) ?? 0;
+    final discountPercent = double.tryParse(_discountPercentController.text) ?? 0.0;
     final maxAdvanceDays = int.tryParse(_maxAdvanceReservationDaysController.text) ?? 14;
 
     if (deposit == null ||
         managementFee == null ||
-        discountMonths == null ||
-        discountPercent == null ||
         lateFee == null ||
         minMonths == null ||
         renewalWindow == null ||
@@ -608,160 +612,109 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     }
   }
 
-  Future<void> _openAssignManagerSheet() async {
-    List<dynamic> users;
+  Future<void> _loadManagers() async {
+    final facilityId = widget.facility?['id']?.toString();
+    if (facilityId == null || facilityId.isEmpty) return;
+
+    setState(() => _isLoadingManagers = true);
     try {
-      users = await _adminApiService.getUsers();
+      final list = await _opsService.getFacilityManagers(facilityId);
+      if (mounted) {
+        setState(() {
+          _managers = list;
+          _isLoadingManagers = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        if (_managers.isEmpty && _managerId != null && _managerName != null) {
+          _managers = [
+            FacilityStaffModel(
+              id: _managerId!,
+              fullName: _managerName!,
+              email: _managerEmail ?? '',
+              role: 'FACILITY_MANAGER',
+            )
+          ];
+        }
+        setState(() => _isLoadingManagers = false);
+      }
+    }
+  }
+
+  Future<void> _confirmRemoveManager(FacilityStaffModel mgr) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xác nhận gỡ quản lý'),
+        content: Text(
+            'Bạn có chắc muốn gỡ tài khoản "${mgr.fullName}" khỏi ban quản lý cơ sở này không?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Gỡ bỏ'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final facilityId = widget.facility!['id'].toString();
+      await _opsService.unassignManagerFromFacility(facilityId, mgr.id);
+      await _loadManagers();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã gỡ "${mgr.fullName}" khỏi ban quản lý cơ sở'),
+          backgroundColor: AppColors.success,
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(
-                "Không tải được người dùng: ${e.toString().replaceAll('Exception: ', '')}")),
+          content: Text(
+              'Không thể gỡ quản lý: ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: AppColors.error,
+        ),
       );
-      return;
     }
-    if (!mounted) return;
+  }
 
-    // managerId -> tên cơ sở đang quản lý (để Admin thấy ai đang quản lý cơ sở nào)
-    final managedFacility = <String, String>{};
-    try {
-      final facilities = await _service.getFacilities();
-      for (final item in facilities.whereType<Map>()) {
-        final managerId = item['managerId']?.toString();
-        if (managerId != null && managerId.isNotEmpty) {
-          managedFacility[managerId] = item['name']?.toString() ?? '';
-        }
-      }
-    } catch (_) {
-      // Không có thông tin này thì vẫn cho gán bình thường.
+  Future<void> _openAssignManagerSheet() async {
+    final facilityId = widget.facility?['id']?.toString() ?? '';
+    final facilityName = _nameController.text.trim();
+    final currentManagerIds = _managers.map((m) => m.id).toSet();
+    if (_managerId != null && _managerId!.isNotEmpty) {
+      currentManagerIds.add(_managerId!);
     }
-    if (!mounted) return;
 
-    final searchController = TextEditingController();
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheet) {
-          final query = searchController.text.trim().toLowerCase();
-          final filtered = users.whereType<Map>().where((u) {
-            if (u['roleName']?.toString() != 'FACILITY_MANAGER') return false;
-            if (query.isEmpty) return true;
-            final haystack = [u['fullName'], u['email'], u['username']]
-                .whereType<String>()
-                .join(' ')
-                .toLowerCase();
-            return haystack.contains(query);
-          }).toList();
-          return SizedBox(
-            height: MediaQuery.of(ctx).size.height * 0.7,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Chọn Facility Manager cho cơ sở',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: searchController,
-                        onChanged: (_) => setSheet(() {}),
-                        decoration: const InputDecoration(
-                            hintText: 'Tìm theo tên hoặc email',
-                            prefixIcon: Icon(Icons.search)),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: filtered.isEmpty
-                      ? const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(24),
-                            child: Text(
-                              'Chưa có tài khoản nào thuộc role Facility Manager. '
-                              'Hãy tạo tài khoản và gán role này ở mục Người dùng & phân quyền.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  color: AppColors.onSurfaceVariant,
-                                  fontSize: 13),
-                            ),
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: filtered.length,
-                          itemBuilder: (context, index) {
-                            final u = filtered[index];
-                            final userId = u['id']?.toString() ?? '';
-                            final name = u['fullName']?.toString() ??
-                                u['username']?.toString() ??
-                                '';
-                            final managed = managedFacility[userId];
-                            final isCurrent = userId == _managerId;
-                            return ListTile(
-                              title: Text(name),
-                              subtitle: Text(
-                                '${u['email'] ?? ''}\n'
-                                '${managed == null ? 'Chưa quản lý cơ sở nào' : 'Đang quản lý: $managed'}',
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                              isThreeLine: true,
-                              trailing: isCurrent
-                                  ? const Icon(Icons.check_circle,
-                                      color: AppColors.success)
-                                  : null,
-                              onTap: () async {
-                                try {
-                                  // Đây là màn "Assign Facility Manager" nên phải gọi endpoint
-                                  // gán Manager (PUT /managers/{userId}), không phải endpoint
-                                  // gán Staff như trước đây.
-                                  await _opsService.assignManagerToFacility(
-                                      widget.facility!['id'].toString(),
-                                      userId);
-                                  if (mounted) {
-                                    setState(() {
-                                      _managerId = userId;
-                                      _managerName = name;
-                                      _managerEmail = u['email']?.toString();
-                                    });
-                                  }
-                                  if (!ctx.mounted) return;
-                                  Navigator.pop(ctx);
-                                  if (!mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                          'Đã gán $name làm Quản lý cơ sở'),
-                                      backgroundColor: AppColors.success,
-                                    ),
-                                  );
-                                } catch (e) {
-                                  if (!ctx.mounted) return;
-                                  ScaffoldMessenger.of(ctx).showSnackBar(
-                                    SnackBar(
-                                        content: Text(e
-                                            .toString()
-                                            .replaceAll('Exception: ', ''))),
-                                  );
-                                }
-                              },
-                            );
-                          },
-                        ),
-                ),
-              ],
-            ),
-          );
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => FacilityManagerAssignmentSheet(
+        facilityId: facilityId,
+        facilityName: facilityName,
+        currentManagerIds: currentManagerIds,
+        adminApiService: _adminApiService,
+        facilityService: _service,
+        opsService: _opsService,
+        onManagerAssigned: () async {
+          await _loadManagers();
         },
       ),
     );
-    disposeAfterRouteCloses([searchController]);
   }
 
   static const SizedBox _gap = SizedBox(height: 14);
@@ -820,54 +773,144 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
   }
 
   Widget _buildManagerCard() {
-    final hasManager = _managerName != null && _managerName!.isNotEmpty;
-
     return _section(
       icon: Icons.manage_accounts_outlined,
-      title: 'Quản lý cơ sở',
-      subtitle: 'Người vận hành cơ sở này. Chỉ người được gán mới thấy và xử lý dữ liệu của cơ sở.',
+      title: 'Quản lý cơ sở (${_managers.length})',
+      subtitle:
+          'Các tài khoản phụ trách vận hành cơ sở này. Admin có thể thêm nhiều quản lý.',
       children: [
-        Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: hasManager
-                  ? AppColors.primaryContainer
-                  : AppColors.surfaceContainerHigh,
-              child: Icon(
-                hasManager ? Icons.person : Icons.person_off_outlined,
-                color: hasManager ? Colors.white : AppColors.onSurfaceVariant,
-                size: 20,
+        if (_isLoadingManagers)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(12),
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    hasManager ? _managerName! : 'Chưa gán quản lý',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 14),
+          )
+        else if (_managers.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainer.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.surfaceContainerHigh),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.person_off_outlined,
+                    color: AppColors.onSurfaceVariant, size: 20),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Chưa có quản lý cơ sở nào được gán.',
+                    style: TextStyle(
+                        fontSize: 13, color: AppColors.onSurfaceVariant),
                   ),
-                  if (hasManager &&
-                      _managerEmail != null &&
-                      _managerEmail!.isNotEmpty)
-                    Text(
-                      _managerEmail!,
+                ),
+              ],
+            ),
+          )
+        else
+          ..._managers.map((mgr) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.surfaceContainerHigh),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: AppColors.primaryContainer,
+                    radius: 18,
+                    child: Text(
+                      mgr.fullName.isNotEmpty
+                          ? mgr.fullName[0].toUpperCase()
+                          : 'M',
                       style: const TextStyle(
-                          fontSize: 12, color: AppColors.onSurfaceVariant),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                mgr.fullName,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600, fontSize: 13),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.secondaryContainer
+                                    .withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'Quản lý',
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.secondary),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (mgr.email.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            mgr.email,
+                            style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.onSurfaceVariant),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (widget.canAssignManager)
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline,
+                          color: AppColors.error, size: 20),
+                      tooltip: 'Gỡ khỏi cơ sở',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => _confirmRemoveManager(mgr),
                     ),
                 ],
               ),
-            ),
-          ],
-        ),
+            );
+          }),
         if (widget.canAssignManager) ...[
-          _gap,
+          const SizedBox(height: 6),
           OutlinedButton.icon(
             onPressed: _openAssignManagerSheet,
             icon: const Icon(Icons.person_add_alt, size: 16),
-            label: Text(hasManager ? 'Đổi quản lý' : 'Gán quản lý'),
+            label: Text(_managers.isEmpty
+                ? 'Gán quản lý cơ sở'
+                : 'Thêm quản lý cơ sở'),
           ),
         ],
       ],
@@ -929,16 +972,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
                     onChanged: (v) => setState(() => _status = v ?? _status),
                   ),
                 ],
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Kho có máy lạnh 24/7'),
-                  subtitle: const Text(
-                      'Khách có thể lọc cơ sở theo mục này. Chỉ bật khi mọi ngăn '
-                      'đều có máy lạnh chạy suốt ngày.'),
-                  value: _airConditioned24h,
-                  onChanged: (value) =>
-                      setState(() => _airConditioned24h = value),
-                ),
+
                 const SizedBox(height: 6),
                 const Text(
                   'Giờ làm việc của cơ sở',
@@ -1303,19 +1337,11 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
           ),
           _section(
             icon: Icons.sell_outlined,
-            title: 'Phí phát sinh & giảm giá',
-            subtitle:
-                'Phí quản lý = 0 nghĩa là miễn phí. Giảm giá từ 0 tháng = không giảm giá.',
+            title: 'Phí quản lý',
+            subtitle: 'Phí quản lý = 0 nghĩa là miễn phí.',
             children: [
               _policyField(_managementFeeController, 'Phí quản lý',
                   suffix: 'VND / tháng'),
-              _gap,
-              _pair(
-                _policyField(_discountMonthsController, 'Giảm giá từ',
-                    int_: true, suffix: 'tháng'),
-                _policyField(_discountPercentController, 'Mức giảm tiền thuê',
-                    suffix: '%'),
-              ),
             ],
           ),
           _section(
@@ -1326,7 +1352,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
               _pair(
                 _policyField(_fullRefundHoursController, 'Hoàn 100% nếu hủy trước',
                     int_: true, suffix: 'giờ'),
-                _policyField(_partialRefundHoursController, 'Hoàn một phần nếu hủy trước',
+                _policyField(_partialRefundHoursController, 'Hoàn một phần nếu hủy sau',
                     int_: true, suffix: 'giờ'),
               ),
               _gap,
@@ -1438,3 +1464,1043 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     );
   }
 }
+
+enum _ManagerFilter { unassigned, allFacilityManagers, allUsers }
+
+class FacilityManagerAssignmentSheet extends StatefulWidget {
+  final String facilityId;
+  final String facilityName;
+  final Set<String> currentManagerIds;
+  final AdminApiService adminApiService;
+  final FacilityAdminApiService facilityService;
+  final FacilityOpsApiService opsService;
+  final Future<void> Function() onManagerAssigned;
+
+  const FacilityManagerAssignmentSheet({
+    super.key,
+    required this.facilityId,
+    required this.facilityName,
+    required this.currentManagerIds,
+    required this.adminApiService,
+    required this.facilityService,
+    required this.opsService,
+    required this.onManagerAssigned,
+  });
+
+  @override
+  State<FacilityManagerAssignmentSheet> createState() =>
+      _FacilityManagerAssignmentSheetState();
+}
+
+class _FacilityManagerAssignmentSheetState
+    extends State<FacilityManagerAssignmentSheet> {
+  bool _isLoading = true;
+  String? _errorMessage;
+  List<Map<String, dynamic>> _allUsers = [];
+  Map<String, String> _managedFacilityMap = {};
+  late Set<String> _currentAssignedIds;
+  _ManagerFilter _activeFilter = _ManagerFilter.allFacilityManagers;
+  final TextEditingController _searchController = TextEditingController();
+  String? _assigningUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentAssignedIds = Set<String>.from(widget.currentManagerIds);
+    _loadData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final results = await Future.wait([
+        widget.adminApiService.getUsers(),
+        widget.facilityService
+            .getFacilities()
+            .catchError((_) => <dynamic>[]),
+        if (widget.facilityId.isNotEmpty)
+          widget.opsService
+              .getFacilityManagers(widget.facilityId)
+              .catchError((_) => <FacilityStaffModel>[])
+        else
+          Future.value(<FacilityStaffModel>[]),
+      ]);
+
+      final usersRaw = results[0];
+      final facilitiesRaw = results[1];
+      final currentMgrs = results[2] as List<FacilityStaffModel>;
+
+      for (final cm in currentMgrs) {
+        _currentAssignedIds.add(cm.id);
+      }
+
+      final managedMap = <String, String>{};
+      for (final item in facilitiesRaw.whereType<Map>()) {
+        final fId = item['id']?.toString() ?? '';
+        final mId = item['managerId']?.toString();
+        final fName = item['name']?.toString() ?? '';
+        if (mId != null && mId.isNotEmpty && fName.isNotEmpty) {
+          managedMap[mId] = fName;
+        }
+        if (fId == widget.facilityId && mId != null && mId.isNotEmpty) {
+          _currentAssignedIds.add(mId);
+        }
+      }
+
+      final parsed = usersRaw
+          .whereType<Map>()
+          .map((m) => Map<String, dynamic>.from(m))
+          .where((u) {
+        final rawRole = _getRawRole(u);
+        return rawRole != 'ADMIN';
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _allUsers = parsed;
+          _managedFacilityMap = managedMap;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  String _getRawRole(Map<String, dynamic> u) {
+    return (u['roleName']?.toString() ??
+            (u['role'] is Map
+                ? u['role']['name']?.toString()
+                : u['role']?.toString()) ??
+            '')
+        .toUpperCase()
+        .replaceAll('ROLE_', '');
+  }
+
+  bool _isFacilityManager(Map<String, dynamic> u) {
+    return _getRawRole(u) == 'FACILITY_MANAGER';
+  }
+
+  ({bool isAssignedToThis, bool isUnassigned, String facilityName})
+      _getAssignmentInfo(Map<String, dynamic> u) {
+    final userId = u['id']?.toString() ?? '';
+    final rawFacilityId = u['facilityId']?.toString() ?? '';
+    final directFacilityName = u['facilityName']?.toString() ?? '';
+    final mappedFacilityName = _managedFacilityMap[userId] ?? '';
+    final effectiveFacilityName = directFacilityName.isNotEmpty
+        ? directFacilityName
+        : mappedFacilityName;
+
+    final isAssignedToThis = _currentAssignedIds.contains(userId) ||
+        (rawFacilityId.isNotEmpty && rawFacilityId == widget.facilityId);
+
+    final isUnassigned = !isAssignedToThis &&
+        rawFacilityId.isEmpty &&
+        effectiveFacilityName.isEmpty;
+
+    return (
+      isAssignedToThis: isAssignedToThis,
+      isUnassigned: isUnassigned,
+      facilityName:
+          isAssignedToThis ? widget.facilityName : effectiveFacilityName,
+    );
+  }
+
+  int get _unassignedCount => _allUsers
+      .where((u) => _isFacilityManager(u) && _getAssignmentInfo(u).isUnassigned)
+      .length;
+
+  int get _facilityManagersCount =>
+      _allUsers.where((u) => _isFacilityManager(u)).length;
+
+  int get _allUsersCount => _allUsers.length;
+
+  List<Map<String, dynamic>> _getFilteredUsers() {
+    final query = _searchController.text.trim().toLowerCase();
+
+    final filtered = _allUsers.where((u) {
+      final info = _getAssignmentInfo(u);
+      final isMgr = _isFacilityManager(u);
+
+      // Lọc theo Tab bộ lọc
+      switch (_activeFilter) {
+        case _ManagerFilter.unassigned:
+          if (!isMgr || !info.isUnassigned) return false;
+          break;
+        case _ManagerFilter.allFacilityManagers:
+          if (!isMgr) return false;
+          break;
+        case _ManagerFilter.allUsers:
+          break;
+      }
+
+      // Lọc theo Search query
+      if (query.isNotEmpty) {
+        final rawRole = _getRawRole(u);
+        final haystack = [
+          u['fullName'],
+          u['email'],
+          u['username'],
+          u['phone'],
+          ViLabels.role(rawRole),
+          rawRole,
+          info.facilityName,
+        ].whereType<String>().join(' ').toLowerCase();
+        if (!haystack.contains(query)) return false;
+      }
+
+      return true;
+    }).toList();
+
+    // Sắp xếp: Quản lý cơ sở này lên #1, kế tiếp Quản lý đang rảnh, rồi đến Quản lý cơ sở khác
+    filtered.sort((a, b) {
+      final infoA = _getAssignmentInfo(a);
+      final infoB = _getAssignmentInfo(b);
+      final isMgrA = _isFacilityManager(a);
+      final isMgrB = _isFacilityManager(b);
+
+      int score(Map<String, dynamic> u, bool isMgr, bool isUnassigned,
+          bool isThis) {
+        if (isThis) return 0; // Đang quản lý cơ sở này -> Ưu tiên hiện đầu tiên
+        if (isMgr && isUnassigned) return 1; // Quản lý chưa có cơ sở -> Kế tiếp
+        if (isMgr) return 2; // Quản lý cơ sở khác -> Kế tiếp
+        if (_getRawRole(u) == 'STAFF') return 3;
+        return 4;
+      }
+
+      final scoreA =
+          score(a, isMgrA, infoA.isUnassigned, infoA.isAssignedToThis);
+      final scoreB =
+          score(b, isMgrB, infoB.isUnassigned, infoB.isAssignedToThis);
+
+      final cmp = scoreA.compareTo(scoreB);
+      if (cmp != 0) return cmp;
+
+      final nA = (a['fullName']?.toString() ??
+              a['username']?.toString() ??
+              '')
+          .toLowerCase();
+      final nB = (b['fullName']?.toString() ??
+              b['username']?.toString() ??
+              '')
+          .toLowerCase();
+      return nA.compareTo(nB);
+    });
+
+    return filtered;
+  }
+
+  Future<void> _handleAssign(Map<String, dynamic> u) async {
+    final userId = u['id']?.toString() ?? '';
+    final name = u['fullName']?.toString() ?? u['username']?.toString() ?? '';
+    final info = _getAssignmentInfo(u);
+
+    if (info.isAssignedToThis) return;
+
+    if (!info.isUnassigned && info.facilityName.isNotEmpty) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Xác nhận phân công',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          content: Text(
+              'Tài khoản "$name" hiện đang phụ trách cơ sở "${info.facilityName}".\n\n'
+              'Bạn có chắc chắn muốn phân công thêm tài khoản này cùng quản lý cơ sở "${widget.facilityName}" không?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Hủy'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Đồng ý phân công'),
+            ),
+          ],
+        ),
+      );
+      if (confirm != true) return;
+    }
+
+    setState(() => _assigningUserId = userId);
+    try {
+      await widget.opsService
+          .assignManagerToFacility(widget.facilityId, userId);
+      await widget.onManagerAssigned();
+      if (!mounted) return;
+      setState(() {
+        _currentAssignedIds.add(userId);
+        _assigningUserId = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text('Đã thêm "$name" vào ban quản lý "${widget.facilityName}"'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _assigningUserId = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Không thể gán quản lý: ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleUnassign(Map<String, dynamic> u) async {
+    final userId = u['id']?.toString() ?? '';
+    final name = u['fullName']?.toString() ?? u['username']?.toString() ?? '';
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Gỡ quyền quản lý cơ sở',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        content: Text(
+            'Bạn có chắc chắn muốn gỡ quyền quản lý cơ sở "${widget.facilityName}" của tài khoản "$name" không?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Gỡ quyền'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    setState(() => _assigningUserId = userId);
+    try {
+      await widget.opsService
+          .unassignManagerFromFacility(widget.facilityId, userId);
+      await widget.onManagerAssigned();
+      if (!mounted) return;
+      setState(() {
+        _currentAssignedIds.remove(userId);
+        _assigningUserId = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text('Đã gỡ "$name" khỏi ban quản lý "${widget.facilityName}"'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _assigningUserId = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Không thể gỡ quản lý: ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final filteredUsers = _getFilteredUsers();
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.88,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Drag Handle
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 10, bottom: 6),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.manage_accounts_outlined,
+                        color: AppColors.primary, size: 22),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Gán Quản lý cơ sở (Facility Manager)',
+                          style: TextStyle(
+                              fontSize: 15.5, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'Cơ sở: ${widget.facilityName.isNotEmpty ? widget.facilityName : "Chi nhánh"}',
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            color: AppColors.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+
+            // Search Bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  hintText: 'Tìm theo tên, email, cơ sở đang quản lý...',
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 16),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {});
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                        color: AppColors.primary, width: 1.5),
+                  ),
+                ),
+              ),
+            ),
+
+            // Filter Chips
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  _filterChip(
+                    filter: _ManagerFilter.allFacilityManagers,
+                    label: '🏢 Quản lý cơ sở ($_facilityManagersCount)',
+                  ),
+                  const SizedBox(width: 8),
+                  _filterChip(
+                    filter: _ManagerFilter.unassigned,
+                    label: '🟢 Chưa có cơ sở ($_unassignedCount)',
+                  ),
+                  const SizedBox(width: 8),
+                  _filterChip(
+                    filter: _ManagerFilter.allUsers,
+                    label: '👥 Tất cả tài khoản ($_allUsersCount)',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+
+            // Unified Body List
+            Expanded(
+              child: _buildBody(filteredUsers),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _filterChip({
+    required _ManagerFilter filter,
+    required String label,
+  }) {
+    final isSelected = _activeFilter == filter;
+    return InkWell(
+      onTap: () => setState(() => _activeFilter = filter),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            color: isSelected ? Colors.white : const Color(0xFF334155),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(List<Map<String, dynamic>> users) {
+    if (_isLoading) {
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 12),
+            Text('Đang tải danh sách tài khoản...',
+                style: TextStyle(
+                    fontSize: 13, color: AppColors.onSurfaceVariant)),
+          ],
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline,
+                  color: AppColors.error, size: 40),
+              const SizedBox(height: 10),
+              Text(
+                'Lỗi tải dữ liệu: $_errorMessage',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, color: AppColors.error),
+              ),
+              const SizedBox(height: 14),
+              FilledButton.icon(
+                onPressed: _loadData,
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('Thử lại'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (users.isEmpty) {
+      return Center(
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _activeFilter == _ManagerFilter.unassigned
+                    ? Icons.assignment_turned_in_outlined
+                    : Icons.person_search_outlined,
+                size: 44,
+                color: Colors.grey.shade400,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                _activeFilter == _ManagerFilter.unassigned
+                    ? 'Hiện không có Quản lý cơ sở nào đang rảnh (chưa phụ trách cơ sở nào).'
+                    : 'Không tìm thấy tài khoản phù hợp với tìm kiếm.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              if (_activeFilter == _ManagerFilter.unassigned) ...[
+                const SizedBox(height: 14),
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(140, 36),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _activeFilter = _ManagerFilter.allFacilityManagers;
+                    });
+                  },
+                  child: const Text('Xem tất cả Quản lý cơ sở'),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+
+    final currentManagerCount = _allUsers
+        .where((u) => _getAssignmentInfo(u).isAssignedToThis)
+        .length;
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+      itemCount: users.length + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return _buildFacilityStatusBanner(currentManagerCount);
+        }
+        final u = users[index - 1];
+        return _buildUserCard(u);
+      },
+    );
+  }
+
+  Widget _buildFacilityStatusBanner(int count) {
+    if (count == 0) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBEB),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFFDE68A)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.info_outline_rounded,
+                size: 16, color: Color(0xFFD97706)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Cơ sở "${widget.facilityName}" hiện chưa có người quản lý phụ trách.',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF92400E),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFBBF7D0)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.verified_user_rounded,
+              size: 16, color: Color(0xFF15803D)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Cơ sở "${widget.facilityName}" đang có $count người phụ trách quản lý.',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF15803D),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUserCard(Map<String, dynamic> u) {
+    final userId = u['id']?.toString() ?? '';
+    final name = u['fullName']?.toString() ??
+        u['username']?.toString() ??
+        'Chưa đặt tên';
+    final username = u['username']?.toString() ?? '';
+    final email = u['email']?.toString() ?? '';
+    final phone = u['phone']?.toString() ?? '';
+    final rawRole = _getRawRole(u);
+    final roleLabel = ViLabels.role(rawRole);
+    final isMgr = _isFacilityManager(u);
+    final info = _getAssignmentInfo(u);
+    final isAssigning = _assigningUserId == userId;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: info.isAssignedToThis ? const Color(0xFFF0FDF4) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: info.isAssignedToThis
+              ? const Color(0xFF86EFAC)
+              : const Color(0xFFE2E8F0),
+          width: info.isAssignedToThis ? 1.5 : 1,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 3,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Top Row: Avatar + Name + Role Badge
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: info.isAssignedToThis
+                    ? const Color(0xFF16A34A)
+                    : const Color(0xFF334155),
+                child: Text(
+                  name.isNotEmpty ? name[0].toUpperCase() : 'M',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13.5,
+                              color: Color(0xFF0F172A),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isMgr
+                                ? AppColors.primary.withValues(alpha: 0.1)
+                                : Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            roleLabel,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: isMgr
+                                  ? AppColors.primary
+                                  : Colors.grey.shade700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      [
+                        if (username.isNotEmpty) '@$username',
+                        if (email.isNotEmpty) email,
+                        if (phone.isNotEmpty) phone,
+                      ].join(' • '),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF64748B),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Bottom Row: Facility status badge on the left, Action button on the right
+          Row(
+            children: [
+              // Status Badge
+              Expanded(
+                child: info.isAssignedToThis
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDCFCE7),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.check_circle_rounded,
+                                size: 13, color: Color(0xFF15803D)),
+                            const SizedBox(width: 5),
+                            Flexible(
+                              child: Text(
+                                'Đang quản lý: ${widget.facilityName}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF15803D),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : info.isUnassigned
+                        ? Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFECFDF5),
+                              borderRadius: BorderRadius.circular(6),
+                              border:
+                                  Border.all(color: const Color(0xFFA7F3D0)),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.fiber_manual_record,
+                                    size: 8, color: Color(0xFF059669)),
+                                SizedBox(width: 5),
+                                Flexible(
+                                  child: Text(
+                                    'Chưa quản lý cơ sở nào (Sẵn sàng)',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF047857),
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(6),
+                              border:
+                                  Border.all(color: const Color(0xFFCBD5E1)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.storefront_outlined,
+                                    size: 13, color: Color(0xFF475569)),
+                                const SizedBox(width: 5),
+                                Flexible(
+                                  child: RichText(
+                                    overflow: TextOverflow.ellipsis,
+                                    text: TextSpan(
+                                      style: const TextStyle(
+                                          fontSize: 11, color: Color(0xFF475569)),
+                                      children: [
+                                        const TextSpan(text: 'Đang quản lý: '),
+                                        TextSpan(
+                                          text: info.facilityName,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF0F172A),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+              ),
+              const SizedBox(width: 8),
+
+              // Action button
+              if (info.isAssignedToThis)
+                TextButton.icon(
+                  onPressed: isAssigning ? null : () => _handleUnassign(u),
+                  style: TextButton.styleFrom(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    foregroundColor: AppColors.error,
+                  ),
+                  icon: isAssigning
+                      ? const SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.remove_circle_outline, size: 14),
+                  label: const Text(
+                    'Gỡ quyền',
+                    style:
+                        TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                  ),
+                )
+              else if (info.isUnassigned)
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: isAssigning ? null : () => _handleAssign(u),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isAssigning
+                            ? Colors.grey.shade400
+                            : const Color(0xFF059669),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: isAssigning
+                          ? const SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.add, size: 13, color: Colors.white),
+                                SizedBox(width: 3),
+                                Text(
+                                  'Gán',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                )
+              else
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: isAssigning ? null : () => _handleAssign(u),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isAssigning
+                            ? Colors.grey.shade400
+                            : const Color(0xFF1E293B),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: isAssigning
+                          ? const SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.swap_horiz,
+                                    size: 13, color: Colors.white),
+                                SizedBox(width: 3),
+                                Text(
+                                  'Chuyển',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+

@@ -128,7 +128,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 ),
               ),
             ),
-            ...roles.map((r) {
+            ...roles
+                .where((r) =>
+                    (r['name']?.toString() ?? '').toUpperCase() != 'ADMIN')
+                .map((r) {
               final id = r['id']?.toString() ?? '';
               final name = r['name']?.toString() ?? id;
               final description = r['description']?.toString();
@@ -175,6 +178,35 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   Future<void> _toggleActive(Map user) async {
     final userId = user['id']?.toString() ?? '';
     final wasActive = user['isActive'] == true;
+    if (wasActive) {
+      final identity = user['email']?.toString() ??
+          user['username']?.toString() ?? userId;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Vô hiệu hóa tài khoản?'),
+          content: Text(
+            'Bạn có chắc muốn vô hiệu hóa tài khoản "$identity"? '
+            'Tài khoản này sẽ không thể đăng nhập cho đến khi được kích hoạt lại.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Vô hiệu hóa'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
     try {
       await _adminService.toggleUserActive(userId);
       _loadUsers();
@@ -208,8 +240,20 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     final username = user['username']?.toString() ?? 'Unknown';
     final fullName = user['fullName']?.toString() ?? username;
     final phone = user['phone']?.toString() ?? '';
+    final roleName = user['roleName']?.toString();
+    final isAdmin = (roleName ?? '').toUpperCase() == 'ADMIN';
     switch (action) {
       case 'role':
+        if (isAdmin) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'Không thể thay đổi vai trò của tài khoản Quản trị viên (ADMIN).'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          return;
+        }
         await _showAssignRoleSheet(userId, fullName, phone);
         break;
       case 'toggle':
@@ -715,14 +759,16 @@ class _UserDetailSheetState extends State<_UserDetailSheet> {
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => Navigator.pop(context, 'role'),
-                        icon: const Icon(Icons.badge_outlined, size: 18),
-                        label: const Text('Gán vai trò'),
+                    if (!isAdmin) ...[
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => Navigator.pop(context, 'role'),
+                          icon: const Icon(Icons.badge_outlined, size: 18),
+                          label: const Text('Gán vai trò'),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
+                      const SizedBox(width: 10),
+                    ],
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => Navigator.pop(context, 'toggle'),

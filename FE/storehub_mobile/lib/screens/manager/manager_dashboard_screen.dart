@@ -1,3 +1,4 @@
+import '../../widgets/assignment_user_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -12,7 +13,6 @@ import '../../widgets/state_views.dart';
 import '../../widgets/notification_badge_button.dart';
 import '../common/profile_screen.dart';
 import '../common/transaction_history_screen.dart';
-import '../common/gate_pass_verify_screen.dart';
 import 'booking_assignment_screen.dart';
 import 'appointment_assignment_screen.dart';
 import 'refund_review_screen.dart';
@@ -183,8 +183,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
 
     try {
       await _unitsFuture;
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> _refreshStaff() async {
@@ -192,8 +191,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
 
     try {
       await _staffFuture;
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> _refreshReport() async {
@@ -201,8 +199,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
 
     try {
       await _reportFuture;
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> _changeUnitStatus(FacilityUnitModel unit) async {
@@ -378,16 +375,21 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
                       ),
                       const SizedBox(height: 14),
                       DropdownButtonFormField<String>(
-                        initialValue: unitTypes.any((t) => t.id == selectedTypeId)
-                            ? selectedTypeId
-                            : null,
+                        isExpanded: true,
+                        itemHeight: 64,
+                        initialValue:
+                            unitTypes.any((t) => t.id == selectedTypeId)
+                                ? selectedTypeId
+                                : null,
                         decoration: const InputDecoration(
                           labelText: 'Loại kho',
                         ),
                         items: unitTypes.map((type) {
                           return DropdownMenuItem<String>(
                             value: type.id,
-                            child: Text(type.name),
+                            child: Text(
+                                '${type.name} · ${type.dimensions.isEmpty ? "Chưa có kích thước" : type.dimensions}',
+                                maxLines: 2),
                           );
                         }).toList(),
                         onChanged: submitting
@@ -534,6 +536,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
         .toList();
 
     final searchController = TextEditingController();
+    String? assigningUserId;
 
     if (!mounted) {
       return;
@@ -579,7 +582,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
                 height: MediaQuery.of(
                       sheetContext,
                     ).size.height *
-                    0.7,
+                    0.88,
                 child: Column(
                   children: [
                     Padding(
@@ -632,64 +635,62 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
                               ) {
                                 final user = filteredUsers[index];
 
-                                return ListTile(
-                                  leading: const CircleAvatar(
-                                    child: Icon(
-                                      Icons.person,
-                                    ),
-                                  ),
-                                  title: Text(
-                                    user.displayName,
-                                  ),
-                                  subtitle: Text(
-                                    user.email,
-                                  ),
-                                  trailing: const Icon(
-                                    Icons.chevron_right,
-                                  ),
-                                  onTap: () async {
-                                    try {
-                                      await _opsService.assignStaffToFacility(
-                                        _facilityId!,
-                                        user.id,
-                                      );
+                                return AssignmentUserTile(
+                                  name: user.displayName,
+                                  email: user.email,
+                                  status: 'Chưa được gán vào cơ sở này',
+                                  busy: assigningUserId == user.id,
+                                  onAssign: assigningUserId != null
+                                      ? null
+                                      : () async {
+                                          setSheetState(
+                                              () => assigningUserId = user.id);
+                                          try {
+                                            await _opsService
+                                                .assignStaffToFacility(
+                                              _facilityId!,
+                                              user.id,
+                                            );
 
-                                      if (!sheetContext.mounted) {
-                                        return;
-                                      }
+                                            if (!sheetContext.mounted) {
+                                              return;
+                                            }
 
-                                      Navigator.pop(
-                                        sheetContext,
-                                      );
+                                            Navigator.pop(
+                                              sheetContext,
+                                            );
 
-                                      if (!mounted) {
-                                        return;
-                                      }
+                                            if (!mounted) {
+                                              return;
+                                            }
 
-                                      _showSuccess(
-                                        'Đã gán vai trò cho ${user.displayName}',
-                                      );
+                                            _showSuccess(
+                                              'Đã gán vai trò cho ${user.displayName}',
+                                            );
 
-                                      _loadStaff();
-                                    } catch (error) {
-                                      if (!sheetContext.mounted) {
-                                        return;
-                                      }
+                                            _loadStaff();
+                                          } catch (error) {
+                                            if (!sheetContext.mounted) {
+                                              return;
+                                            }
 
-                                      ScaffoldMessenger.of(
-                                        sheetContext,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            _errorMessage(
-                                              error,
-                                            ),
-                                          ),
-                                          backgroundColor: AppColors.error,
-                                        ),
-                                      );
-                                    }
-                                  },
+                                            setSheetState(
+                                                () => assigningUserId = null);
+                                            ScaffoldMessenger.of(
+                                              sheetContext,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  _errorMessage(
+                                                    error,
+                                                  ),
+                                                ),
+                                                backgroundColor:
+                                                    AppColors.error,
+                                              ),
+                                            );
+                                          }
+                                        },
                                 );
                               },
                             ),
@@ -823,7 +824,9 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
         content: Row(
           children: [
             Icon(
-              isPermission ? Icons.lock_outline_rounded : Icons.error_outline_rounded,
+              isPermission
+                  ? Icons.lock_outline_rounded
+                  : Icons.error_outline_rounded,
               color: Colors.white,
               size: 18,
             ),
@@ -836,7 +839,8 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
             ),
           ],
         ),
-        backgroundColor: isPermission ? const Color(0xFF1E293B) : AppColors.error,
+        backgroundColor:
+            isPermission ? const Color(0xFF1E293B) : AppColors.error,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -854,16 +858,6 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
               : _facilityName!,
         ),
         actions: [
-          if (_facilityId != null && _facilityId!.isNotEmpty)
-            IconButton(
-              tooltip: 'Xác thực mã vào cổng',
-              icon: const Icon(Icons.vpn_key_outlined),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) =>
-                    GatePassVerifyScreen(facilityId: _facilityId!)),
-              ),
-            ),
           NotificationBadgeButton(
             user: widget.user,
             facilityId: _facilityId,
@@ -1045,7 +1039,8 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: badgeColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(6),
@@ -1097,7 +1092,8 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
                   ),
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: iconColor.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
@@ -1114,7 +1110,8 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
                           ),
                         ),
                         const SizedBox(width: 2),
-                        Icon(Icons.arrow_forward_rounded, size: 10, color: iconColor),
+                        Icon(Icons.arrow_forward_rounded,
+                            size: 10, color: iconColor),
                       ],
                     ),
                   ),
@@ -1140,16 +1137,21 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
                   color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.bolt_rounded, size: 16, color: AppColors.primary),
+                child: const Icon(Icons.bolt_rounded,
+                    size: 16, color: AppColors.primary),
               ),
               const SizedBox(width: 8),
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Thao tác nghiệp vụ',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0F172A))),
                   Text('Chạm vào thẻ để mở xử lý',
-                      style: TextStyle(fontSize: 10, color: AppColors.onSurfaceVariant)),
+                      style: TextStyle(
+                          fontSize: 10, color: AppColors.onSurfaceVariant)),
                 ],
               ),
               const Spacer(),
@@ -1165,16 +1167,19 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
                 ),
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                    border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.2)),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.receipt_long_outlined, size: 13, color: AppColors.primary),
+                      Icon(Icons.receipt_long_outlined,
+                          size: 13, color: AppColors.primary),
                       SizedBox(width: 4),
                       Text('Sổ giao dịch',
                           style: TextStyle(
@@ -1558,7 +1563,8 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
                     const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.pie_chart_outline, size: 16, color: AppColors.secondary),
+                        Icon(Icons.pie_chart_outline,
+                            size: 16, color: AppColors.secondary),
                         SizedBox(width: 6),
                         Text(
                           'Tỷ lệ lấp đầy cơ sở',
@@ -1642,7 +1648,8 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
                   ),
                   _statTile(
                     'Doanh thu đã thu',
-                    NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0)
+                    NumberFormat.currency(
+                            locale: 'vi_VN', symbol: '₫', decimalDigits: 0)
                         .format(report.revenue),
                     Icons.attach_money,
                     AppColors.success,

@@ -19,6 +19,7 @@ class MockAdminApiService extends AdminApiService {
         'roleName': 'FACILITY_MANAGER',
         'facilityId': null,
       },
+      {'id': 'staff', 'fullName': 'Staff hidden', 'roleName': 'STAFF'},
       {
         'id': 'u2',
         'fullName': 'Trần Quản Lý 2',
@@ -40,7 +41,8 @@ class MockFacilityAdminApiService extends FacilityAdminApiService {
 
 class MockFacilityOpsApiService extends FacilityOpsApiService {
   @override
-  Future<List<FacilityStaffModel>> getFacilityManagers(String facilityId) async {
+  Future<List<FacilityStaffModel>> getFacilityManagers(
+      String facilityId) async {
     return [];
   }
 }
@@ -83,7 +85,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
 
     // Verify sheet title is rendered
-    expect(find.text('Gán Quản lý cơ sở (Facility Manager)'), findsOneWidget);
+    expect(find.text('Gán quản lý cơ sở'), findsOneWidget);
 
     // Verify users are loaded and rendered
     expect(find.text('Nguyễn Quản Lý 1'), findsOneWidget);
@@ -91,6 +93,9 @@ void main() {
 
     // Verify the "Gán" action buttons are rendered
     expect(find.text('Gán'), findsNWidgets(2));
+
+    expect(find.text('Staff hidden'), findsNothing);
+    expect(find.textContaining('Tất cả tài khoản'), findsNothing);
 
     // Verify NO layout exceptions occurred!
     expect(tester.takeException(), isNull);

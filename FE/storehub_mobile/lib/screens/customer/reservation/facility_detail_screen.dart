@@ -4,7 +4,6 @@ import '../../../models/unit_type_model.dart';
 import '../../../services/booking_api_service.dart';
 import '../../../services/catalog_api_service.dart';
 import 'payment_screen.dart';
-import 'my_waitlist_screen.dart';
 
 class FacilityDetailScreen extends StatefulWidget {
   final String facilityId;
@@ -74,7 +73,8 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
       if (h >= 20) h = 19;
       _checkInTime = TimeOfDay(hour: h, minute: 0);
     } else {
-      _startDate = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+      _startDate =
+          DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
       _checkInTime = const TimeOfDay(hour: 9, minute: 0);
     }
 
@@ -140,7 +140,9 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
             if (now.hour < close.hour) {
               int h = now.minute >= 45 ? now.hour + 2 : now.hour + 1;
               if (h < open.hour) h = open.hour;
-              if (h >= close.hour) h = close.hour - 1 >= open.hour ? close.hour - 1 : open.hour;
+              if (h >= close.hour) {
+                h = close.hour - 1 >= open.hour ? close.hour - 1 : open.hour;
+              }
               _checkInTime = TimeOfDay(hour: h, minute: 0);
             } else {
               _startDate = now.add(const Duration(days: 1));
@@ -157,16 +159,19 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
 
       // Load policy to get max advance reservation days & legal terms
       try {
-        final policy = await _catalogService.getFacilityPolicy(widget.facilityId);
+        final policy =
+            await _catalogService.getFacilityPolicy(widget.facilityId);
         if (policy != null) {
           if (mounted) {
             setState(() {
               _facilityPolicy = policy;
               if (policy['maxAdvanceReservationDays'] != null) {
-                final maxDays = (policy['maxAdvanceReservationDays'] as num).toInt();
+                final maxDays =
+                    (policy['maxAdvanceReservationDays'] as num).toInt();
                 if (maxDays > 0) {
                   _maxAdvanceReservationDays = maxDays;
-                  final maxAllowed = DateTime.now().add(Duration(days: maxDays));
+                  final maxAllowed =
+                      DateTime.now().add(Duration(days: maxDays));
                   if (_startDate.isAfter(maxAllowed)) {
                     _startDate = maxAllowed;
                   }
@@ -321,16 +326,6 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                 pinned: true,
                 backgroundColor: const Color(0xFF0F172A),
                 foregroundColor: Colors.white,
-                actions: [
-                  IconButton(
-                    tooltip: 'Danh sách chờ của tôi',
-                    onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const MyWaitlistScreen())),
-                    icon: const Icon(Icons.notifications_active_outlined),
-                  )
-                ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: Stack(
                     fit: StackFit.expand,
@@ -603,8 +598,7 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
           const SizedBox(height: 18),
         ],
         // ── Unit type selection ─────────────────────────────────────
-        _sectionHeader('📦 Chọn loại kho',
-            subtitle: 'Chọn kích thước phù hợp'),
+        _sectionHeader('📦 Chọn loại kho', subtitle: 'Chọn kích thước phù hợp'),
         const SizedBox(height: 10),
         if (snapshot.hasError)
           _errorBanner(
@@ -627,9 +621,6 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                         _refreshQuote();
                       }
                     : null,
-                onJoinWaitlist: type.availableUnits > 0
-                    ? null
-                    : () => _joinWaitlist(type.id, type.name),
               )),
         if (_selectedType != null) ...[
           const SizedBox(height: 12),
@@ -664,8 +655,7 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                 close != null &&
                 (selected < open || selected >= close)) {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content:
-                      Text('Chọn giờ trong khung giờ mở cửa của cơ sở.')));
+                  content: Text('Chọn giờ trong khung giờ mở cửa của cơ sở.')));
               return;
             }
             if (_isStartInPast(_startDate, picked)) {
@@ -689,8 +679,7 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
 
         // ── Cost breakdown ────────────────────────────────────────────
         if (_selectedType != null) ...[
-          _sectionHeader('💰 Chi tiết chi phí',
-              subtitle: 'Tự động cập nhật'),
+          _sectionHeader('💰 Chi tiết chi phí', subtitle: 'Tự động cập nhật'),
           const SizedBox(height: 10),
           _buildQuoteSection(),
         ],
@@ -753,7 +742,8 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.check_circle_outline, color: AppColors.primary, size: 18),
+              const Icon(Icons.check_circle_outline,
+                  color: AppColors.primary, size: 18),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -797,7 +787,9 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                 child: _specBox(
                   icon: Icons.straighten_outlined,
                   label: 'Kích thước',
-                  value: type.dimensions.isNotEmpty ? type.dimensions : 'Tiêu chuẩn',
+                  value: type.dimensions.isNotEmpty
+                      ? type.dimensions
+                      : 'Tiêu chuẩn',
                 ),
               ),
               const SizedBox(width: 8),
@@ -816,11 +808,13 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.outline.withValues(alpha: 0.15)),
+              border:
+                  Border.all(color: AppColors.outline.withValues(alpha: 0.15)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.assignment_turned_in_outlined, size: 16, color: Color(0xFF2563EB)),
+                const Icon(Icons.assignment_turned_in_outlined,
+                    size: 16, color: Color(0xFF2563EB)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -858,7 +852,8 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(fontSize: 10, color: AppColors.onSurfaceVariant),
+            style: const TextStyle(
+                fontSize: 10, color: AppColors.onSurfaceVariant),
           ),
           const SizedBox(height: 2),
           Text(
@@ -877,7 +872,8 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
   }
 
   Widget _buildDatePicker() {
-    final maxAllowedDate = DateTime.now().add(Duration(days: _maxAdvanceReservationDays));
+    final maxAllowedDate =
+        DateTime.now().add(Duration(days: _maxAdvanceReservationDays));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -924,7 +920,8 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+              border:
+                  Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
               boxShadow: [
                 BoxShadow(
                     color: AppColors.primary.withValues(alpha: 0.06),
@@ -968,12 +965,14 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
         const SizedBox(height: 6),
         Row(
           children: [
-            const Icon(Icons.info_outline, size: 13, color: AppColors.onSurfaceVariant),
+            const Icon(Icons.info_outline,
+                size: 13, color: AppColors.onSurfaceVariant),
             const SizedBox(width: 4),
             Expanded(
               child: Text(
                 'Cơ sở cho phép giữ chỗ trước tối đa $_maxAdvanceReservationDays ngày tính từ hôm nay.',
-                style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
+                style: const TextStyle(
+                    fontSize: 11, color: AppColors.onSurfaceVariant),
               ),
             ),
           ],
@@ -1193,7 +1192,8 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.info_outline, size: 16, color: Colors.amber.shade900),
+                Icon(Icons.info_outline,
+                    size: 16, color: Colors.amber.shade900),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -1212,14 +1212,16 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
           const SizedBox(height: 8),
           Text(
               '* Khi kết thúc thuê chỉ hoàn lại tiền cọc ($depositPct%). Tiền thuê và phí quản lý không được hoàn sau khi đã nhận kho.',
-              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+              style: const TextStyle(
+                  fontSize: 11, color: AppColors.textSecondary)),
         ],
       ),
     );
   }
 
   /// Các dòng chi tiết lấy từ breakdown của BE: tiền thuê, giảm giá (nếu có), cọc, phí quản lý.
-  List<Widget> _quoteBreakdownLines(dynamic total, dynamic deposit, [int depositPct = 20]) {
+  List<Widget> _quoteBreakdownLines(dynamic total, dynamic deposit,
+      [int depositPct = 20]) {
     final items = (_quote!['breakdown'] as List?) ?? const [];
     if (items.isEmpty) {
       return [
@@ -1358,43 +1360,10 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
   // went straight to PaymentScreen with numbers computed on the FE, no
   // booking was ever created in the DB, so after "paying" the unit never
   // showed up in "My Units".
-  // POST /waitlist - lets the customer register interest when a unit type
-  // has 0 AVAILABLE units right now; the BE notifies them once one frees up.
-  Future<void> _joinWaitlist(String unitTypeId, String unitTypeName) async {
-    try {
-      final message = await _bookingService.joinWaitlist(
-        facilityId: widget.facilityId,
-        unitTypeId: unitTypeId,
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: AppColors.success,
-          action: SnackBarAction(
-            label: 'Xem danh sách',
-            textColor: Colors.white,
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const MyWaitlistScreen()),
-            ),
-          ),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: AppColors.error,
-        ),
-      );
-    }
-  }
-
   /// Ngày + giờ nhận kho đã chọn phải còn ở tương lai (máy chủ cũng kiểm tra điều này).
   bool _isStartInPast(DateTime date, TimeOfDay time) {
-    final start = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    final start =
+        DateTime(date.year, date.month, date.day, time.hour, time.minute);
     return !start.isAfter(DateTime.now());
   }
 
@@ -1421,10 +1390,13 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
       if (!mounted) return;
       final termsVersion = policy?['termsVersion']?.toString() ?? '';
       final termsHash = policy?['termsHash']?.toString() ?? '';
-      if (policy == null || termsVersion.trim().isEmpty || termsHash.isEmpty ||
+      if (policy == null ||
+          termsVersion.trim().isEmpty ||
+          termsHash.isEmpty ||
           (policy['termsAndConditions']?.toString().trim().isEmpty ?? true) ||
           (policy['prohibitedItems']?.toString().trim().isEmpty ?? true)) {
-        throw Exception('Không tải được điều khoản hiện hành của cơ sở. Vui lòng thử lại sau.');
+        throw Exception(
+            'Không tải được điều khoản hiện hành của cơ sở. Vui lòng thử lại sau.');
       }
       final agreed = await _showLegalAgreementSheet(policy);
       if (!mounted || agreed != true) return;
@@ -1601,14 +1573,16 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                               color: AppColors.primary.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.25),
+                                color:
+                                    AppColors.primary.withValues(alpha: 0.25),
                               ),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     const Row(
                                       children: [
@@ -1632,7 +1606,8 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                                       decoration: BoxDecoration(
                                         color: Colors.green.shade50,
                                         borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: Colors.green.shade200),
+                                        border: Border.all(
+                                            color: Colors.green.shade200),
                                       ),
                                       child: Text(
                                         'Hợp đồng điện tử',
@@ -1649,34 +1624,39 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                                 Text(
                                   '• Cơ sở: ${widget.facilityName}',
                                   style: const TextStyle(
-                                      fontSize: 12.5, color: AppColors.textPrimary),
+                                      fontSize: 12.5,
+                                      color: AppColors.textPrimary),
                                 ),
                                 if (_selectedType != null) ...[
                                   const SizedBox(height: 4),
                                   Text(
                                     '• Loại kho: ${_selectedType!.name} (${_selectedType!.dimensions} · ${_selectedType!.areaSqm} m²)',
                                     style: const TextStyle(
-                                        fontSize: 12.5, color: AppColors.textPrimary),
+                                        fontSize: 12.5,
+                                        color: AppColors.textPrimary),
                                   ),
                                 ],
                                 const SizedBox(height: 4),
                                 Text(
                                   '• Ngày bắt đầu thuê: ${_formatDate(_startDate)} (giờ hẹn: ${_checkInTime.format(context)})',
                                   style: const TextStyle(
-                                      fontSize: 12.5, color: AppColors.textPrimary),
+                                      fontSize: 12.5,
+                                      color: AppColors.textPrimary),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   '• Thời hạn hợp đồng: $_rentalMonths tháng',
                                   style: const TextStyle(
-                                      fontSize: 12.5, color: AppColors.textPrimary),
+                                      fontSize: 12.5,
+                                      color: AppColors.textPrimary),
                                 ),
                                 if (total != null) ...[
                                   const SizedBox(height: 4),
                                   Text(
                                     '• Tiền thuê: ${_formatPrice(total is num ? total : null)}',
                                     style: const TextStyle(
-                                        fontSize: 12.5, color: AppColors.textPrimary),
+                                        fontSize: 12.5,
+                                        color: AppColors.textPrimary),
                                   ),
                                 ],
                                 if (deposit != null) ...[
@@ -1887,9 +1867,8 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                     child: SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: canConfirm
-                            ? () => Navigator.pop(ctx, true)
-                            : null,
+                        onPressed:
+                            canConfirm ? () => Navigator.pop(ctx, true) : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
@@ -1925,13 +1904,9 @@ class _UnitTypeCard extends StatelessWidget {
   final UnitTypeModel type;
   final bool isSelected;
   final VoidCallback? onTap;
-  final VoidCallback? onJoinWaitlist;
 
   const _UnitTypeCard(
-      {required this.type,
-      required this.isSelected,
-      required this.onTap,
-      this.onJoinWaitlist});
+      {required this.type, required this.isSelected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -2028,15 +2003,9 @@ class _UnitTypeCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               if (soldOut)
-                OutlinedButton(
-                  onPressed: onJoinWaitlist,
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(0, 34),
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                  ),
-                  child: const Text('Vào danh sách chờ',
-                      style: TextStyle(fontSize: 11)),
-                )
+                const Text('Hết chỗ',
+                    style:
+                        TextStyle(color: AppColors.textSecondary, fontSize: 12))
               else
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,

@@ -1,3 +1,4 @@
+import '../../widgets/assignment_user_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
@@ -516,8 +517,10 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     final sealing = int.tryParse(_sealingController.text);
     final managementFee = double.tryParse(_managementFeeController.text);
     final discountMonths = int.tryParse(_discountMonthsController.text) ?? 0;
-    final discountPercent = double.tryParse(_discountPercentController.text) ?? 0.0;
-    final maxAdvanceDays = int.tryParse(_maxAdvanceReservationDaysController.text) ?? 14;
+    final discountPercent =
+        double.tryParse(_discountPercentController.text) ?? 0.0;
+    final maxAdvanceDays =
+        int.tryParse(_maxAdvanceReservationDaysController.text) ?? 14;
 
     if (deposit == null ||
         managementFee == null ||
@@ -543,7 +546,8 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     if (grace < 0 || grace > accessDisable || accessDisable > sealing) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Các mốc tính từ ngày hết hạn phải thỏa: 0 ≤ ân hạn ≤ khóa truy cập ≤ chờ niêm phong.'),
+          content: Text(
+              'Các mốc tính từ ngày hết hạn phải thỏa: 0 ≤ ân hạn ≤ khóa truy cập ≤ chờ niêm phong.'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -588,8 +592,8 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     try {
       String? savedPolicyId;
       if (_policy != null) {
-        final updated =
-            await _service.updateFacilityPolicy(_policy!['id'].toString(), body);
+        final updated = await _service.updateFacilityPolicy(
+            _policy!['id'].toString(), body);
         savedPolicyId = (updated['id'] ?? _policy!['id'])?.toString();
       } else {
         final created = await _service.createFacilityPolicy(body);
@@ -598,7 +602,8 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Đã lưu chính sách'), backgroundColor: AppColors.success),
+            content: Text('Đã lưu chính sách'),
+            backgroundColor: AppColors.success),
       );
       _loadPolicy(policyId: savedPolicyId);
     } catch (e) {
@@ -908,9 +913,8 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
           OutlinedButton.icon(
             onPressed: _openAssignManagerSheet,
             icon: const Icon(Icons.person_add_alt, size: 16),
-            label: Text(_managers.isEmpty
-                ? 'Gán quản lý cơ sở'
-                : 'Thêm quản lý cơ sở'),
+            label: Text(
+                _managers.isEmpty ? 'Gán quản lý cơ sở' : 'Thêm quản lý cơ sở'),
           ),
         ],
       ],
@@ -963,7 +967,8 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
                     initialValue: _status,
                     decoration: _dec('Trạng thái'),
                     items: const [
-                      DropdownMenuItem(value: 'ACTIVE', child: Text('Hoạt động')),
+                      DropdownMenuItem(
+                          value: 'ACTIVE', child: Text('Hoạt động')),
                       DropdownMenuItem(
                           value: 'INACTIVE', child: Text('Tạm ngưng')),
                       DropdownMenuItem(
@@ -972,7 +977,6 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
                     onChanged: (v) => setState(() => _status = v ?? _status),
                   ),
                 ],
-
                 const SizedBox(height: 6),
                 const Text(
                   'Giờ làm việc của cơ sở',
@@ -1324,8 +1328,8 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
             title: 'Đặt chỗ, gia hạn & trả kho',
             children: [
               _pair(
-                _policyField(_maxAdvanceReservationDaysController,
-                    'Đặt trước tối đa',
+                _policyField(
+                    _maxAdvanceReservationDaysController, 'Đặt trước tối đa',
                     int_: true, suffix: 'ngày', hint: 'VD: 14'),
                 _policyField(_renewalWindowController, 'Cho gia hạn trước hạn',
                     int_: true, suffix: 'ngày'),
@@ -1350,9 +1354,11 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
             subtitle: 'Tính theo số giờ trước ngày bắt đầu thuê.',
             children: [
               _pair(
-                _policyField(_fullRefundHoursController, 'Hoàn 100% nếu hủy trước',
+                _policyField(
+                    _fullRefundHoursController, 'Hoàn 100% nếu hủy trước',
                     int_: true, suffix: 'giờ'),
-                _policyField(_partialRefundHoursController, 'Hoàn một phần nếu hủy sau',
+                _policyField(
+                    _partialRefundHoursController, 'Hoàn một phần nếu hủy sau',
                     int_: true, suffix: 'giờ'),
               ),
               _gap,
@@ -1364,7 +1370,8 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
           _section(
             icon: Icons.warning_amber_rounded,
             title: 'Xử lý quá hạn',
-            subtitle: 'Cả ba mốc tính từ ngày hết hạn: ân hạn ≤ khóa truy cập ≤ chờ niêm phong. Ân hạn chỉ miễn phí trễ hạn.',
+            subtitle:
+                'Cả ba mốc tính từ ngày hết hạn: ân hạn ≤ khóa truy cập ≤ chờ niêm phong. Ân hạn chỉ miễn phí trễ hạn.',
             children: [
               _policyField(_graceController, 'Ân hạn phí trễ hạn',
                   int_: true, suffix: 'ngày'),
@@ -1426,8 +1433,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
             _section(
               icon: Icons.warehouse_outlined,
               title: _nameController.text,
-              subtitle:
-                  '${_codeController.text} • ${_addressController.text}',
+              subtitle: '${_codeController.text} • ${_addressController.text}',
               children: const [],
             ),
             _buildManagerCard(),
@@ -1465,7 +1471,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
   }
 }
 
-enum _ManagerFilter { unassigned, allFacilityManagers, allUsers }
+enum _ManagerFilter { unassigned, allFacilityManagers }
 
 class FacilityManagerAssignmentSheet extends StatefulWidget {
   final String facilityId;
@@ -1525,9 +1531,7 @@ class _FacilityManagerAssignmentSheetState
     try {
       final results = await Future.wait([
         widget.adminApiService.getUsers(),
-        widget.facilityService
-            .getFacilities()
-            .catchError((_) => <dynamic>[]),
+        widget.facilityService.getFacilities().catchError((_) => <dynamic>[]),
         if (widget.facilityId.isNotEmpty)
           widget.opsService
               .getFacilityManagers(widget.facilityId)
@@ -1602,9 +1606,8 @@ class _FacilityManagerAssignmentSheetState
     final rawFacilityId = u['facilityId']?.toString() ?? '';
     final directFacilityName = u['facilityName']?.toString() ?? '';
     final mappedFacilityName = _managedFacilityMap[userId] ?? '';
-    final effectiveFacilityName = directFacilityName.isNotEmpty
-        ? directFacilityName
-        : mappedFacilityName;
+    final effectiveFacilityName =
+        directFacilityName.isNotEmpty ? directFacilityName : mappedFacilityName;
 
     final isAssignedToThis = _currentAssignedIds.contains(userId) ||
         (rawFacilityId.isNotEmpty && rawFacilityId == widget.facilityId);
@@ -1628,8 +1631,6 @@ class _FacilityManagerAssignmentSheetState
   int get _facilityManagersCount =>
       _allUsers.where((u) => _isFacilityManager(u)).length;
 
-  int get _allUsersCount => _allUsers.length;
-
   List<Map<String, dynamic>> _getFilteredUsers() {
     final query = _searchController.text.trim().toLowerCase();
 
@@ -1644,8 +1645,6 @@ class _FacilityManagerAssignmentSheetState
           break;
         case _ManagerFilter.allFacilityManagers:
           if (!isMgr) return false;
-          break;
-        case _ManagerFilter.allUsers:
           break;
       }
 
@@ -1674,8 +1673,8 @@ class _FacilityManagerAssignmentSheetState
       final isMgrA = _isFacilityManager(a);
       final isMgrB = _isFacilityManager(b);
 
-      int score(Map<String, dynamic> u, bool isMgr, bool isUnassigned,
-          bool isThis) {
+      int score(
+          Map<String, dynamic> u, bool isMgr, bool isUnassigned, bool isThis) {
         if (isThis) return 0; // Đang quản lý cơ sở này -> Ưu tiên hiện đầu tiên
         if (isMgr && isUnassigned) return 1; // Quản lý chưa có cơ sở -> Kế tiếp
         if (isMgr) return 2; // Quản lý cơ sở khác -> Kế tiếp
@@ -1691,13 +1690,9 @@ class _FacilityManagerAssignmentSheetState
       final cmp = scoreA.compareTo(scoreB);
       if (cmp != 0) return cmp;
 
-      final nA = (a['fullName']?.toString() ??
-              a['username']?.toString() ??
-              '')
+      final nA = (a['fullName']?.toString() ?? a['username']?.toString() ?? '')
           .toLowerCase();
-      final nB = (b['fullName']?.toString() ??
-              b['username']?.toString() ??
-              '')
+      final nB = (b['fullName']?.toString() ?? b['username']?.toString() ?? '')
           .toLowerCase();
       return nA.compareTo(nB);
     });
@@ -1710,7 +1705,11 @@ class _FacilityManagerAssignmentSheetState
     final name = u['fullName']?.toString() ?? u['username']?.toString() ?? '';
     final info = _getAssignmentInfo(u);
 
-    if (info.isAssignedToThis) return;
+    if (!_isFacilityManager(u) ||
+        _assigningUserId != null ||
+        info.isAssignedToThis) {
+      return;
+    }
 
     if (!info.isUnassigned && info.facilityName.isNotEmpty) {
       final confirm = await showDialog<bool>(
@@ -1874,7 +1873,7 @@ class _FacilityManagerAssignmentSheetState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Gán Quản lý cơ sở (Facility Manager)',
+                          'Gán quản lý cơ sở',
                           style: TextStyle(
                               fontSize: 15.5, fontWeight: FontWeight.bold),
                         ),
@@ -1930,8 +1929,8 @@ class _FacilityManagerAssignmentSheetState
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                        color: AppColors.primary, width: 1.5),
+                    borderSide:
+                        const BorderSide(color: AppColors.primary, width: 1.5),
                   ),
                 ),
               ),
@@ -1945,17 +1944,12 @@ class _FacilityManagerAssignmentSheetState
                 children: [
                   _filterChip(
                     filter: _ManagerFilter.allFacilityManagers,
-                    label: '🏢 Quản lý cơ sở ($_facilityManagersCount)',
+                    label: 'Quản lý cơ sở ($_facilityManagersCount)',
                   ),
                   const SizedBox(width: 8),
                   _filterChip(
                     filter: _ManagerFilter.unassigned,
-                    label: '🟢 Chưa có cơ sở ($_unassignedCount)',
-                  ),
-                  const SizedBox(width: 8),
-                  _filterChip(
-                    filter: _ManagerFilter.allUsers,
-                    label: '👥 Tất cả tài khoản ($_allUsersCount)',
+                    label: 'Chưa có cơ sở ($_unassignedCount)',
                   ),
                 ],
               ),
@@ -2010,8 +2004,8 @@ class _FacilityManagerAssignmentSheetState
             CircularProgressIndicator(),
             SizedBox(height: 12),
             Text('Đang tải danh sách tài khoản...',
-                style: TextStyle(
-                    fontSize: 13, color: AppColors.onSurfaceVariant)),
+                style:
+                    TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant)),
           ],
         ),
       );
@@ -2024,8 +2018,7 @@ class _FacilityManagerAssignmentSheetState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline,
-                  color: AppColors.error, size: 40),
+              const Icon(Icons.error_outline, color: AppColors.error, size: 40),
               const SizedBox(height: 10),
               Text(
                 'Lỗi tải dữ liệu: $_errorMessage',
@@ -2091,416 +2084,30 @@ class _FacilityManagerAssignmentSheetState
       );
     }
 
-    final currentManagerCount = _allUsers
-        .where((u) => _getAssignmentInfo(u).isAssignedToThis)
-        .length;
-
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-      itemCount: users.length + 1,
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return _buildFacilityStatusBanner(currentManagerCount);
-        }
-        final u = users[index - 1];
-        return _buildUserCard(u);
-      },
-    );
-  }
-
-  Widget _buildFacilityStatusBanner(int count) {
-    if (count == 0) {
-      return Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFFBEB),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFFDE68A)),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.info_outline_rounded,
-                size: 16, color: Color(0xFFD97706)),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Cơ sở "${widget.facilityName}" hiện chưa có người quản lý phụ trách.',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF92400E),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0FDF4),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFBBF7D0)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.verified_user_rounded,
-              size: 16, color: Color(0xFF15803D)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Cơ sở "${widget.facilityName}" đang có $count người phụ trách quản lý.',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF15803D),
-              ),
-            ),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.only(bottom: 20),
+      itemCount: users.length,
+      itemBuilder: (context, index) => _buildUserCard(users[index]),
     );
   }
 
   Widget _buildUserCard(Map<String, dynamic> u) {
-    final userId = u['id']?.toString() ?? '';
-    final name = u['fullName']?.toString() ??
-        u['username']?.toString() ??
-        'Chưa đặt tên';
-    final username = u['username']?.toString() ?? '';
-    final email = u['email']?.toString() ?? '';
-    final phone = u['phone']?.toString() ?? '';
-    final rawRole = _getRawRole(u);
-    final roleLabel = ViLabels.role(rawRole);
-    final isMgr = _isFacilityManager(u);
     final info = _getAssignmentInfo(u);
-    final isAssigning = _assigningUserId == userId;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 5),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: info.isAssignedToThis ? const Color(0xFFF0FDF4) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: info.isAssignedToThis
-              ? const Color(0xFF86EFAC)
-              : const Color(0xFFE2E8F0),
-          width: info.isAssignedToThis ? 1.5 : 1,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 3,
-            offset: Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Top Row: Avatar + Name + Role Badge
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: info.isAssignedToThis
-                    ? const Color(0xFF16A34A)
-                    : const Color(0xFF334155),
-                child: Text(
-                  name.isNotEmpty ? name[0].toUpperCase() : 'M',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13.5,
-                              color: Color(0xFF0F172A),
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: isMgr
-                                ? AppColors.primary.withValues(alpha: 0.1)
-                                : Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            roleLabel,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: isMgr
-                                  ? AppColors.primary
-                                  : Colors.grey.shade700,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      [
-                        if (username.isNotEmpty) '@$username',
-                        if (email.isNotEmpty) email,
-                        if (phone.isNotEmpty) phone,
-                      ].join(' • '),
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF64748B),
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // Bottom Row: Facility status badge on the left, Action button on the right
-          Row(
-            children: [
-              // Status Badge
-              Expanded(
-                child: info.isAssignedToThis
-                    ? Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDCFCE7),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.check_circle_rounded,
-                                size: 13, color: Color(0xFF15803D)),
-                            const SizedBox(width: 5),
-                            Flexible(
-                              child: Text(
-                                'Đang quản lý: ${widget.facilityName}',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF15803D),
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : info.isUnassigned
-                        ? Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFECFDF5),
-                              borderRadius: BorderRadius.circular(6),
-                              border:
-                                  Border.all(color: const Color(0xFFA7F3D0)),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.fiber_manual_record,
-                                    size: 8, color: Color(0xFF059669)),
-                                SizedBox(width: 5),
-                                Flexible(
-                                  child: Text(
-                                    'Chưa quản lý cơ sở nào (Sẵn sàng)',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF047857),
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(6),
-                              border:
-                                  Border.all(color: const Color(0xFFCBD5E1)),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.storefront_outlined,
-                                    size: 13, color: Color(0xFF475569)),
-                                const SizedBox(width: 5),
-                                Flexible(
-                                  child: RichText(
-                                    overflow: TextOverflow.ellipsis,
-                                    text: TextSpan(
-                                      style: const TextStyle(
-                                          fontSize: 11, color: Color(0xFF475569)),
-                                      children: [
-                                        const TextSpan(text: 'Đang quản lý: '),
-                                        TextSpan(
-                                          text: info.facilityName,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF0F172A),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-              ),
-              const SizedBox(width: 8),
-
-              // Action button
-              if (info.isAssignedToThis)
-                TextButton.icon(
-                  onPressed: isAssigning ? null : () => _handleUnassign(u),
-                  style: TextButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    foregroundColor: AppColors.error,
-                  ),
-                  icon: isAssigning
-                      ? const SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.remove_circle_outline, size: 14),
-                  label: const Text(
-                    'Gỡ quyền',
-                    style:
-                        TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
-                  ),
-                )
-              else if (info.isUnassigned)
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: isAssigning ? null : () => _handleAssign(u),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isAssigning
-                            ? Colors.grey.shade400
-                            : const Color(0xFF059669),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: isAssigning
-                          ? const SizedBox(
-                              width: 12,
-                              height: 12,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.add, size: 13, color: Colors.white),
-                                SizedBox(width: 3),
-                                Text(
-                                  'Gán',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
-                )
-              else
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: isAssigning ? null : () => _handleAssign(u),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isAssigning
-                            ? Colors.grey.shade400
-                            : const Color(0xFF1E293B),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: isAssigning
-                          ? const SizedBox(
-                              width: 12,
-                              height: 12,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.swap_horiz,
-                                    size: 13, color: Colors.white),
-                                SizedBox(width: 3),
-                                Text(
-                                  'Chuyển',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
+    return AssignmentUserTile(
+      name: u['fullName']?.toString() ??
+          u['username']?.toString() ??
+          'Chưa đặt tên',
+      email: u['email']?.toString() ?? '',
+      status: info.isAssignedToThis
+          ? 'Đang quản lý cơ sở này'
+          : info.isUnassigned
+              ? 'Chưa có cơ sở'
+              : 'Đang quản lý: ${info.facilityName}',
+      actionLabel: info.isAssignedToThis ? 'Gỡ gán' : 'Gán',
+      busy: _assigningUserId == u['id']?.toString(),
+      onAssign: _assigningUserId != null
+          ? null
+          : () => info.isAssignedToThis ? _handleUnassign(u) : _handleAssign(u),
     );
   }
 }
-

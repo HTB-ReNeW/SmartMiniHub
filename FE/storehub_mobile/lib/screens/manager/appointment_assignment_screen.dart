@@ -39,6 +39,11 @@ class _AppointmentAssignmentScreenState
     });
   }
 
+  void _setDate(DateTime date) {
+    _date = date;
+    _reload();
+  }
+
   Future<void> _chooseDate() async {
     final selected = await showDatePicker(
       context: context,
@@ -71,6 +76,18 @@ class _AppointmentAssignmentScreenState
     }
   }
 
+  Widget _quickFilter(String label, DateTime date) {
+    final isSelected = DateFormat('yyyy-MM-dd').format(_date) ==
+        DateFormat('yyyy-MM-dd').format(date);
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => _setDate(date),
+      selectedColor: Theme.of(context).colorScheme.primaryContainer,
+      checkmarkColor: Theme.of(context).colorScheme.primary,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -81,6 +98,22 @@ class _AppointmentAssignmentScreenState
             title: Text(DateFormat('dd/MM/yyyy').format(_date)),
             trailing: const Icon(Icons.calendar_today_outlined),
             onTap: _chooseDate,
+          ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+            child: Row(
+              children: [
+                _quickFilter('Hôm nay', DateTime.now()),
+                const SizedBox(width: 8),
+                _quickFilter('Ngày mai', DateTime.now().add(const Duration(days: 1))),
+                const SizedBox(width: 8),
+                _quickFilter(
+                  'Tuần này',
+                  DateTime.now().subtract(Duration(days: DateTime.now().weekday - 1)),
+                ),
+              ],
+            ),
           ),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 0, 16, 8),

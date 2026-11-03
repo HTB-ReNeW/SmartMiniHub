@@ -41,6 +41,7 @@ class FacilityManagementMapper {
       overdueBookings: _integer(json['overdueBookings']),
       occupancyRate: _decimal(json['occupancyRate']),
       revenue: _decimal(json['revenue']),
+      totalRefunded: _decimal(json['totalRefunded']),
     );
   }
 

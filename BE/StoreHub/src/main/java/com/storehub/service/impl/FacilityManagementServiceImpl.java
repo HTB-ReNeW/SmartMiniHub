@@ -198,8 +198,8 @@ public class FacilityManagementServiceImpl
             throw new AppException(ErrorCode.BOOKING_NOT_FOUND);
         }
 
-        // Ngăn cũ có thể đang cần kiểm tra/bảo trì (nhân viên từ chối bàn giao vì hư hỏng):
-        // khi đó đơn chưa được xác nhận ngăn và quản lý phải chọn ngăn khác.
+        // NgÄƒn cÅ© cÃ³ thá»ƒ Ä‘ang cáº§n kiá»ƒm tra/báº£o trÃ¬ (nhÃ¢n viÃªn tá»« chá»‘i bÃ n giao vÃ¬ hÆ° há»ng):
+        // khi Ä‘Ã³ Ä‘Æ¡n chÆ°a Ä‘Æ°á»£c xÃ¡c nháº­n ngÄƒn vÃ  quáº£n lÃ½ pháº£i chá»n ngÄƒn khÃ¡c.
         boolean oldUnderMaintenance = oldUnit.getStatus() == UnitStatus.UNDER_MAINTENANCE
                 && !Boolean.TRUE.equals(booking.getUnitAssignmentConfirmed());
 
@@ -275,9 +275,9 @@ public class FacilityManagementServiceImpl
                 emailService.sendUnitAssignmentConfirmedEmail(email, code, facility, unitCode);
                 notificationService.notifyUser(
                         customer,
-                        "Đã xác nhận ngăn kho",
-                        "Đơn " + code + " tại cơ sở " + facility + " đã được gán ngăn " + unitCode
-                                + ". Bạn có thể xem lịch bàn giao trong mục Kho của tôi.",
+                        "ÄÃ£ xÃ¡c nháº­n ngÄƒn kho",
+                        "ÄÆ¡n " + code + " táº¡i cÆ¡ sá»Ÿ " + facility + " Ä‘Ã£ Ä‘Æ°á»£c gÃ¡n ngÄƒn " + unitCode
+                                + ". Báº¡n cÃ³ thá»ƒ xem lá»‹ch bÃ n giao trong má»¥c Kho cá»§a tÃ´i.",
                         com.storehub.enums.NotificationType.UNIT_ASSIGNED,
                         booking.getId(),
                         "BOOKING",
@@ -285,9 +285,9 @@ public class FacilityManagementServiceImpl
                 );
                 notificationService.notifyFacilityStaff(
                         facilityEntity,
-                        "Xác nhận gán ngăn kho",
-                        "Đơn " + code + " đã được xác nhận gán vào ngăn " + unitCode
-                                + ". Vui lòng kiểm tra và chuẩn bị đón tiếp khách hàng.",
+                        "XÃ¡c nháº­n gÃ¡n ngÄƒn kho",
+                        "ÄÆ¡n " + code + " Ä‘Ã£ Ä‘Æ°á»£c xÃ¡c nháº­n gÃ¡n vÃ o ngÄƒn " + unitCode
+                                + ". Vui lÃ²ng kiá»ƒm tra vÃ  chuáº©n bá»‹ Ä‘Ã³n tiáº¿p khÃ¡ch hÃ ng.",
                         com.storehub.enums.NotificationType.UNIT_ASSIGNED,
                         booking.getId(),
                         "BOOKING"
@@ -351,6 +351,7 @@ public class FacilityManagementServiceImpl
                 .subtract(refunded == null ? BigDecimal.ZERO : refunded);
         BigDecimal retained = depositDeductions.sumRetainedByFacility(facilityId);
         revenue = revenue.add(retained == null ? BigDecimal.ZERO : retained);
+        BigDecimal totalRefunded = refunded == null ? BigDecimal.ZERO : refunded;
 
         return new FacilityReportResponse(
                 facilityId,
@@ -361,7 +362,8 @@ public class FacilityManagementServiceImpl
                 maintenance,
                 overdueBookings,
                 occupancyRate,
-                revenue
+                revenue,
+                totalRefunded
         );
     }
 
@@ -415,7 +417,7 @@ public class FacilityManagementServiceImpl
                 previousFacility.setManager(oldFacilityOtherManagers.isEmpty() ? null : oldFacilityOtherManagers.get(0));
             }
 
-            // Cơ sở hiện tại: không loại bỏ các quản lý hiện tại, cho phép nhiều quản lý cơ sở
+            // CÆ¡ sá»Ÿ hiá»‡n táº¡i: khÃ´ng loáº¡i bá» cÃ¡c quáº£n lÃ½ hiá»‡n táº¡i, cho phÃ©p nhiá»u quáº£n lÃ½ cÆ¡ sá»Ÿ
             if (facility.getManager() == null) {
                 facility.setManager(user);
             }

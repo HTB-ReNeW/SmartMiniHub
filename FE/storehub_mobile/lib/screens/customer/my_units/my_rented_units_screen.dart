@@ -1142,7 +1142,14 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                   ),
                 ),
               ],
-              if (monthlyRate != null) ...[
+              if (unit.status == 'CANCELLED') ...[
+                const SizedBox(height: 12),
+                Text(
+                  'Tổng tiền sẽ hoàn: ${_currency.format(unit.totalRentalFee + (unit.depositPaid ?? 0))}',
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.success),
+                ),
+              ] else if (monthlyRate != null) ...[
                 const SizedBox(height: 12),
                 Text('${_currency.format(monthlyRate)} / tháng',
                     style: const TextStyle(

@@ -1654,6 +1654,14 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
                     Icons.attach_money,
                     AppColors.success,
                   ),
+                  _statTile(
+                    'Đã hoàn tiền',
+                    NumberFormat.currency(
+                            locale: 'vi_VN', symbol: '₫', decimalDigits: 0)
+                        .format(report.totalRefunded),
+                    Icons.undo_rounded,
+                    AppColors.warning,
+                  ),
                 ],
               ),
             ],

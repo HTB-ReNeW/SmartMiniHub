@@ -9,7 +9,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UnitTypeCatalogResponse {
-    private java.time.LocalDateTime createdAt;
     private UUID id;
     private String typeName;
     private String dimensions;

@@ -1,4 +1,3 @@
-import '../../../widgets/paged_list_view.dart';
 import 'package:flutter/material.dart';
 import '../../../core/utils/vi_labels.dart';
 import '../../../core/constants/app_colors.dart';
@@ -120,8 +119,7 @@ class _TicketListScreenState extends State<TicketListScreen> {
           future: _ticketsFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const AppLoadingState(
-                  message: 'Đang tải yêu cầu của bạn...');
+              return const AppLoadingState(message: 'Đang tải yêu cầu của bạn...');
             } else if (snapshot.hasError) {
               return ListView(
                 children: [
@@ -147,17 +145,14 @@ class _TicketListScreenState extends State<TicketListScreen> {
 
             final tickets = [...snapshot.data!.content, ..._additional];
             final hasMore = !snapshot.data!.last && !_lastPage;
-            return PagedListView.builder(
-              hasTrailingItem: hasMore,
+            return ListView.builder(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
               itemCount: tickets.length + (hasMore ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == tickets.length) {
-                  return Center(
-                      child: TextButton(
+                  return Center(child: TextButton(
                     onPressed: _loadingMore ? null : _loadMore,
-                    child:
-                        Text(_loadingMore ? 'Đang tải...' : 'Xem thêm yêu cầu'),
+                    child: Text(_loadingMore ? 'Đang tải...' : 'Xem thêm yêu cầu'),
                   ));
                 }
                 final ticket = tickets[index];
@@ -197,8 +192,7 @@ class _TicketListScreenState extends State<TicketListScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: AppColors.primary
-                                        .withValues(alpha: 0.08),
+                                    color: AppColors.primary.withValues(alpha: 0.08),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Icon(
@@ -210,11 +204,9 @@ class _TicketListScreenState extends State<TicketListScreen> {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      if (ticketCode != null &&
-                                          ticketCode.isNotEmpty)
+                                      if (ticketCode != null && ticketCode.isNotEmpty)
                                         Text(
                                           ticketCode,
                                           style: const TextStyle(
@@ -225,9 +217,7 @@ class _TicketListScreenState extends State<TicketListScreen> {
                                           ),
                                         ),
                                       Text(
-                                        _categoryLabels[category] ??
-                                            category ??
-                                            '',
+                                        _categoryLabels[category] ?? category ?? '',
                                         style: const TextStyle(
                                             fontSize: 11,
                                             color: AppColors.onSurfaceVariant),

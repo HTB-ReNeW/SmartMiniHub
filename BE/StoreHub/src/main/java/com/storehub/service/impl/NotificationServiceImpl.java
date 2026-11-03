@@ -36,9 +36,9 @@ public class NotificationServiceImpl implements NotificationService {
         User user = resolveUser(userEmail);
         Page<Notification> page;
         if (Boolean.TRUE.equals(unreadOnly)) {
-            page = notificationRepository.findByRecipient_IdAndIsReadOrderByCreatedAtDescIdDesc(user.getId(), false, pageable);
+            page = notificationRepository.findByRecipient_IdAndIsReadOrderByCreatedAtDesc(user.getId(), false, pageable);
         } else {
-            page = notificationRepository.findByRecipient_IdOrderByCreatedAtDescIdDesc(user.getId(), pageable);
+            page = notificationRepository.findByRecipient_IdOrderByCreatedAtDesc(user.getId(), pageable);
         }
         return PageResponse.from(page.map(this::toResponse));
     }

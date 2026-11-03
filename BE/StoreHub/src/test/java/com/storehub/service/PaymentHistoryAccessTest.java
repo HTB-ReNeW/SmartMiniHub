@@ -47,7 +47,7 @@ class PaymentHistoryAccessTest {
         when(userRepository.findByEmail("staff@test.com"))
                 .thenReturn(Optional.of(viewer("STAFF", assignedId)));
 
-        PageRequest page = PageRequest.of(0, 10);
+        PageRequest page = PageRequest.of(0, 20);
         assertThrows(AppException.class, () -> paymentService
                 .getFacilityPaymentHistory("staff@test.com", requestedId, page));
         verify(paymentRepository, never()).findFacilityPayments(requestedId, page);
@@ -58,7 +58,7 @@ class PaymentHistoryAccessTest {
         UUID assignedId = UUID.randomUUID();
         when(userRepository.findByEmail("manager@test.com"))
                 .thenReturn(Optional.of(viewer("FACILITY_MANAGER", assignedId)));
-        PageRequest page = PageRequest.of(0, 10);
+        PageRequest page = PageRequest.of(0, 20);
         when(paymentRepository.findFacilityPayments(assignedId, page)).thenReturn(Page.empty(page));
 
         paymentService.getFacilityPaymentHistory("manager@test.com", assignedId, page);

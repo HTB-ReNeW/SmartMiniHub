@@ -430,7 +430,7 @@ public class FacilityManagementServiceImpl
                 user.getFullName(),
                 user.getEmail(),
                 role
-        , user.getCreatedAt());
+        );
     }
 
     @Override
@@ -446,7 +446,7 @@ public class FacilityManagementServiceImpl
                         user.getFullName(),
                         user.getEmail(),
                         "FACILITY_MANAGER"
-                , user.getCreatedAt()))
+                ))
                 .toList();
     }
 
@@ -492,7 +492,7 @@ public class FacilityManagementServiceImpl
                         user.getFullName(),
                         user.getEmail(),
                         "STAFF"
-                , user.getCreatedAt()))
+                ))
                 .toList();
     }
 
@@ -514,7 +514,7 @@ public class FacilityManagementServiceImpl
                         user.getEmail(),
                         true,
                         "STAFF"
-                , user.getCreatedAt()))
+                ))
                 .toList();
     }
 
@@ -612,7 +612,7 @@ public class FacilityManagementServiceImpl
                 booking.getTermsAcceptedAt(),
                 booking.getContractPhotos(),
                 booking.getQuotedManagementFee()
-        , booking.getCreatedAt());
+        );
     }
 
     @Override
@@ -668,7 +668,7 @@ public class FacilityManagementServiceImpl
                 unit.getUnitType().getId(),
                 unit.getUnitType().getTypeName(),
                 unit.getStatus()
-        , unit.getCreatedAt());
+        );
     }
 
     private FacilityBookingResponse toFacilityBooking(Booking booking) {
@@ -692,7 +692,7 @@ public class FacilityManagementServiceImpl
                 booking.getHandoverIssueStatus() != null ? booking.getHandoverIssueStatus().name() : null,
                 booking.getHandoverIssueReason(), booking.getHandoverIssueDueAt(),
                 booking.getScheduledCheckInTime(), booking.getHandoverIssueResolutionNote()
-        , booking.getCreatedAt());
+        );
     }
 
     @Override

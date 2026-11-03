@@ -1,4 +1,3 @@
-import '../../widgets/paged_list_view.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
@@ -48,12 +47,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
     });
 
     try {
-      final result = await _api.getAllNotifications(
+      final result = await _api.getNotifications(
         unreadOnly: _unreadOnly ? true : null,
+        size: 50,
       );
       if (!mounted) return;
       setState(() {
-        _notifications = result;
+        _notifications = result.content;
         _isLoading = false;
       });
     } catch (e) {
@@ -207,18 +207,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     height: 1.4,
                   ),
                 ),
-                if (notif.facilityName != null &&
-                    notif.facilityName!.isNotEmpty) ...[
+                if (notif.facilityName != null && notif.facilityName!.isNotEmpty) ...[
                   const SizedBox(height: 14),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: AppColors.primaryContainer.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color:
-                            AppColors.primaryContainer.withValues(alpha: 0.3),
+                        color: AppColors.primaryContainer.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
@@ -252,8 +249,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
-  Widget _buildActionButtons(
-      BuildContext sheetContext, NotificationModel notif) {
+  Widget _buildActionButtons(BuildContext sheetContext, NotificationModel notif) {
     final role = widget.user?.role ?? '';
     final facilityId = notif.facilityId ?? widget.facilityId ?? '';
     final facilityName = notif.facilityName ?? 'Cơ sở';
@@ -566,16 +562,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       _loadNotifications();
                     }
                   },
-                  selectedColor:
-                      AppColors.secondaryContainer.withValues(alpha: 0.15),
+                  selectedColor: AppColors.secondaryContainer.withValues(alpha: 0.15),
                   checkmarkColor: AppColors.secondaryContainer,
                   labelStyle: TextStyle(
                     fontSize: 12,
-                    fontWeight:
-                        !_unreadOnly ? FontWeight.bold : FontWeight.normal,
-                    color: !_unreadOnly
-                        ? AppColors.secondaryContainer
-                        : AppColors.textPrimary,
+                    fontWeight: !_unreadOnly ? FontWeight.bold : FontWeight.normal,
+                    color: !_unreadOnly ? AppColors.secondaryContainer : AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -588,16 +580,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       _loadNotifications();
                     }
                   },
-                  selectedColor:
-                      AppColors.secondaryContainer.withValues(alpha: 0.15),
+                  selectedColor: AppColors.secondaryContainer.withValues(alpha: 0.15),
                   checkmarkColor: AppColors.secondaryContainer,
                   labelStyle: TextStyle(
                     fontSize: 12,
-                    fontWeight:
-                        _unreadOnly ? FontWeight.bold : FontWeight.normal,
-                    color: _unreadOnly
-                        ? AppColors.secondaryContainer
-                        : AppColors.textPrimary,
+                    fontWeight: _unreadOnly ? FontWeight.bold : FontWeight.normal,
+                    color: _unreadOnly ? AppColors.secondaryContainer : AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -633,9 +621,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             const SizedBox(height: 60),
             AppEmptyState(
               icon: Icons.notifications_off_outlined,
-              title: _unreadOnly
-                  ? 'Không có thông báo chưa đọc'
-                  : 'Chưa có thông báo',
+              title: _unreadOnly ? 'Không có thông báo chưa đọc' : 'Chưa có thông báo',
               message: _unreadOnly
                   ? 'Bạn đã đọc tất cả thông báo!'
                   : 'Các thao tác liên quan từ khách hàng sẽ hiển thị tại đây.',
@@ -647,7 +633,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
     return RefreshIndicator(
       onRefresh: _loadNotifications,
-      child: PagedListView.separated(
+      child: ListView.separated(
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: _notifications.length,
         separatorBuilder: (_, __) => const Divider(height: 1, indent: 68),
@@ -663,8 +649,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             child: InkWell(
               onTap: () => _showNotificationDetail(notif),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

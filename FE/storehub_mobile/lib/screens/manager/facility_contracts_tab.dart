@@ -1,4 +1,3 @@
-import '../../widgets/paged_list_view.dart';
 import '../../widgets/rental_agreement_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -176,8 +175,7 @@ class _FacilityContractsTabState extends State<FacilityContractsTab> {
                           ),
                         ],
                       )
-                    : PagedListView.builder(
-                        dataKey: _filter,
+                    : ListView.builder(
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                         itemCount: items.length,

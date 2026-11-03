@@ -1,4 +1,3 @@
-import '../../widgets/paged_list_view.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../services/admin_api_service.dart';
@@ -54,8 +53,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       _additional.clear();
       _nextPage = 1;
       _lastPage = false;
-      _usersFuture = _adminService.getUsersPage(
-          search: _query,
+      _usersFuture = _adminService.getUsersPage(search: _query,
           isActive: _statusFilter == 'ALL' ? null : _statusFilter == 'ACTIVE',
           roleName: _roleFilter == 'ALL' ? null : _roleFilter);
     });
@@ -66,9 +64,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     final currentLoad = _usersFuture;
     setState(() => _loadingMore = true);
     try {
-      final page = await _adminService.getUsersPage(
-          page: _nextPage,
-          search: _query,
+      final page = await _adminService.getUsersPage(page: _nextPage, search: _query,
           isActive: _statusFilter == 'ALL' ? null : _statusFilter == 'ACTIVE',
           roleName: _roleFilter == 'ALL' ? null : _roleFilter);
       if (!mounted || !identical(currentLoad, _usersFuture)) return;
@@ -183,8 +179,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     final userId = user['id']?.toString() ?? '';
     final wasActive = user['isActive'] == true;
     if (wasActive) {
-      final identity =
-          user['email']?.toString() ?? user['username']?.toString() ?? userId;
+      final identity = user['email']?.toString() ??
+          user['username']?.toString() ?? userId;
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -217,9 +213,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(wasActive
-                ? 'Đã vô hiệu hóa người dùng'
-                : 'Đã kích hoạt người dùng')),
+            content: Text(wasActive ? 'Đã vô hiệu hóa người dùng' : 'Đã kích hoạt người dùng')),
       );
     } catch (e) {
       if (!mounted) return;
@@ -385,8 +379,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               onChanged: (v) {
                 _query = v.trim();
                 _searchTimer?.cancel();
-                _searchTimer =
-                    Timer(const Duration(milliseconds: 350), _loadUsers);
+                _searchTimer = Timer(const Duration(milliseconds: 350), _loadUsers);
               },
               decoration: const InputDecoration(
                 hintText: 'Tìm theo tên, tên đăng nhập hoặc email',
@@ -429,8 +422,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 future: _usersFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const AppLoadingState(
-                        message: 'Đang tải người dùng...');
+                    return const AppLoadingState(message: 'Đang tải người dùng...');
                   }
                   if (snapshot.hasError) {
                     return ListView(
@@ -446,9 +438,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   }
 
                   final users = [...?snapshot.data?.content, ..._additional];
-                  final hasMore = snapshot.data != null &&
-                      !snapshot.data!.last &&
-                      !_lastPage;
+                  final hasMore = snapshot.data != null && !snapshot.data!.last && !_lastPage;
 
                   if (users.isEmpty) {
                     return ListView(
@@ -474,18 +464,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     entries.add(u);
                   }
 
-                  return PagedListView.builder(
-                    hasTrailingItem: hasMore,
+                  return ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 88),
                     itemCount: entries.length + (hasMore ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == entries.length) {
-                        return Center(
-                            child: TextButton(
+                        return Center(child: TextButton(
                           onPressed: _loadingMore ? null : _loadMore,
-                          child: Text(_loadingMore
-                              ? 'Đang tải...'
-                              : 'Xem thêm người dùng'),
+                          child: Text(_loadingMore ? 'Đang tải...' : 'Xem thêm người dùng'),
                         ));
                       }
                       final entry = entries[index];
@@ -729,8 +715,8 @@ class _UserDetailSheetState extends State<_UserDetailSheet> {
           ),
           Expanded(
             child: Text(value.isEmpty ? '—' : value,
-                style:
-                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                style: const TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -782,15 +768,13 @@ class _UserDetailSheetState extends State<_UserDetailSheet> {
                             ? '[${data['facilityCode']}] ${data['facilityName']}'
                             : data['facilityName'].toString())
                         : (roleName == 'STAFF' ? 'Chưa phân cơ sở' : '—')),
-                _row('Trạng thái',
-                    isActive ? 'Đang hoạt động' : 'Ngừng hoạt động'),
+                _row('Trạng thái', isActive ? 'Đang hoạt động' : 'Ngừng hoạt động'),
                 _row('Cấp vai trò lúc', _fmtDate(data['assignedAt'])),
                 _row('Ngày tạo', _fmtDate(data['createdAt'])),
                 if (snapshot.hasError)
                   const Padding(
                     padding: EdgeInsets.only(top: 6),
-                    child: Text(
-                        'Không tải được thông tin mới nhất, đang hiển thị dữ liệu trong danh sách.',
+                    child: Text('Không tải được thông tin mới nhất, đang hiển thị dữ liệu trong danh sách.',
                         style: TextStyle(fontSize: 11, color: AppColors.error)),
                   ),
                 const SizedBox(height: 14),
@@ -869,8 +853,7 @@ class _CreateUserSheetState extends State<_CreateUserSheet> {
         _roleId = r['id']?.toString();
       }
     }
-    _roleId ??=
-        widget.roles.isNotEmpty ? widget.roles.first['id']?.toString() : null;
+    _roleId ??= widget.roles.isNotEmpty ? widget.roles.first['id']?.toString() : null;
   }
 
   @override
@@ -912,8 +895,7 @@ class _CreateUserSheetState extends State<_CreateUserSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),

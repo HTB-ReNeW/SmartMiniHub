@@ -1,4 +1,3 @@
-import '../../widgets/paged_list_view.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
@@ -62,9 +61,10 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
           .whereType<Map>()
           .map((e) => Map<String, dynamic>.from(e))
           .where((r) {
-        final name = (r['name']?.toString() ?? '').toUpperCase();
-        return name != 'ADMIN' && name != 'CUSTOMER';
-      }).toList();
+            final name = (r['name']?.toString() ?? '').toUpperCase();
+            return name != 'ADMIN' && name != 'CUSTOMER';
+          })
+          .toList();
 
       const preferredOrder = ['FACILITY_MANAGER', 'STAFF', 'BUSINESS_MANAGER'];
       roles.sort((a, b) {
@@ -159,9 +159,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
         content: Row(
           children: [
             Icon(
-              error
-                  ? Icons.error_outline_rounded
-                  : Icons.check_circle_outline_rounded,
+              error ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
               color: Colors.white,
               size: 20,
             ),
@@ -249,8 +247,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
               setState(() {
                 _selectedPermissionIds = newSelected;
               });
-              _toast(
-                  'Đã chọn mẫu quyền chuẩn cho ${meta.viName}. Nhớ bấm Lưu!');
+              _toast('Đã chọn mẫu quyền chuẩn cho ${meta.viName}. Nhớ bấm Lưu!');
             },
             child: const Text('Áp dụng mẫu'),
           ),
@@ -259,8 +256,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
     );
   }
 
-  void _toggleGroupPermissions(
-      List<Map<String, dynamic>> groupPermissions, bool enable) {
+  void _toggleGroupPermissions(List<Map<String, dynamic>> groupPermissions, bool enable) {
     setState(() {
       for (final p in groupPermissions) {
         final id = p['id'].toString();
@@ -307,13 +303,11 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
     try {
       final detail = await _adminApiService.getRoleDetail(id);
       if (!mounted) return;
-      final controller =
-          TextEditingController(text: detail['description']?.toString() ?? '');
+      final controller = TextEditingController(text: detail['description']?.toString() ?? '');
       final text = await showDialog<String>(
         context: context,
         builder: (ctx) => AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text('Sửa mô tả: ${_currentRoleMeta.viName}'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -321,8 +315,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
             children: [
               const Text(
                 'Mô tả giúp các thành viên quản trị hiểu rõ nhiệm vụ của vai trò này.',
-                style:
-                    TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -337,8 +330,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
             ],
           ),
           actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, controller.text.trim()),
               child: const Text('Lưu'),
@@ -352,9 +344,10 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
           .whereType<Map>()
           .map((e) => Map<String, dynamic>.from(e))
           .where((r) {
-        final name = (r['name']?.toString() ?? '').toUpperCase();
-        return name != 'ADMIN' && name != 'CUSTOMER';
-      }).toList();
+            final name = (r['name']?.toString() ?? '').toUpperCase();
+            return name != 'ADMIN' && name != 'CUSTOMER';
+          })
+          .toList();
 
       const preferredOrder = ['FACILITY_MANAGER', 'STAFF', 'BUSINESS_MANAGER'];
       roles.sort((a, b) {
@@ -382,8 +375,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: const Row(
           children: [
-            Icon(Icons.help_outline_rounded,
-                color: AppColors.secondary, size: 24),
+            Icon(Icons.help_outline_rounded, color: AppColors.secondary, size: 24),
             SizedBox(width: 10),
             Text('Hướng dẫn phân quyền', style: TextStyle(fontSize: 16)),
           ],
@@ -406,8 +398,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                 '   • Chọn vai trò ở thanh trên cùng.\n'
                 '   • Bật hoặc tắt các quyền nghiệp vụ cần thiết.\n'
                 '   • Bấm nút "Lưu thay đổi" ở thanh dưới cùng để áp dụng.',
-                style: TextStyle(
-                    fontSize: 12.5, height: 1.45, color: AppColors.textPrimary),
+                style: TextStyle(fontSize: 12.5, height: 1.45, color: AppColors.textPrimary),
               ),
             ],
           ),
@@ -426,8 +417,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
     final code = permission['name']?.toString() ?? '';
     final rawDesc = permission['description']?.toString();
     final rawGroup = permission['permissionGroup']?.toString();
-    final meta =
-        RolePermissionHelper.getPermissionMeta(code, rawGroup, rawDesc);
+    final meta = RolePermissionHelper.getPermissionMeta(code, rawGroup, rawDesc);
     final id = permission['id'].toString();
     final isChecked = _selectedPermissionIds.contains(id);
 
@@ -460,17 +450,12 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: (meta.isDangerous
-                            ? AppColors.error
-                            : AppColors.secondary)
-                        .withValues(alpha: 0.12),
+                    color: (meta.isDangerous ? AppColors.error : AppColors.secondary).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     meta.groupIcon,
-                    color: meta.isDangerous
-                        ? AppColors.error
-                        : AppColors.secondary,
+                    color: meta.isDangerous ? AppColors.error : AppColors.secondary,
                     size: 22,
                   ),
                 ),
@@ -539,16 +524,12 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.warning_amber_rounded,
-                        color: AppColors.error, size: 18),
+                    Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 18),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Lưu ý: Quyền nhạy cảm có thể ảnh hưởng đến dữ liệu hoặc tài chính.',
-                        style: TextStyle(
-                            fontSize: 11.5,
-                            color: AppColors.error,
-                            fontWeight: FontWeight.w600),
+                        style: TextStyle(fontSize: 11.5, color: AppColors.error, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -561,14 +542,9 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        isChecked ? AppColors.error : AppColors.secondary,
+                    backgroundColor: isChecked ? AppColors.error : AppColors.secondary,
                   ),
-                  icon: Icon(
-                      isChecked
-                          ? Icons.remove_circle_outline
-                          : Icons.check_circle_outline,
-                      size: 18),
+                  icon: Icon(isChecked ? Icons.remove_circle_outline : Icons.check_circle_outline, size: 18),
                   label: Text(isChecked ? 'Bỏ quyền này' : 'Cấp quyền này'),
                   onPressed: () {
                     setState(() {
@@ -605,14 +581,12 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
             children: [
               Text(
                 label,
-                style: TextStyle(
-                    fontSize: 11.5, fontWeight: FontWeight.bold, color: color),
+                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: color),
               ),
               const SizedBox(height: 2),
               Text(
                 content,
-                style: const TextStyle(
-                    fontSize: 12.5, color: AppColors.textPrimary, height: 1.3),
+                style: const TextStyle(fontSize: 12.5, color: AppColors.textPrimary, height: 1.3),
               ),
             ],
           ),
@@ -651,8 +625,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
       final code = p['name']?.toString() ?? '';
       final rawDesc = p['description']?.toString() ?? '';
       final rawGroup = p['permissionGroup']?.toString();
-      final meta =
-          RolePermissionHelper.getPermissionMeta(code, rawGroup, rawDesc);
+      final meta = RolePermissionHelper.getPermissionMeta(code, rawGroup, rawDesc);
 
       final isChecked = _selectedPermissionIds.contains(id);
 
@@ -684,20 +657,16 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
         final discard = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: const Text('Bỏ các thay đổi chưa lưu?'),
             content: const Text(
               'Bạn đang có thay đổi phân quyền chưa bấm Lưu. Bạn có chắc muốn thoát?',
               style: TextStyle(fontSize: 13, height: 1.4),
             ),
             actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Ở lại')),
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Ở lại')),
               ElevatedButton(
-                style:
-                    ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
                 onPressed: () => Navigator.pop(ctx, true),
                 child: const Text('Thoát'),
               ),
@@ -724,14 +693,11 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                     ? null
                     : () {
                         setState(() {
-                          _selectedPermissionIds =
-                              Set.from(_initialPermissionIds);
+                          _selectedPermissionIds = Set.from(_initialPermissionIds);
                         });
                         _toast('Đã hoàn tác thay đổi');
                       },
-                child: const Text('Hoàn tác',
-                    style: TextStyle(
-                        color: AppColors.error, fontWeight: FontWeight.bold)),
+                child: const Text('Hoàn tác', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
               ),
             if (!widget.readOnly)
               IconButton(
@@ -743,8 +709,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
           ],
         ),
         body: _isLoadingRoles
-            ? const AppLoadingState(
-                message: 'Đang tải danh sách vai trò & quyền hạn...')
+            ? const AppLoadingState(message: 'Đang tải danh sách vai trò & quyền hạn...')
             : _error != null
                 ? AppErrorState(
                     message: _error!,
@@ -762,14 +727,12 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                             scrollDirection: Axis.horizontal,
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             itemCount: _roles.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(width: 8),
+                            separatorBuilder: (_, __) => const SizedBox(width: 8),
                             itemBuilder: (context, index) {
                               final role = _roles[index];
                               final roleId = role['id'].toString();
                               final isSelected = roleId == _selectedRoleId;
-                              final meta = RolePermissionHelper.getRoleMeta(
-                                  role['name']?.toString());
+                              final meta = RolePermissionHelper.getRoleMeta(role['name']?.toString());
 
                               return ChoiceChip(
                                 avatar: Icon(
@@ -781,12 +744,8 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                                 selected: isSelected,
                                 selectedColor: meta.color,
                                 labelStyle: TextStyle(
-                                  color: isSelected
-                                      ? Colors.white
-                                      : AppColors.textPrimary,
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.w500,
+                                  color: isSelected ? Colors.white : AppColors.textPrimary,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                                   fontSize: 12.5,
                                 ),
                                 onSelected: (_) {
@@ -810,8 +769,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
-                              color: currentMeta.color.withValues(alpha: 0.3)),
+                          side: BorderSide(color: currentMeta.color.withValues(alpha: 0.3)),
                         ),
                         color: currentMeta.color.withValues(alpha: 0.05),
                         child: Padding(
@@ -824,18 +782,15 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                                   Container(
                                     padding: const EdgeInsets.all(6),
                                     decoration: BoxDecoration(
-                                      color: currentMeta.color
-                                          .withValues(alpha: 0.15),
+                                      color: currentMeta.color.withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: Icon(currentMeta.icon,
-                                        color: currentMeta.color, size: 20),
+                                    child: Icon(currentMeta.icon, color: currentMeta.color, size: 20),
                                   ),
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           currentMeta.viName,
@@ -847,17 +802,14 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                                         ),
                                         Text(
                                           'Mã: ${currentMeta.roleKey} • ${currentMeta.badge}',
-                                          style: const TextStyle(
-                                              fontSize: 11,
-                                              color: AppColors.textSecondary),
+                                          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                                         ),
                                       ],
                                     ),
                                   ),
                                   if (!widget.readOnly) ...[
                                     IconButton(
-                                      icon: const Icon(Icons.edit_outlined,
-                                          size: 18),
+                                      icon: const Icon(Icons.edit_outlined, size: 18),
                                       tooltip: 'Sửa mô tả vai trò',
                                       padding: EdgeInsets.zero,
                                       constraints: const BoxConstraints(),
@@ -867,12 +819,10 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                                     TextButton.icon(
                                       onPressed: _resetToDefaultPreset,
                                       icon: const Icon(Icons.restore, size: 14),
-                                      label: const Text('Mặc định',
-                                          style: TextStyle(fontSize: 11)),
+                                      label: const Text('Mặc định', style: TextStyle(fontSize: 11)),
                                       style: TextButton.styleFrom(
                                         visualDensity: VisualDensity.compact,
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8),
                                       ),
                                     ),
                                   ],
@@ -881,16 +831,12 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                               const SizedBox(height: 8),
                               Text(
                                 currentMeta.summary,
-                                style: const TextStyle(
-                                    fontSize: 12,
-                                    height: 1.35,
-                                    color: AppColors.textPrimary),
+                                style: const TextStyle(fontSize: 12, height: 1.35, color: AppColors.textPrimary),
                               ),
                               const SizedBox(height: 6),
                               Row(
                                 children: [
-                                  const Icon(Icons.screen_share_outlined,
-                                      size: 14, color: AppColors.textSecondary),
+                                  const Icon(Icons.screen_share_outlined, size: 14, color: AppColors.textSecondary),
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
@@ -911,17 +857,13 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
 
                       // 3. Search and Status Filter Row
                       Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
                         child: TextField(
                           controller: _searchController,
-                          onChanged: (val) =>
-                              setState(() => _searchQuery = val),
+                          onChanged: (val) => setState(() => _searchQuery = val),
                           decoration: InputDecoration(
-                            hintText:
-                                'Tìm quyền (VD: cọc, PIN, hợp đồng, tài khoản...)',
-                            hintStyle: const TextStyle(
-                                fontSize: 12, color: AppColors.outline),
+                            hintText: 'Tìm quyền (VD: cọc, PIN, hợp đồng, tài khoản...)',
+                            hintStyle: const TextStyle(fontSize: 12, color: AppColors.outline),
                             prefixIcon: const Icon(Icons.search, size: 18),
                             suffixIcon: _searchQuery.isNotEmpty
                                 ? IconButton(
@@ -932,20 +874,17 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                                     },
                                   )
                                 : null,
-                            contentPadding: const EdgeInsets.symmetric(
-                                vertical: 8, horizontal: 12),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                             isDense: true,
                             filled: true,
                             fillColor: Colors.white,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                  color: AppColors.outlineVariant),
+                              borderSide: const BorderSide(color: AppColors.outlineVariant),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                  color: AppColors.outlineVariant),
+                              borderSide: const BorderSide(color: AppColors.outlineVariant),
                             ),
                           ),
                           style: const TextStyle(fontSize: 12.5),
@@ -956,14 +895,12 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                         Padding(
                           padding: const EdgeInsets.fromLTRB(16, 2, 16, 4),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 7),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                             decoration: BoxDecoration(
                               color: currentMeta.color.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color:
-                                    currentMeta.color.withValues(alpha: 0.25),
+                                color: currentMeta.color.withValues(alpha: 0.25),
                               ),
                             ),
                             child: Row(
@@ -1018,49 +955,24 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                             : _filteredGroupedPermissions.isEmpty
                                 ? Center(
                                     child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                      mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        const Icon(Icons.search_off_rounded,
-                                            size: 44, color: AppColors.outline),
+                                        const Icon(Icons.search_off_rounded, size: 44, color: AppColors.outline),
                                         const SizedBox(height: 8),
                                         Text(
                                           _searchQuery.isNotEmpty
                                               ? 'Không tìm thấy quyền phù hợp với "$_searchQuery"'
                                               : 'Không có quyền nào trong mục này.',
-                                          style: const TextStyle(
-                                              fontSize: 13,
-                                              color: AppColors.textSecondary),
+                                          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                                         ),
                                       ],
                                     ),
                                   )
-                                : PagedCollection<
-                                    MapEntry<String, Map<String, dynamic>>>(
-                                    dataKey:
-                                        '$_selectedRoleId|$_searchQuery|$_filter',
-                                    items: _filteredGroupedPermissions.entries
-                                        .expand((entry) => entry.value.map(
-                                            (permission) => MapEntry(
-                                                entry.key, permission)))
-                                        .toList(),
-                                    builder: (context, page) {
-                                      final groups = <String,
-                                          List<Map<String, dynamic>>>{};
-                                      for (final entry in page) {
-                                        groups
-                                            .putIfAbsent(entry.key, () => [])
-                                            .add(entry.value);
-                                      }
-                                      return ListView(
-                                          padding: const EdgeInsets.fromLTRB(
-                                              16, 4, 16, 16),
-                                          children: groups.entries
-                                              .map((entry) =>
-                                                  _buildBusinessGroupCard(
-                                                      entry.key, entry.value))
-                                              .toList());
-                                    },
+                                : ListView(
+                                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                                    children: _filteredGroupedPermissions.entries.map((entry) {
+                                      return _buildBusinessGroupCard(entry.key, entry.value);
+                                    }).toList(),
                                   ),
                       ),
 
@@ -1074,9 +986,8 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
 
   Widget _buildPersistentBottomBar() {
     final isDirty = _isDirty;
-    final changeCount =
-        _selectedPermissionIds.difference(_initialPermissionIds).length +
-            _initialPermissionIds.difference(_selectedPermissionIds).length;
+    final changeCount = _selectedPermissionIds.difference(_initialPermissionIds).length +
+        _initialPermissionIds.difference(_selectedPermissionIds).length;
 
     return Container(
       decoration: BoxDecoration(
@@ -1100,28 +1011,24 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
         top: false,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor:
-                isDirty ? AppColors.secondary : AppColors.surfaceContainerLow,
+            backgroundColor: isDirty ? AppColors.secondary : AppColors.surfaceContainerLow,
             foregroundColor: isDirty ? Colors.white : AppColors.textSecondary,
             elevation: isDirty ? 2 : 0,
             minimumSize: const Size.fromHeight(48),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           onPressed: (!isDirty || _isSaving) ? null : _save,
           child: _isSaving
               ? const SizedBox(
                   height: 20,
                   width: 20,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                 )
               : Text(
                   isDirty
                       ? 'Lưu thay đổi ($changeCount quyền thay đổi)'
                       : 'Lưu thay đổi (Chưa có thay đổi)',
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                 ),
         ),
       ),
@@ -1136,8 +1043,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color:
-              isSelected ? AppColors.secondary : AppColors.surfaceContainerLow,
+          color: isSelected ? AppColors.secondary : AppColors.surfaceContainerLow,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
@@ -1152,11 +1058,8 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
     );
   }
 
-  Widget _buildBusinessGroupCard(
-      String groupTitle, List<Map<String, dynamic>> perms) {
-    final activeCount = perms
-        .where((p) => _selectedPermissionIds.contains(p['id'].toString()))
-        .length;
+  Widget _buildBusinessGroupCard(String groupTitle, List<Map<String, dynamic>> perms) {
+    final activeCount = perms.where((p) => _selectedPermissionIds.contains(p['id'].toString())).length;
     final allChecked = activeCount == perms.length;
 
     final firstCode = perms.first['name']?.toString() ?? '';
@@ -1193,8 +1096,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                     ),
                   ),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
                       color: activeCount > 0
                           ? AppColors.secondary.withValues(alpha: 0.12)
@@ -1206,9 +1108,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: activeCount > 0
-                            ? AppColors.secondary
-                            : AppColors.textSecondary,
+                        color: activeCount > 0 ? AppColors.secondary : AppColors.textSecondary,
                       ),
                     ),
                   ),
@@ -1217,16 +1117,13 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                     InkWell(
                       onTap: () => _toggleGroupPermissions(perms, !allChecked),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         child: Text(
                           allChecked ? 'Bỏ chọn' : 'Chọn hết',
                           style: TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.bold,
-                            color: allChecked
-                                ? AppColors.error
-                                : AppColors.secondary,
+                            color: allChecked ? AppColors.error : AppColors.secondary,
                           ),
                         ),
                       ),
@@ -1242,8 +1139,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
               final id = p['id'].toString();
               final code = p['name']?.toString() ?? '';
               final rawDesc = p['description']?.toString();
-              final meta =
-                  RolePermissionHelper.getPermissionMeta(code, null, rawDesc);
+              final meta = RolePermissionHelper.getPermissionMeta(code, null, rawDesc);
               final isChecked = _selectedPermissionIds.contains(id);
 
               return CheckboxListTile(
@@ -1271,28 +1167,21 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: isChecked
-                              ? AppColors.textPrimary
-                              : AppColors.textSecondary,
+                          color: isChecked ? AppColors.textPrimary : AppColors.textSecondary,
                         ),
                       ),
                     ),
                     if (meta.isDangerous)
                       Container(
                         margin: const EdgeInsets.only(left: 6),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 5, vertical: 1.5),
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                         decoration: BoxDecoration(
-                          color:
-                              AppColors.errorContainer.withValues(alpha: 0.6),
+                          color: AppColors.errorContainer.withValues(alpha: 0.6),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Text(
                           'Nhạy cảm',
-                          style: TextStyle(
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.error),
+                          style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: AppColors.error),
                         ),
                       ),
                   ],
@@ -1316,16 +1205,13 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                       style: TextStyle(
                         fontSize: 11.5,
                         height: 1.25,
-                        color: isChecked
-                            ? AppColors.textSecondary
-                            : AppColors.outline,
+                        color: isChecked ? AppColors.textSecondary : AppColors.outline,
                       ),
                     ),
                   ],
                 ),
                 secondary: IconButton(
-                  icon: const Icon(Icons.info_outline_rounded,
-                      size: 20, color: AppColors.secondary),
+                  icon: const Icon(Icons.info_outline_rounded, size: 20, color: AppColors.secondary),
                   tooltip: 'Xem tác dụng khi Bật/Tắt',
                   onPressed: () => _showPermissionDetailModal(p),
                 ),

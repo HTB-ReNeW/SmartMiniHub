@@ -1,4 +1,3 @@
-import '../../widgets/paged_list_view.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
@@ -192,7 +191,7 @@ class _BookingAssignmentScreenState extends State<BookingAssignmentScreen> {
                 ),
                 const SizedBox(height: 12),
                 Flexible(
-                  child: PagedListView.separated(
+                  child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: availableUnits.length,
                     separatorBuilder: (_, __) => const Divider(height: 1),
@@ -326,7 +325,7 @@ class _BookingAssignmentScreenState extends State<BookingAssignmentScreen> {
 
           return RefreshIndicator(
             onRefresh: _refreshBookings,
-            child: PagedListView.separated(
+            child: ListView.separated(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               itemCount: bookings.length,

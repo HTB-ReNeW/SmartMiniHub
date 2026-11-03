@@ -1,4 +1,3 @@
-import '../../widgets/paged_list_view.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -793,7 +792,7 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                       );
                     }
 
-                    return PagedListView.separated(
+                    return ListView.separated(
                       padding: const EdgeInsets.all(16),
                       itemCount: records.length,
                       separatorBuilder: (context, index) {
@@ -1215,7 +1214,7 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
 
               return RefreshIndicator(
                 onRefresh: _refreshSchedule,
-                child: PagedListView.builder(
+                child: ListView.builder(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(16),
                   itemCount: schedules.length,

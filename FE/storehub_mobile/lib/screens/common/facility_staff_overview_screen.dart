@@ -1,4 +1,3 @@
-import '../../widgets/paged_list_view.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/user_model.dart';
@@ -99,9 +98,7 @@ class _FacilityStaffOverviewScreenState
   }
 
   List<UserModel> get _unassignedStaff {
-    return _allStaff
-        .where((s) => s.facilityId == null || s.facilityId!.isEmpty)
-        .toList();
+    return _allStaff.where((s) => s.facilityId == null || s.facilityId!.isEmpty).toList();
   }
 
   Color _statusColor(String? status) {
@@ -166,8 +163,7 @@ class _FacilityStaffOverviewScreenState
         ),
       ),
       body: _isLoading
-          ? const AppLoadingState(
-              message: 'Đang tải dữ liệu cơ sở và nhân sự...')
+          ? const AppLoadingState(message: 'Đang tải dữ liệu cơ sở và nhân sự...')
           : _errorMessage != null
               ? AppErrorState(
                   message: _errorMessage!,
@@ -293,13 +289,7 @@ class _FacilityStaffOverviewScreenState
               message: 'Hãy thử tìm với từ khóa hoặc mã cơ sở khác.',
             )
           else
-            PagedListView.builder(
-                shrinkWrap: true,
-                primary: false,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: filtered.length,
-                itemBuilder: (context, index) =>
-                    _buildFacilityCard(filtered[index])),
+            ...filtered.map((f) => _buildFacilityCard(f)),
         ],
       ),
     );
@@ -483,8 +473,8 @@ class _FacilityStaffOverviewScreenState
                   },
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: staffInFacility.isNotEmpty
                           ? AppColors.primaryContainer.withValues(alpha: 0.1)
@@ -747,8 +737,8 @@ class _FacilityStaffOverviewScreenState
                     label: Text(
                         '${fac['code'] ?? ''} (${_getStaffForFacility(fac['id']?.toString() ?? '').length})'),
                     selected: _staffFacilityFilter == fac['id']?.toString(),
-                    onSelected: (_) => setState(() =>
-                        _staffFacilityFilter = fac['id']?.toString() ?? 'ALL'),
+                    onSelected: (_) => setState(
+                        () => _staffFacilityFilter = fac['id']?.toString() ?? 'ALL'),
                   ),
                 ],
               ],
@@ -763,13 +753,7 @@ class _FacilityStaffOverviewScreenState
               message: 'Không có nhân viên nào phù hợp bộ lọc.',
             )
           else
-            PagedListView.builder(
-                shrinkWrap: true,
-                primary: false,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: filtered.length,
-                itemBuilder: (context, index) =>
-                    _buildStaffCard(filtered[index])),
+            ...filtered.map((staff) => _buildStaffCard(staff)),
         ],
       ),
     );
@@ -802,9 +786,8 @@ class _FacilityStaffOverviewScreenState
                       ? AppColors.primaryContainer
                       : AppColors.outline,
                   child: Text(
-                    _initials(staff.fullName.isNotEmpty
-                        ? staff.fullName
-                        : staff.username),
+                    _initials(
+                        staff.fullName.isNotEmpty ? staff.fullName : staff.username),
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -917,9 +900,7 @@ class _FacilityStaffOverviewScreenState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          hasFacility
-                              ? 'Cơ sở trực thuộc:'
-                              : 'Tình trạng cơ sở:',
+                          hasFacility ? 'Cơ sở trực thuộc:' : 'Tình trạng cơ sở:',
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,

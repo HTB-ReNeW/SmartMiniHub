@@ -41,25 +41,6 @@ class RefundDispatcherRecoveryTest {
     @Mock PlatformTransactionManager transactionManager;
 
     @Test
-    void demoRefundsNeverReachGatewayEvenWhenReturnedByAQueueOrReconciledManually() {
-        UUID id = UUID.randomUUID();
-        Booking booking = Booking.builder().bookingCode("DEMO-PG-D1-X01").build();
-        RefundRequest request = RefundRequest.builder().booking(booking).status(RefundStatus.QUEUED).build();
-        request.setId(id);
-        when(refunds.findTop20ByStatusOrderByDueAtAsc("QUEUED")).thenReturn(List.of(request));
-        when(refunds.lockById(id)).thenReturn(Optional.of(request));
-        when(transactionManager.getTransaction(any())).thenAnswer(invocation -> new SimpleTransactionStatus());
-        RefundDispatcher dispatcher = new RefundDispatcher(refunds, payments, bookings, activityLog, gateway, transactionManager);
-        dispatcher.dispatch();
-        assertEquals(RefundStatus.QUEUED, request.getStatus());
-        request.setStatus(RefundStatus.SENDING);
-        when(refunds.findById(id)).thenReturn(Optional.of(request));
-        dispatcher.reconcile(id);
-        assertEquals(RefundStatus.SENDING, request.getStatus());
-        org.mockito.Mockito.verifyNoInteractions(gateway);
-    }
-
-    @Test
     void staleSendingRequestIsQueriedWithoutIssuingAnotherRefund() throws Exception {
         UUID id = UUID.randomUUID();
         Booking booking = Booking.builder().bookingCode("BK-1").build();

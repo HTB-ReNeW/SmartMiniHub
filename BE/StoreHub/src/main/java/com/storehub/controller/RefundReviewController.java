@@ -25,7 +25,7 @@ public class RefundReviewController {
     public ApiResponse<PageResponse<RefundRequestResponse>> list(@PathVariable UUID facilityId,
             @AuthenticationPrincipal UserDetails principal,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "20") int size) {
         return ApiResponse.success("Refund requests",
                 service.list(facilityId, principal.getUsername(), page, size));
     }

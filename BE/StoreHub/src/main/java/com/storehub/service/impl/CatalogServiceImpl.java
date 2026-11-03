@@ -40,7 +40,7 @@ public class CatalogServiceImpl implements CatalogService {
             UnitType ut = (UnitType) row[0];
             Long count = ((Number) row[1]).longValue();
             return UnitTypeCatalogResponse.builder()
-                    .id(ut.getId()).createdAt(ut.getCreatedAt())
+                    .id(ut.getId())
                     .typeName(ut.getTypeName())
                     .dimensions(ut.getDimensions())
                     .areaSqm(ut.getAreaSqm())

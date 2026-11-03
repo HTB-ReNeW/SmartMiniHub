@@ -1,4 +1,3 @@
-import '../../widgets/paged_list_view.dart';
 import '../../widgets/assignment_user_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -1686,6 +1685,36 @@ class _FacilityManagerAssignmentSheetState
     }).toList();
 
     // Sắp xếp: Quản lý cơ sở này lên #1, kế tiếp Quản lý đang rảnh, rồi đến Quản lý cơ sở khác
+    filtered.sort((a, b) {
+      final infoA = _getAssignmentInfo(a);
+      final infoB = _getAssignmentInfo(b);
+      final isMgrA = _isFacilityManager(a);
+      final isMgrB = _isFacilityManager(b);
+
+      int score(
+          Map<String, dynamic> u, bool isMgr, bool isUnassigned, bool isThis) {
+        if (isThis) return 0; // Đang quản lý cơ sở này -> Ưu tiên hiện đầu tiên
+        if (isMgr && isUnassigned) return 1; // Quản lý chưa có cơ sở -> Kế tiếp
+        if (isMgr) return 2; // Quản lý cơ sở khác -> Kế tiếp
+        if (_getRawRole(u) == 'STAFF') return 3;
+        return 4;
+      }
+
+      final scoreA =
+          score(a, isMgrA, infoA.isUnassigned, infoA.isAssignedToThis);
+      final scoreB =
+          score(b, isMgrB, infoB.isUnassigned, infoB.isAssignedToThis);
+
+      final cmp = scoreA.compareTo(scoreB);
+      if (cmp != 0) return cmp;
+
+      final nA = (a['fullName']?.toString() ?? a['username']?.toString() ?? '')
+          .toLowerCase();
+      final nB = (b['fullName']?.toString() ?? b['username']?.toString() ?? '')
+          .toLowerCase();
+      return nA.compareTo(nB);
+    });
+
     return filtered;
   }
 
@@ -2073,7 +2102,7 @@ class _FacilityManagerAssignmentSheetState
       );
     }
 
-    return PagedListView.builder(
+    return ListView.builder(
       padding: const EdgeInsets.only(bottom: 20),
       itemCount: users.length,
       itemBuilder: (context, index) => _buildUserCard(users[index]),

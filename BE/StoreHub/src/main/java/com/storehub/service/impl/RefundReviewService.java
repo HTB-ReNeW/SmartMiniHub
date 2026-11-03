@@ -45,10 +45,11 @@ public class RefundReviewService {
     public PageResponse<RefundRequestResponse> list(UUID facilityId, String managerEmail,
                                                      int page, int size) {
         requireManager(facilityId, managerEmail);
-        if (page < 0 || size < 1 || size > 10) {
+        if (page < 0 || size < 1 || size > 100) {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
-        return PageResponse.from(refunds.findForManager(facilityId, PageRequest.of(page, size)).map(this::response));
+        return PageResponse.from(refunds.findForManager(facilityId, RefundStatus.COMPLETED,
+                LocalDateTime.now(), PageRequest.of(page, size)).map(this::response));
     }
 
     @Transactional

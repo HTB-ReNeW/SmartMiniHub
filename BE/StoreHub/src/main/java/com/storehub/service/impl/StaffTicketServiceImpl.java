@@ -41,8 +41,6 @@ public class StaffTicketServiceImpl implements StaffTicketService {
     ) {
         facilityAccess.require(staffEmail, facilityId);
 
-        pageable = org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), Math.min(10, pageable.getPageSize()),
-                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt", "id"));
         return PageResponse.from(
                 ticketRepository.findAllByFacilityId(facilityId, pageable)
                         .map(this::toResponse)

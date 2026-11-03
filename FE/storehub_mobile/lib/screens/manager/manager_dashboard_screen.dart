@@ -1,4 +1,3 @@
-import '../../widgets/paged_list_view.dart';
 import '../../widgets/assignment_user_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -628,7 +627,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
                               title: 'Không tìm thấy người dùng',
                               message: 'Không có người dùng nào phù hợp.',
                             )
-                          : PagedListView.builder(
+                          : ListView.builder(
                               itemCount: filteredUsers.length,
                               itemBuilder: (
                                 context,
@@ -1288,7 +1287,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
 
         return RefreshIndicator(
           onRefresh: _refreshUnits,
-          child: PagedListView.builder(
+          child: ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(
               16,
@@ -1444,60 +1443,54 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen>
                   message: 'Thêm nhân viên để họ phụ trách bàn giao kho.',
                 )
               else
-                PagedListView.builder(
-                    shrinkWrap: true,
-                    primary: false,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: staffList.length,
-                    itemBuilder: (context, index) {
-                      final staff = staffList[index];
-                      return Card(
-                        margin: const EdgeInsets.only(
-                          bottom: 10,
+                ...staffList.map((staff) {
+                  return Card(
+                    margin: const EdgeInsets.only(
+                      bottom: 10,
+                    ),
+                    child: ListTile(
+                      leading: const CircleAvatar(
+                        child: Icon(Icons.person),
+                      ),
+                      title: Text(
+                        staff.fullName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
                         ),
-                        child: ListTile(
-                          leading: const CircleAvatar(
-                            child: Icon(Icons.person),
-                          ),
-                          title: Text(
-                            staff.fullName,
+                      ),
+                      subtitle: Text(
+                        staff.email,
+                        style: const TextStyle(
+                          fontSize: 12,
+                        ),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            staff.role,
                             style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                              fontSize: 11,
+                              color: AppColors.onSurfaceVariant,
                             ),
                           ),
-                          subtitle: Text(
-                            staff.email,
-                            style: const TextStyle(
-                              fontSize: 12,
+                          IconButton(
+                            tooltip: 'Gỡ khỏi cơ sở',
+                            onPressed: () {
+                              _removeStaff(staff);
+                            },
+                            icon: const Icon(
+                              Icons.person_remove_outlined,
+                              size: 18,
+                              color: AppColors.error,
                             ),
                           ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                staff.role,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.onSurfaceVariant,
-                                ),
-                              ),
-                              IconButton(
-                                tooltip: 'Gỡ khỏi cơ sở',
-                                onPressed: () {
-                                  _removeStaff(staff);
-                                },
-                                icon: const Icon(
-                                  Icons.person_remove_outlined,
-                                  size: 18,
-                                  color: AppColors.error,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
             ],
           ),
         );

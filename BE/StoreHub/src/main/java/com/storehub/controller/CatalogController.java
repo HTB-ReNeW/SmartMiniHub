@@ -1,9 +1,5 @@
 package com.storehub.controller;
 
-import com.storehub.common.CollectionPages;
-
-import com.storehub.common.PageResponse;
-
 import com.storehub.common.ApiResponse;
 import com.storehub.dto.response.FacilityResponse;
 import com.storehub.dto.response.UnitTypeCatalogResponse;
@@ -27,16 +23,17 @@ public class CatalogController {
 
     @GetMapping("/facilities")
     @Operation(summary = "Lấy danh sách các cơ sở kho (Facilities)")
-    public ResponseEntity<ApiResponse<PageResponse<FacilityResponse>>> getFacilities(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+    public ResponseEntity<ApiResponse<List<FacilityResponse>>> getFacilities() {
         List<FacilityResponse> facilities = catalogService.getAllFacilities();
-        return ResponseEntity.ok(ApiResponse.success("Facilities retrieved successfully", CollectionPages.page(facilities, page, size)));
+        return ResponseEntity.ok(ApiResponse.success("Facilities retrieved successfully", facilities));
     }
 
     @GetMapping("/unit-types")
     @Operation(summary = "Lấy danh sách các loại kích thước kho, giá thuê tháng và số lượng kho trống")
-    public ResponseEntity<ApiResponse<PageResponse<UnitTypeCatalogResponse>>> getUnitTypes(@RequestParam(required = false) UUID facilityId,
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+    public ResponseEntity<ApiResponse<List<UnitTypeCatalogResponse>>> getUnitTypes(
+            @RequestParam(required = false) UUID facilityId
+    ) {
         List<UnitTypeCatalogResponse> unitTypes = catalogService.getUnitTypes(facilityId);
-        return ResponseEntity.ok(ApiResponse.success("Unit types retrieved successfully", CollectionPages.page(unitTypes, page, size)));
+        return ResponseEntity.ok(ApiResponse.success("Unit types retrieved successfully", unitTypes));
     }
 }

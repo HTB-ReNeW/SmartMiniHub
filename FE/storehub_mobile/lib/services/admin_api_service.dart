@@ -56,13 +56,13 @@ class AdminApiService {
 
   Future<PagedResult<Map<String, dynamic>>> getUsersPage({
     int page = 0,
-    int size = 10,
+    int size = 20,
     String search = '',
     bool? isActive,
     String? roleName,
     String? facilityId,
-    String sortBy = 'createdAt',
-    String sortDir = 'desc',
+    String sortBy = 'role',
+    String sortDir = 'asc',
   }) async {
     try {
       final response = await _http.get(ApiEndpoints.users, queryParameters: {
@@ -76,22 +76,21 @@ class AdminApiService {
         if (facilityId != null && facilityId.isNotEmpty)
           'facilityId': facilityId,
       });
-      return PagedResult.fromApi(
-          response.data, (item) => Map<String, dynamic>.from(item as Map));
+      return PagedResult.fromApi(response.data,
+          (item) => Map<String, dynamic>.from(item as Map));
     } on ApiException catch (e) {
       final message = e.response?.data?['message'] ?? e.message;
       throw Exception('Không tải được người dùng: $message');
     }
   }
 
-  Future<List<UserModel>> getStaffList(
-      {String? facilityId, String? search}) async {
+  Future<List<UserModel>> getStaffList({String? facilityId, String? search}) async {
     final all = <UserModel>[];
     var page = 0;
     while (true) {
       final batch = await getUsersPage(
         page: page++,
-        size: 10,
+        size: 50,
         search: search ?? '',
         roleName: 'STAFF',
         facilityId: facilityId,
@@ -101,14 +100,13 @@ class AdminApiService {
     }
   }
 
-  Future<List<UserModel>> getManagersList(
-      {String? facilityId, String? search}) async {
+  Future<List<UserModel>> getManagersList({String? facilityId, String? search}) async {
     final all = <UserModel>[];
     var page = 0;
     while (true) {
       final batch = await getUsersPage(
         page: page++,
-        size: 10,
+        size: 50,
         search: search ?? '',
         roleName: 'FACILITY_MANAGER',
         facilityId: facilityId,
@@ -143,7 +141,7 @@ class AdminApiService {
 
   Future<List<dynamic>> getRoles() async {
     try {
-      final response = await _http.getAll(ApiEndpoints.roles);
+      final response = await _http.get(ApiEndpoints.roles);
       return _extractList(response.data);
     } on ApiException catch (e) {
       final message = e.response?.data?['message'] ?? e.message;
@@ -182,9 +180,9 @@ class AdminApiService {
       var page = 0;
       while (true) {
         final response = await _http.get(ApiEndpoints.permissions,
-            queryParameters: {'page': page++, 'size': 10});
-        final batch = PagedResult.fromApi(
-            response.data, (item) => Map<String, dynamic>.from(item as Map));
+            queryParameters: {'page': page++, 'size': 50});
+        final batch = PagedResult.fromApi(response.data,
+            (item) => Map<String, dynamic>.from(item as Map));
         permissions.addAll(batch.content);
         if (batch.last) return permissions;
       }
@@ -197,7 +195,7 @@ class AdminApiService {
   Future<List<dynamic>> getRolePermissionsByRole(String roleId) async {
     try {
       final response =
-          await _http.getAll(ApiEndpoints.rolePermissionsByRole(roleId));
+          await _http.get(ApiEndpoints.rolePermissionsByRole(roleId));
       final data = response.data;
       if (data is Map && data['data'] is List) return data['data'];
       if (data is List) return data;

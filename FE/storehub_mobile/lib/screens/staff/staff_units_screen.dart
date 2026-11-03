@@ -1,4 +1,3 @@
-import '../../widgets/paged_list_view.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
@@ -166,121 +165,115 @@ class _StaffUnitsScreenState extends State<StaffUnitsScreen> {
           return Column(
             children: [
               _legend(),
-              Expanded(
-                  child: RefreshIndicator(
-                onRefresh: () async {
-                  _reload();
-                  try {
-                    await _future;
-                  } catch (_) {}
-                },
-                child: PagedListView.builder(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                  itemCount: units.length,
-                  itemBuilder: (context, index) {
-                    final unit = units[index];
-                    final color = _color(unit.status);
-                    final busy = _busyUnitId == unit.id;
+              Expanded(child: RefreshIndicator(
+            onRefresh: () async {
+              _reload();
+              try {
+                await _future;
+              } catch (_) {
+              }
+            },
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              itemCount: units.length,
+              itemBuilder: (context, index) {
+                final unit = units[index];
+                final color = _color(unit.status);
+                final busy = _busyUnitId == unit.id;
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            Row(
-                              children: [
-                                CircleAvatar(
-                                  backgroundColor:
-                                      color.withValues(alpha: 0.15),
-                                  child: Icon(Icons.inventory_2,
-                                      color: color, size: 18),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Ngăn ${unit.unitCode}',
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14),
-                                      ),
-                                      Text(
-                                        [
-                                          unit.unitType,
-                                          if (unit.floorLevel.isNotEmpty)
-                                            unit.floorLevel,
-                                        ].join(' • '),
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: color.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(
-                                    unit.statusLabel,
-                                    style: TextStyle(
-                                        fontSize: 11,
+                            CircleAvatar(
+                              backgroundColor: color.withValues(alpha: 0.15),
+                              child: Icon(Icons.inventory_2,
+                                  color: color, size: 18),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Ngăn ${unit.unitCode}',
+                                    style: const TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: color),
+                                        fontSize: 14),
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _hint(unit.status),
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.onSurfaceVariant),
-                            ),
-                            if (busy)
-                              const Padding(
-                                padding: EdgeInsets.only(top: 8),
-                                child: LinearProgressIndicator(minHeight: 2),
-                              )
-                            else if (unit.status == 'AVAILABLE')
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: OutlinedButton.icon(
-                                  onPressed: () =>
-                                      _change(unit, 'UNDER_MAINTENANCE'),
-                                  icon: const Icon(Icons.build_outlined,
-                                      size: 16),
-                                  label:
-                                      const Text('Báo cần kiểm tra / bảo trì'),
-                                ),
-                              )
-                            else if (unit.status == 'UNDER_MAINTENANCE')
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: ElevatedButton.icon(
-                                  onPressed: () => _change(unit, 'AVAILABLE'),
-                                  icon: const Icon(Icons.check_circle_outline,
-                                      size: 16),
-                                  label: const Text(
-                                      'Đã kiểm tra xong, cho thuê lại'),
-                                ),
+                                  Text(
+                                    [
+                                      unit.unitType,
+                                      if (unit.floorLevel.isNotEmpty)
+                                        unit.floorLevel,
+                                    ].join(' • '),
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ],
                               ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                unit.statusLabel,
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: color),
+                              ),
+                            ),
                           ],
                         ),
-                      ),
-                    );
-                  },
-                ),
-              ))
-            ],
+                        const SizedBox(height: 8),
+                        Text(
+                          _hint(unit.status),
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.onSurfaceVariant),
+                        ),
+                        if (busy)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8),
+                            child: LinearProgressIndicator(minHeight: 2),
+                          )
+                        else if (unit.status == 'AVAILABLE')
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: OutlinedButton.icon(
+                              onPressed: () =>
+                                  _change(unit, 'UNDER_MAINTENANCE'),
+                              icon: const Icon(Icons.build_outlined, size: 16),
+                              label: const Text('Báo cần kiểm tra / bảo trì'),
+                            ),
+                          )
+                        else if (unit.status == 'UNDER_MAINTENANCE')
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: ElevatedButton.icon(
+                              onPressed: () => _change(unit, 'AVAILABLE'),
+                              icon: const Icon(Icons.check_circle_outline,
+                                  size: 16),
+                              label: const Text('Đã kiểm tra xong, cho thuê lại'),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ))],
           );
         },
       ),

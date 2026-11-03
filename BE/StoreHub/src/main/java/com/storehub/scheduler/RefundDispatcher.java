@@ -38,7 +38,7 @@ public class RefundDispatcher {
     @Scheduled(fixedDelay = 60_000)
     public void dispatch() {
         // Process requests with the nearest promised refund deadline first.
-        for (RefundRequest pending : refunds.findTop20ByStatusOrderByDueAtAsc(RefundStatus.QUEUED.name())) {
+        for (RefundRequest pending : refunds.findTop20ByStatusOrderByDueAtAsc(RefundStatus.QUEUED)) {
             Payload payload = inTransaction(() -> claim(pending.getId()));
             if (payload == null) continue;
             try {
@@ -55,8 +55,8 @@ public class RefundDispatcher {
         // Query the gateway for these as well; never send another refund automatically.
         for (RefundRequest pending : refunds
                 .findTop20ByStatusInAndUpdatedStatusAtBeforeOrderByUpdatedStatusAtAsc(
-                        java.util.List.of(RefundStatus.AWAITING_CONFIRMATION.name(),
-                                RefundStatus.NEEDS_REVIEW.name(), RefundStatus.SENDING.name()),
+                        java.util.List.of(RefundStatus.AWAITING_CONFIRMATION,
+                                RefundStatus.NEEDS_REVIEW, RefundStatus.SENDING),
                         LocalDateTime.now().minusMinutes(6))) {
             reconcile(pending.getId());
         }
@@ -91,7 +91,7 @@ public class RefundDispatcher {
 
     private Payload claim(UUID id) {
         RefundRequest request = refunds.lockById(id).orElse(null);
-        if (request == null || isDemo(request) || request.getStatus() != RefundStatus.QUEUED) return null;
+        if (request == null || request.getStatus() != RefundStatus.QUEUED) return null;
         request.setStatus(RefundStatus.SENDING);
         request.setUpdatedStatusAt(LocalDateTime.now());
         return payload(request);
@@ -99,14 +99,10 @@ public class RefundDispatcher {
 
     private Payload snapshot(UUID id) {
         RefundRequest request = refunds.findById(id).orElse(null);
-        return request != null && !isDemo(request) && (request.getStatus() == RefundStatus.AWAITING_CONFIRMATION
+        return request != null && (request.getStatus() == RefundStatus.AWAITING_CONFIRMATION
                 || request.getStatus() == RefundStatus.NEEDS_REVIEW
                 || request.getStatus() == RefundStatus.SENDING)
                 ? payload(request) : null;
-    }
-
-    private boolean isDemo(RefundRequest request) {
-        return request.getBooking().getBookingCode().startsWith("DEMO-PG-");
     }
 
     private Payload payload(RefundRequest request) {

@@ -1202,7 +1202,6 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<PaymentResponse> getMyPaymentHistory(String customerEmail, Pageable pageable) {
-        pageable = org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), Math.min(10, pageable.getPageSize()));
         User customer = userRepository.findByEmail(customerEmail)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
@@ -1214,7 +1213,6 @@ public class PaymentServiceImpl implements PaymentService {
     @Transactional(readOnly = true)
     public PageResponse<PaymentResponse> getFacilityPaymentHistory(
             String userEmail, UUID facilityId, Pageable pageable) {
-        pageable = org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), Math.min(10, pageable.getPageSize()));
         User viewer = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         String role = viewer.getRole() == null || viewer.getRole().getName() == null
@@ -1235,7 +1233,6 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<PaymentResponse> getAllPaymentHistory(Pageable pageable) {
-        pageable = org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), Math.min(10, pageable.getPageSize()));
         return PageResponse.from(paymentRepository.findAllPayments(pageable)
                 .map(this::toPaymentResponse));
     }

@@ -1,4 +1,3 @@
-import '../../widgets/paged_list_view.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
@@ -246,8 +245,7 @@ class _PaginatedLogTabState extends State<_PaginatedLogTab> {
 
     return RefreshIndicator(
       onRefresh: () => _load(refresh: true),
-      child: PagedListView.builder(
-        hasTrailingItem: !_lastPage,
+      child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         itemCount: _logs.length + (_lastPage ? 0 : 1),

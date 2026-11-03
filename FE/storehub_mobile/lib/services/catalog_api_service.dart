@@ -15,7 +15,7 @@ class CatalogApiService {
 
   Future<List<FacilityModel>> getFacilities() async {
     try {
-      final response = await _http.getAll(ApiEndpoints.facilities);
+      final response = await _http.get(ApiEndpoints.facilities);
       final data = response.data;
       List<dynamic> raw = [];
       if (data is List) {
@@ -34,7 +34,7 @@ class CatalogApiService {
 
   Future<List<dynamic>> getUnitTypes({String? facilityId}) async {
     try {
-      final response = await _http.getAll(
+      final response = await _http.get(
         ApiEndpoints.unitTypes,
         queryParameters: facilityId != null && facilityId.isNotEmpty
             ? {'facilityId': facilityId}

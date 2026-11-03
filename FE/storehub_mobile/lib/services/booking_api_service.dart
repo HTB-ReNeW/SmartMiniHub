@@ -28,7 +28,7 @@ class BookingApiService {
 
   Future<List<Map<String, dynamic>>> getPayableBookings() async {
     try {
-      final response = await _http.getAll(ApiEndpoints.myPendingBookings);
+      final response = await _http.get(ApiEndpoints.myPendingBookings);
       final body = response.data;
       final list = body is Map ? body['data'] : null;
       if (list is! List) {
@@ -168,7 +168,7 @@ class BookingApiService {
   }
 
   Future<List<Map<String, dynamic>>> getMyWaitlist() async {
-    final response = await _http.getAll('${ApiEndpoints.waitlist}/mine');
+    final response = await _http.get('${ApiEndpoints.waitlist}/mine');
     final data = response.data;
     final entries = data is Map ? data['data'] : null;
     if (entries is! List) {

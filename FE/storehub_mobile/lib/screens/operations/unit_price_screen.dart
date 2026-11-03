@@ -1,4 +1,3 @@
-import '../../widgets/paged_list_view.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -93,7 +92,7 @@ class _UnitPriceScreenState extends State<UnitPriceScreen> {
             ),
             const Divider(height: 1),
             Flexible(
-              child: PagedListView.builder(
+              child: ListView.builder(
                 shrinkWrap: true,
                 itemCount: list.length,
                 itemBuilder: (context, index) {
@@ -371,13 +370,15 @@ class _UnitPriceScreenState extends State<UnitPriceScreen> {
               future: _future,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const AppLoadingState(message: 'Đang tải loại kho...');
+                  return const AppLoadingState(
+                      message: 'Đang tải loại kho...');
                 }
 
                 if (snapshot.hasError) {
                   return AppErrorState(
-                    message:
-                        snapshot.error.toString().replaceAll('Exception: ', ''),
+                    message: snapshot.error
+                        .toString()
+                        .replaceAll('Exception: ', ''),
                     onRetry: _reload,
                   );
                 }
@@ -411,7 +412,7 @@ class _UnitPriceScreenState extends State<UnitPriceScreen> {
                       await _future;
                     } catch (_) {}
                   },
-                  child: PagedListView.builder(
+                  child: ListView.builder(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(16, 14, 16, 80),
                     itemCount: items.length,
@@ -459,8 +460,7 @@ class _UnitPriceScreenState extends State<UnitPriceScreen> {
                                         children: [
                                           Expanded(
                                             child: Text(
-                                              item['typeName']?.toString() ??
-                                                  '',
+                                              item['typeName']?.toString() ?? '',
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 15,
@@ -515,8 +515,8 @@ class _UnitPriceScreenState extends State<UnitPriceScreen> {
                                             ),
                                             const TextSpan(text: ' • Cọc: '),
                                             TextSpan(
-                                              text: _currency
-                                                  .format(calculatedDeposit),
+                                              text: _currency.format(
+                                                  calculatedDeposit),
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 color: Color(0xFF059669),
@@ -620,8 +620,8 @@ class _UnitTypeFormDialogState extends State<UnitTypeFormDialog> {
       wid = double.tryParse(match3.group(2)!) ?? 1.0;
       hei = double.tryParse(match3.group(3)!) ?? 2.0;
     } else {
-      final match2 =
-          RegExp(r'([\d.]+)\s*m?\s*[xX*×]\s*([\d.]+)\s*m?').firstMatch(dim);
+      final match2 = RegExp(r'([\d.]+)\s*m?\s*[xX*×]\s*([\d.]+)\s*m?')
+          .firstMatch(dim);
       if (match2 != null) {
         len = double.tryParse(match2.group(1)!) ?? 1.0;
         wid = double.tryParse(match2.group(2)!) ?? 1.0;
@@ -633,9 +633,12 @@ class _UnitTypeFormDialogState extends State<UnitTypeFormDialog> {
       }
     }
 
-    _lengthController = TextEditingController(text: _formatNumber(len));
-    _widthController = TextEditingController(text: _formatNumber(wid));
-    _heightController = TextEditingController(text: _formatNumber(hei));
+    _lengthController =
+        TextEditingController(text: _formatNumber(len));
+    _widthController =
+        TextEditingController(text: _formatNumber(wid));
+    _heightController =
+        TextEditingController(text: _formatNumber(hei));
 
     final autoArea = (len * wid * 100).round() / 100.0;
     _isCustomArea = false;
@@ -670,13 +673,11 @@ class _UnitTypeFormDialogState extends State<UnitTypeFormDialog> {
 
   double get _lenVal => double.tryParse(_lengthController.text.trim()) ?? 1.0;
   double get _widthVal => double.tryParse(_widthController.text.trim()) ?? 1.0;
-  double get _heightVal =>
-      double.tryParse(_heightController.text.trim()) ?? 2.0;
+  double get _heightVal => double.tryParse(_heightController.text.trim()) ?? 2.0;
 
   double get _calculatedArea {
     if (_isCustomArea) {
-      return double.tryParse(_areaController.text.trim()) ??
-          (_lenVal * _widthVal);
+      return double.tryParse(_areaController.text.trim()) ?? (_lenVal * _widthVal);
     }
     return (_lenVal * _widthVal * 100).round() / 100.0;
   }
@@ -719,10 +720,14 @@ class _UnitTypeFormDialogState extends State<UnitTypeFormDialog> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : const Color(0xFFF1F5F9),
+          color: isSelected
+              ? AppColors.primary
+              : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
+            color: isSelected
+                ? AppColors.primary
+                : const Color(0xFFE2E8F0),
           ),
         ),
         child: Text(
@@ -955,8 +960,9 @@ class _UnitTypeFormDialogState extends State<UnitTypeFormDialog> {
                           const SizedBox(height: 4),
                           TextFormField(
                             controller: _lengthController,
-                            keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
+                            keyboardType:
+                                const TextInputType.numberWithOptions(
+                                    decimal: true),
                             onChanged: (_) => _onDimensionChanged(),
                             decoration: InputDecoration(
                               suffixText: 'm',
@@ -1003,8 +1009,9 @@ class _UnitTypeFormDialogState extends State<UnitTypeFormDialog> {
                           const SizedBox(height: 4),
                           TextFormField(
                             controller: _widthController,
-                            keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
+                            keyboardType:
+                                const TextInputType.numberWithOptions(
+                                    decimal: true),
                             onChanged: (_) => _onDimensionChanged(),
                             decoration: InputDecoration(
                               suffixText: 'm',
@@ -1051,8 +1058,9 @@ class _UnitTypeFormDialogState extends State<UnitTypeFormDialog> {
                           const SizedBox(height: 4),
                           TextFormField(
                             controller: _heightController,
-                            keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
+                            keyboardType:
+                                const TextInputType.numberWithOptions(
+                                    decimal: true),
                             onChanged: (_) => setState(() {}),
                             decoration: InputDecoration(
                               suffixText: 'm',
@@ -1452,10 +1460,12 @@ class _UnitTypeFormDialogState extends State<UnitTypeFormDialog> {
                       flex: 2,
                       child: FilledButton.icon(
                         onPressed: _submit,
-                        icon: Icon(widget.isCreate ? Icons.add : Icons.check,
+                        icon: Icon(
+                            widget.isCreate ? Icons.add : Icons.check,
                             size: 16),
-                        label: Text(
-                            widget.isCreate ? 'Tạo loại kho' : 'Lưu thay đổi'),
+                        label: Text(widget.isCreate
+                            ? 'Tạo loại kho'
+                            : 'Lưu thay đổi'),
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(

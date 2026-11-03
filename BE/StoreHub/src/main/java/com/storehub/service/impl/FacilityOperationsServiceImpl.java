@@ -877,7 +877,7 @@ public class FacilityOperationsServiceImpl
 
         User assigned = "CHECK_IN".equals(scheduleType)
                 ? booking.getAssignedCheckInStaff() : booking.getAssignedCheckOutStaff();
-        return DailyScheduleResponse.builder().createdAt(booking.getCreatedAt())
+        return DailyScheduleResponse.builder()
                 .bookingId(booking.getId())
                 .bookingCode(booking.getBookingCode())
                 .customerId(customerId)

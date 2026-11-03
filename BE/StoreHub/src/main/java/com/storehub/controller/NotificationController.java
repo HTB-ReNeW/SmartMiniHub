@@ -36,7 +36,7 @@ public class NotificationController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(required = false) Boolean unreadOnly,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "20") int size
     ) {
         PageRequest pageRequest = PaginationUtils.pageRequest(page, size);
         PageResponse<NotificationResponse> response = notificationService.getMyNotifications(

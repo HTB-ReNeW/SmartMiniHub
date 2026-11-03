@@ -101,7 +101,7 @@ public class PaymentController {
     public ResponseEntity<ApiResponse<PageResponse<PaymentResponse>>> getMyPaymentHistory(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "20") int size
     ) {
         PageResponse<PaymentResponse> responses = paymentService.getMyPaymentHistory(
                 userDetails.getUsername(), paymentPage(page, size));
@@ -116,7 +116,7 @@ public class PaymentController {
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable UUID facilityId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "20") int size
     ) {
         PageResponse<PaymentResponse> responses = paymentService.getFacilityPaymentHistory(
                 userDetails.getUsername(), facilityId, paymentPage(page, size));
@@ -129,7 +129,7 @@ public class PaymentController {
     @Operation(summary = "Lấy toàn bộ lịch sử giao dịch thanh toán trong hệ thống")
     public ResponseEntity<ApiResponse<PageResponse<PaymentResponse>>> getAllPaymentHistory(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "20") int size) {
         PageResponse<PaymentResponse> responses = paymentService.getAllPaymentHistory(paymentPage(page, size));
         return ResponseEntity.ok(ApiResponse.success("All system payment history retrieved successfully", responses));
     }

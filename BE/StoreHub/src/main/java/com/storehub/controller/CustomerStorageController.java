@@ -1,9 +1,5 @@
 package com.storehub.controller;
 
-import com.storehub.common.CollectionPages;
-
-import com.storehub.common.PageResponse;
-
 import com.storehub.common.ApiResponse;
 import com.storehub.dto.request.CheckoutRequest;
 import com.storehub.dto.request.ExtendRentalRequest;
@@ -57,23 +53,26 @@ public class CustomerStorageController {
     @GetMapping("/my-units")
     @PreAuthorize("hasRole('CUSTOMER') and hasAuthority('CONTRACT_VIEW')")
     @Operation(summary = "Chỉ lấy ngăn kho đã bàn giao và đang thuê (ACTIVE)")
-    public ResponseEntity<ApiResponse<PageResponse<MyUnitResponse>>> getMyRentedUnits(@AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+    public ResponseEntity<ApiResponse<List<MyUnitResponse>>> getMyRentedUnits(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
         List<MyUnitResponse> result = customerStorageService.getMyRentedUnits(userDetails.getUsername());
 
-        return ResponseEntity.ok(ApiResponse.<PageResponse<MyUnitResponse>>builder()
+        return ResponseEntity.ok(ApiResponse.<List<MyUnitResponse>>builder()
                 .success(true)
                 .message("Rented units retrieved successfully")
-                .data(CollectionPages.page(result, page, size))
+                .data(result)
                 .build());
     }
 
     @GetMapping("/awaiting-handover")
     @PreAuthorize("hasRole('CUSTOMER') and hasAuthority('BOOKING_VIEW')")
     @Operation(summary = "Lấy booking đã đặt cọc, đang chờ nhận kho (CONFIRMED)")
-    public ResponseEntity<ApiResponse<PageResponse<MyUnitResponse>>> getAwaitingHandover(@AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(ApiResponse.success("Bookings awaiting handover retrieved", CollectionPages.page(customerStorageService.getAwaitingHandover(userDetails.getUsername()), page, size)));
+    public ResponseEntity<ApiResponse<List<MyUnitResponse>>> getAwaitingHandover(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        return ResponseEntity.ok(ApiResponse.success("Bookings awaiting handover retrieved",
+                customerStorageService.getAwaitingHandover(userDetails.getUsername())));
     }
 
     @GetMapping("/{bookingId}/access")
@@ -234,10 +233,13 @@ public class CustomerStorageController {
     @GetMapping("/{bookingId}/handover-records")
     @PreAuthorize("hasRole('CUSTOMER') and hasAuthority('CONTRACT_VIEW')")
     @Operation(summary = "Xem lịch sử biên bản bàn giao nhận/trả kho kèm hình ảnh")
-    public ResponseEntity<ApiResponse<PageResponse<com.storehub.dto.response.HandoverRecordResponse>>> getHandoverRecords(@PathVariable UUID bookingId,
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+    public ResponseEntity<ApiResponse<List<com.storehub.dto.response.HandoverRecordResponse>>> getHandoverRecords(
+            @PathVariable UUID bookingId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
         return ResponseEntity.ok(ApiResponse.success(
-                "Handover records retrieved successfully", CollectionPages.page(customerStorageService.getHandoverRecords(bookingId, userDetails.getUsername()), page, size)));
+                "Handover records retrieved successfully",
+                customerStorageService.getHandoverRecords(bookingId, userDetails.getUsername())
+        ));
     }
 }

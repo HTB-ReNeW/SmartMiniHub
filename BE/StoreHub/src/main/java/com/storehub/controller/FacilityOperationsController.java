@@ -1,9 +1,5 @@
 package com.storehub.controller;
 
-import com.storehub.common.CollectionPages;
-
-import com.storehub.common.PageResponse;
-
 import com.storehub.common.ApiResponse;
 import com.storehub.dto.request.HandoverRequest;
 import com.storehub.dto.request.UpdateUnitStatusRequest;
@@ -71,10 +67,11 @@ public class FacilityOperationsController {
     @GetMapping("/daily-schedule")
     @PreAuthorize("hasAnyRole('STAFF', 'FACILITY_MANAGER') and hasAuthority('BOOKING_VIEW')")
     @Operation(summary = "Get daily check-in and check-out schedule")
-    public ResponseEntity<ApiResponse<PageResponse<DailyScheduleResponse>>> getDailySchedule(@RequestParam UUID facilityId,
+    public ResponseEntity<ApiResponse<List<DailyScheduleResponse>>> getDailySchedule(
+            @RequestParam UUID facilityId,
             @RequestParam LocalDate date,
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
         List<DailyScheduleResponse> result =
                 facilityOperationsService.getDailySchedule(
                         facilityId,
@@ -83,10 +80,10 @@ public class FacilityOperationsController {
                 );
 
         return ResponseEntity.ok(
-                ApiResponse.<PageResponse<DailyScheduleResponse>>builder()
+                ApiResponse.<List<DailyScheduleResponse>>builder()
                         .success(true)
                         .message("Daily schedule retrieved successfully")
-                        .data(CollectionPages.page(result, page, size))
+                        .data(result)
                         .build()
         );
     }
@@ -114,10 +111,11 @@ public class FacilityOperationsController {
     @GetMapping("/{bookingId}/handover-records")
     @PreAuthorize("hasAnyRole('STAFF', 'FACILITY_MANAGER') and hasAuthority('HANDOVER_VIEW')")
     @Operation(summary = "Get handover history of a booking")
-    public ResponseEntity<ApiResponse<PageResponse<HandoverRecordResponse>>> getHandoverHistory(@PathVariable UUID bookingId,
+    public ResponseEntity<ApiResponse<List<HandoverRecordResponse>>> getHandoverHistory(
+            @PathVariable UUID bookingId,
             @RequestParam UUID facilityId,
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
         List<HandoverRecordResponse> result =
                 facilityOperationsService.getHandoverHistory(
                         bookingId,
@@ -127,7 +125,9 @@ public class FacilityOperationsController {
 
         return ResponseEntity.ok(
                 ApiResponse.success(
-                        "Handover history retrieved successfully", CollectionPages.page(result, page, size))
+                        "Handover history retrieved successfully",
+                        result
+                )
         );
     }
 

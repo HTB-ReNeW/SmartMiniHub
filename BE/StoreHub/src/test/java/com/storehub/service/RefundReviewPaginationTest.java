@@ -45,6 +45,7 @@ class RefundReviewPaginationTest {
         booking.setId(UUID.randomUUID());
         RefundRequest oldRefund = RefundRequest.builder()
                 .booking(booking)
+                .bankCode("Vietcombank").bankAccountNumber("0012345678").bankAccountName("NGUYEN VAN AN")
                 .originalPayment(Payment.builder().transactionId("TXN-OLD").build())
                 .status(RefundStatus.MISSING_METADATA)
                 .dueAt(LocalDateTime.now().minusDays(2))
@@ -57,6 +58,9 @@ class RefundReviewPaginationTest {
 
         var page = service.list(facilityId, manager, 2, 20);
 
+        assertEquals("Vietcombank", page.getContent().get(0).bankCode());
+        assertEquals("0012345678", page.getContent().get(0).bankAccountNumber());
+        assertEquals("NGUYEN VAN AN", page.getContent().get(0).bankAccountName());
         assertEquals(51, page.getTotalElements());
         assertEquals(3, page.getTotalPages());
         assertEquals("BK-OLD", page.getContent().get(0).bookingCode());

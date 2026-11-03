@@ -20,6 +20,8 @@ import java.math.BigDecimal;
 
 public interface RefundRequestRepository extends JpaRepository<RefundRequest, UUID> {
     boolean existsByBooking_Id(UUID bookingId);
+    boolean existsByBooking_IdAndStatus(UUID bookingId, RefundStatus status);
+    boolean existsByBooking_IdAndStatusNot(UUID bookingId, RefundStatus status);
     boolean existsByOriginalPayment_Id(UUID paymentId);
     boolean existsByIdAndBooking_StorageUnit_Facility_Id(UUID id, UUID facilityId);
     Optional<RefundRequest> findByRefundPayment_Id(UUID refundPaymentId);

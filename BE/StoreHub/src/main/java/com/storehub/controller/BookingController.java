@@ -57,6 +57,15 @@ public class BookingController {
         return ApiResponse.success(bookingService.cancellationQuote(id, userDetails.getUsername()));
     }
 
+    @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasRole('CUSTOMER') and hasAuthority('BOOKING_CANCEL')")
+    public ApiResponse<Void> cancelWithRefundAccount(@PathVariable UUID id,
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody com.storehub.dto.request.CancellationRefundAccountRequest account) {
+        bookingService.cancelBooking(id, userDetails.getUsername(), account);
+        return ApiResponse.success("Đã gửi yêu cầu hủy và hoàn tiền", null);
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('CUSTOMER') and hasAuthority('BOOKING_CANCEL')")
     @SecurityRequirement(name = "bearerAuth")

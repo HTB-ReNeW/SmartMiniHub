@@ -121,6 +121,19 @@ class BookingApiService {
     }
   }
 
+  Future<void> cancelWithRefundAccount(
+      String bookingId, Map<String, String> account) async {
+    try {
+      await _http.post('${ApiEndpoints.bookingDetail(bookingId)}/cancel',
+          data: account);
+    } on ApiException catch (e) {
+      final data = e.response?.data;
+      throw Exception(data is Map
+          ? data['message'] ?? 'Không thể gửi yêu cầu hủy.'
+          : 'Không thể gửi yêu cầu hủy. Vui lòng thử lại.');
+    }
+  }
+
   /// DELETE /bookings/{id} - cancels a PENDING_PAYMENT booking, releasing
   /// the reserved unit back to AVAILABLE and notifying the waitlist.
   Future<void> cancelBooking(String bookingId) async {

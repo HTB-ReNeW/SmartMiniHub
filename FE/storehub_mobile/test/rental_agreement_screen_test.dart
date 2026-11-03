@@ -32,6 +32,19 @@ void main() {
     expect(customer.contractPhotos, ['https://example.invalid/signed.jpg']);
     expect(facility.contractPhotos, customer.contractPhotos);
   });
+  test('Contract details read the booked customer name and service fee', () {
+    final data = {
+      ...json,
+      'customerName': 'Nguyen Van An',
+      'serviceFee': 150000
+    };
+    final customer = MyUnitModel.fromJson(data);
+    final facility = FacilityManagementMapper.contractFromJson(data);
+    expect(customer.customerName, 'Nguyen Van An');
+    expect(customer.serviceFee, 150000);
+    expect(facility.serviceFee, customer.serviceFee);
+    expect(MyUnitModel.fromJson(json).serviceFee, isNull);
+  });
   testWidgets('Shows stored terms and acceptance for a paid booking',
       (tester) async {
     await tester.pumpWidget(MaterialApp(

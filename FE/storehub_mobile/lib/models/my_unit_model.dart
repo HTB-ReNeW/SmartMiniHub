@@ -1,7 +1,10 @@
 import 'rental_agreement.dart';
 
 class MyUnitModel {
+  final bool refundCompleted;
   final RentalAgreement agreement;
+  final String customerName;
+  final double? serviceFee;
   final String bookingId;
   final String handoverIssueStatus;
   final String handoverIssueReason;
@@ -35,7 +38,10 @@ class MyUnitModel {
   final String? closeTime;
 
   MyUnitModel({
+    this.refundCompleted = false,
     this.agreement = const RentalAgreement(),
+    this.customerName = '',
+    this.serviceFee,
     required this.bookingId,
     this.handoverIssueStatus = '',
     this.handoverIssueReason = '',
@@ -72,6 +78,7 @@ class MyUnitModel {
   bool get hasHandoverIssue =>
       handoverIssueStatus == 'OPEN' || handoverIssueStatus == 'ARRANGED';
 
+  bool get isRefunded => status == 'CANCELLED' && refundCompleted;
   bool get isActive => status == 'ACTIVE';
   String get displayUnit => (isActive || unitAssignmentConfirmed)
       ? 'Ngăn $unitCode'
@@ -90,6 +97,9 @@ class MyUnitModel {
 
   factory MyUnitModel.fromJson(Map<String, dynamic> json) {
     return MyUnitModel(
+      refundCompleted: json['refundCompleted'] == true,
+      customerName: json['customerName']?.toString() ?? '',
+      serviceFee: (json['serviceFee'] as num?)?.toDouble(),
       agreement: RentalAgreement.fromJson(json),
       bookingId: json['bookingId']?.toString() ?? json['id']?.toString() ?? '',
       bookingCode: json['bookingCode']?.toString() ?? '',

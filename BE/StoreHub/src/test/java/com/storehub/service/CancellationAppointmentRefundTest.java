@@ -76,6 +76,9 @@ class CancellationAppointmentRefundTest {
         Booking booking = Booking.builder().startDate(LocalDate.now().plusDays(2))
             .storageUnit(StorageUnit.builder().facility(facility).build())
             .depositPaid(new BigDecimal("500000")).build();
+        booking.setRefundBankCode("Vietcombank");
+        booking.setRefundAccountNumber("0012345678");
+        booking.setRefundAccountName("NGUYEN VAN AN");
         booking.setId(UUID.randomUUID());
         var deposit = com.storehub.entity.Payment.builder().amount(new BigDecimal("500000"))
             .paymentType(com.storehub.enums.PaymentType.DEPOSIT).build();
@@ -92,6 +95,11 @@ class CancellationAppointmentRefundTest {
         verify(refunds).save(captor.capture());
         assertEquals(new BigDecimal("250000"), captor.getValue().getDepositAmount());
         assertEquals(new BigDecimal("3000000"), captor.getValue().getRentalAmount());
+        assertEquals("Vietcombank", captor.getValue().getBankCode());
+        assertEquals("0012345678", captor.getValue().getBankAccountNumber());
+        assertEquals("NGUYEN VAN AN", captor.getValue().getBankAccountName());
+        assertEquals(com.storehub.enums.RefundStatus.AWAITING_BANK_TRANSFER, captor.getValue().getStatus());
+
     }
 
 }

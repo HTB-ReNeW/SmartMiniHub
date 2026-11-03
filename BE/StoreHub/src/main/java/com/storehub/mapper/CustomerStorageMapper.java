@@ -16,7 +16,10 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface CustomerStorageMapper {
 
+    @Mapping(target = "refundCompleted", ignore = true)
     @Mapping(target = "bookingId", source = "id")
+    @Mapping(target = "customerName", source = "customer.fullName", defaultValue = "")
+    @Mapping(target = "serviceFee", source = "quotedManagementFee")
     @Mapping(target = "facilityName", source = "storageUnit.facility.name", defaultValue = "Unassigned Facility")
     @Mapping(target = "facilityAddress", source = "storageUnit.facility.address", defaultValue = "")
     @Mapping(target = "unitCode", source = "storageUnit.unitCode", defaultValue = "Unassigned")

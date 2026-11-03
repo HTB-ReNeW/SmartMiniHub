@@ -317,6 +317,13 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public void cancelBooking(UUID bookingId, String customerEmail) {
+        cancelBooking(bookingId, customerEmail, null);
+    }
+
+    @Override
+    @Transactional
+    public void cancelBooking(UUID bookingId, String customerEmail,
+            com.storehub.dto.request.CancellationRefundAccountRequest account) {
         User customer = userRepository.findByEmail(customerEmail)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
@@ -331,6 +338,19 @@ public class BookingServiceImpl implements BookingService {
 
         if (previousStatus == BookingStatus.CONFIRMED && booking.getHandoverTime() != null) {
             throw new AppException(ErrorCode.BOOKING_CANCEL_NOT_ALLOWED);
+        }
+        if (previousStatus == BookingStatus.CONFIRMED) {
+            if (account == null || account.getBankCode() == null || account.getBankCode().isBlank()
+                    || account.getBankCode().trim().length() > 100
+                    || account.getBankAccountNumber() == null || !account.getBankAccountNumber().trim().matches("[0-9]{4,34}")
+                    || account.getBankAccountName() == null || account.getBankAccountName().trim().length() < 2
+                    || account.getBankAccountName().trim().length() > 100) {
+                throw new AppException(ErrorCode.INVALID_REQUEST);
+            }
+            // Set the beneficiary before creating the refund: RefundRequest snapshots these exact values.
+            booking.setRefundBankCode(account.getBankCode().trim());
+            booking.setRefundAccountNumber(account.getBankAccountNumber().trim());
+            booking.setRefundAccountName(account.getBankAccountName().trim());
         }
         // Before handover: tiered deposit refund plus all paid rent.
         BigDecimal requestedRefund = BigDecimal.ZERO;

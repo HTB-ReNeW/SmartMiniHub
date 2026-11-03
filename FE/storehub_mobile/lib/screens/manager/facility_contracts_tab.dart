@@ -320,6 +320,12 @@ class _FacilityContractsTabState extends State<FacilityContractsTab> {
                                       'Tiền cọc đã thanh toán',
                                       _currency.format(item.depositPaid)
                                     ),
+                                    (
+                                      'Phí dịch vụ',
+                                      item.serviceFee == null
+                                          ? 'Chưa có thông tin'
+                                          : _currency.format(item.serviceFee)
+                                    ),
                                   ]))),
                 )),
             if (status == 'CONFIRMED') ...[

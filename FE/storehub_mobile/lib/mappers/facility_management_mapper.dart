@@ -135,6 +135,7 @@ class FacilityManagementMapper {
 
   static FacilityContractModel contractFromJson(Map<String, dynamic> json) {
     return FacilityContractModel(
+      serviceFee: (json['serviceFee'] as num?)?.toDouble(),
       agreement: RentalAgreement.fromJson(json),
       bookingId: _text(json['bookingId']),
       bookingCode: _text(json['bookingCode']),

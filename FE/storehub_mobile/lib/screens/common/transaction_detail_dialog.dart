@@ -23,14 +23,16 @@ class TransactionDetailDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormat = NumberFormat.currency(
-      locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
+    final currencyFormat =
+        NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
     final dateFormat = DateFormat('dd/MM/yyyy • HH:mm');
     final formattedDate = payment.paymentTime != null
         ? dateFormat.format(payment.paymentTime!)
         : 'N/A';
 
-    return SafeArea(child: SingleChildScrollView(child: Container(
+    return SafeArea(
+        child: SingleChildScrollView(
+            child: Container(
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -71,11 +73,13 @@ class TransactionDetailDialog extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: payment.statusColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: payment.statusColor.withValues(alpha: 0.25)),
+                  border: Border.all(
+                      color: payment.statusColor.withValues(alpha: 0.25)),
                 ),
                 child: Text(
                   payment.statusLabel,
@@ -95,13 +99,15 @@ class TransactionDetailDialog extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.warningContainer.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                border:
+                    Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
               ),
               child: const Text(
                 'Giao dịch này chưa hoàn tất: khách chưa thanh toán xong trên VNPay '
                 'hoặc đã thoát giữa chừng. Hệ thống sẽ tự cập nhật khi VNPay xác nhận; '
                 'nếu quá hạn giữ chỗ, giao dịch sẽ chuyển sang "Thất bại".',
-                style: TextStyle(fontSize: 12, color: Color(0xFF78350F), height: 1.4),
+                style: TextStyle(
+                    fontSize: 12, color: Color(0xFF78350F), height: 1.4),
               ),
             ),
           ],
@@ -129,7 +135,10 @@ class TransactionDetailDialog extends StatelessWidget {
               children: [
                 const Text(
                   'Số tiền giao dịch',
-                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -143,7 +152,8 @@ class TransactionDetailDialog extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
@@ -191,7 +201,8 @@ class TransactionDetailDialog extends StatelessWidget {
                     label: 'Thời gian',
                     value: formattedDate,
                   ),
-                  if (payment.paymentMethod != null && payment.paymentMethod!.isNotEmpty) ...[
+                  if (payment.paymentMethod != null &&
+                      payment.paymentMethod!.isNotEmpty) ...[
                     const Divider(height: 1, indent: 12, endIndent: 12),
                     _detailRow(
                       context,
@@ -203,7 +214,8 @@ class TransactionDetailDialog extends StatelessWidget {
                           : payment.paymentMethod!,
                     ),
                   ],
-                  if (payment.bookingCode != null && payment.bookingCode!.isNotEmpty) ...[
+                  if (payment.bookingCode != null &&
+                      payment.bookingCode!.isNotEmpty) ...[
                     const Divider(height: 1, indent: 12, endIndent: 12),
                     _detailRow(
                       context,
@@ -211,15 +223,18 @@ class TransactionDetailDialog extends StatelessWidget {
                       value: payment.bookingCode!,
                     ),
                   ],
-                  if (payment.customerName != null && payment.customerName!.isNotEmpty) ...[
+                  if (payment.customerName != null &&
+                      payment.customerName!.isNotEmpty) ...[
                     const Divider(height: 1, indent: 12, endIndent: 12),
                     _detailRow(
                       context,
                       label: 'Khách hàng',
-                      value: '${payment.customerName} (${payment.customerEmail ?? ''})',
+                      value:
+                          '${payment.customerName} (${payment.customerEmail ?? ''})',
                     ),
                   ],
-                  if (payment.facilityName != null && payment.facilityName!.isNotEmpty) ...[
+                  if (payment.facilityName != null &&
+                      payment.facilityName!.isNotEmpty) ...[
                     const Divider(height: 1, indent: 12, endIndent: 12),
                     _detailRow(
                       context,
@@ -227,7 +242,8 @@ class TransactionDetailDialog extends StatelessWidget {
                       value: payment.facilityName!,
                     ),
                   ],
-                  if (payment.unitCode != null && payment.unitCode!.isNotEmpty) ...[
+                  if (payment.unitCode != null &&
+                      payment.unitCode!.isNotEmpty) ...[
                     const Divider(height: 1, indent: 12, endIndent: 12),
                     _detailRow(
                       context,
@@ -301,7 +317,8 @@ class TransactionDetailDialog extends StatelessWidget {
                   ),
                 );
               },
-              child: const Icon(Icons.copy, size: 16, color: AppColors.primaryContainer),
+              child: const Icon(Icons.copy,
+                  size: 16, color: AppColors.primaryContainer),
             ),
           ],
         ],
@@ -318,7 +335,8 @@ class TransactionDetailDialog extends StatelessWidget {
         payment.transactionId.startsWith('RF-');
   }
 
-  Widget _buildInvoiceBreakdown(BuildContext context, NumberFormat currencyFormat) {
+  Widget _buildInvoiceBreakdown(
+      BuildContext context, NumberFormat currencyFormat) {
     final isRefund = payment.transactionId.startsWith('RF-');
     final double damage = payment.damageDeduction ?? 0.0;
     final double initialDeposit = (payment.depositAmount != null &&
@@ -339,13 +357,17 @@ class TransactionDetailDialog extends StatelessWidget {
           Row(
             children: [
               Icon(
-                isRefund ? Icons.currency_exchange_outlined : Icons.receipt_long_outlined,
+                isRefund
+                    ? Icons.currency_exchange_outlined
+                    : Icons.receipt_long_outlined,
                 size: 18,
                 color: isRefund ? AppColors.secondary : AppColors.primary,
               ),
               const SizedBox(width: 8),
               Text(
-                isRefund ? 'Bảng kê hoàn tiền cọc' : 'Bảng kê chi tiết đơn thuê',
+                isRefund
+                    ? 'Bảng kê hoàn tiền cọc'
+                    : 'Bảng kê chi tiết đơn thuê',
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
@@ -364,9 +386,7 @@ class TransactionDetailDialog extends StatelessWidget {
             ),
             _breakdownRow(
               'Khấu trừ hư hại / vi phạm',
-              damage > 0
-                  ? '- ${currencyFormat.format(damage)}'
-                  : '0 ₫',
+              damage > 0 ? '- ${currencyFormat.format(damage)}' : '0 ₫',
               isDeduction: damage > 0,
             ),
             const Padding(
@@ -384,16 +404,16 @@ class TransactionDetailDialog extends StatelessWidget {
                 'Tiền thuê kho',
                 currencyFormat.format(payment.rentalFee),
               ),
-            if (payment.managementFee != null && payment.managementFee! > 0)
-              _breakdownRow(
-                'Phí dịch vụ / quản lý',
-                currencyFormat.format(payment.managementFee),
-              ),
             if (payment.depositAmount != null)
               _breakdownRow(
                 'Tiền cọc kho (hoàn lại)',
                 currencyFormat.format(payment.depositAmount),
                 subtext: 'Hoàn lại sau khi trả kho và nghiệm thu đạt',
+              ),
+            if (payment.managementFee != null)
+              _breakdownRow(
+                'Phí dịch vụ / quản lý',
+                currencyFormat.format(payment.managementFee),
               ),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 6),
@@ -404,18 +424,22 @@ class TransactionDetailDialog extends StatelessWidget {
               currencyFormat.format(payment.amount),
               isHighlight: true,
             ),
-            if (payment.refundedAmount != null && payment.refundedAmount! > 0) ...[
+            if (payment.refundedAmount != null &&
+                payment.refundedAmount! > 0) ...[
               const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: AppColors.successContainer.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
+                  border: Border.all(
+                      color: AppColors.success.withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.check_circle_outline, size: 16, color: AppColors.success),
+                    const Icon(Icons.check_circle_outline,
+                        size: 16, color: AppColors.success),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -457,7 +481,9 @@ class TransactionDetailDialog extends StatelessWidget {
                 style: TextStyle(
                   fontSize: isHighlight ? 13 : 12,
                   fontWeight: isHighlight ? FontWeight.bold : FontWeight.w500,
-                  color: isHighlight ? AppColors.textPrimary : AppColors.textSecondary,
+                  color: isHighlight
+                      ? AppColors.textPrimary
+                      : AppColors.textSecondary,
                 ),
               ),
               Text(

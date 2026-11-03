@@ -24,6 +24,7 @@ public interface BookingService {
     BookingResponse createBooking(String customerEmail, BookingCreationRequest request);
 
     void cancelBooking(UUID bookingId, String customerEmail);
+    void cancelBooking(UUID bookingId, String customerEmail, com.storehub.dto.request.CancellationRefundAccountRequest account);
 
     List<BookingResponse> getPayableBookings(String customerEmail);
 }

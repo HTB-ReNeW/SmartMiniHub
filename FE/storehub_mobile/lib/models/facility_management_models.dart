@@ -143,6 +143,7 @@ class FacilityBookingModel {
 }
 
 class FacilityContractModel {
+  final double? serviceFee;
   final RentalAgreement agreement;
   final String bookingId;
   final String bookingCode;
@@ -166,6 +167,7 @@ class FacilityContractModel {
   final bool sealingApproved;
 
   const FacilityContractModel({
+    this.serviceFee,
     this.agreement = const RentalAgreement(),
     required this.bookingId,
     required this.bookingCode,

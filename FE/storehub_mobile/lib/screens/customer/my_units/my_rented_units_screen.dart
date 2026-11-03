@@ -1,3 +1,4 @@
+import 'refund_account_dialog.dart';
 import '../../../widgets/rental_agreement_screen.dart';
 import 'package:flutter/material.dart';
 import '../../../core/utils/vi_labels.dart';
@@ -16,14 +17,16 @@ import '../../../models/facility_operations_models.dart';
 import '../../../widgets/photo_preview_dialog.dart';
 
 class MyRentedUnitsScreen extends StatefulWidget {
-  const MyRentedUnitsScreen({super.key});
+  final StorageApiService? storageService;
+  const MyRentedUnitsScreen({super.key, this.storageService});
 
   @override
   State<MyRentedUnitsScreen> createState() => _MyRentedUnitsScreenState();
 }
 
 class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
-  final StorageApiService _storageService = StorageApiService();
+  late final StorageApiService _storageService =
+      widget.storageService ?? StorageApiService();
   final BookingApiService _bookingService = BookingApiService();
   late Future<({List<MyUnitModel> active, List<MyUnitModel> awaiting})>
       _unitsFuture;
@@ -68,6 +71,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
         value == null ? 'Chưa có thông tin' : _dateFmt.format(value);
     final fields = <(String, String)>[
       ('Mã đơn thuê', unit.bookingCode),
+      ('Khách hàng', unit.customerName),
       ('Ngăn kho', unit.displayUnit),
       ('Cơ sở', unit.facilityName),
       ('Địa chỉ', unit.facilityAddress),
@@ -75,10 +79,19 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
       ('Kích thước', unit.dimensions),
       ('Ngày bắt đầu thuê', date(unit.startDate)),
       ('Ngày hết hạn', date(unit.endDate)),
-      ('Trạng thái', ViLabels.booking(unit.status)),
+      (
+        'Trạng thái',
+        unit.isRefunded ? 'Đã hoàn tiền' : ViLabels.booking(unit.status)
+      ),
       ('Tổng tiền thuê', _currency.format(unit.totalRentalFee)),
       if (unit.depositPaid != null)
         ('Tiền cọc đã thanh toán', _currency.format(unit.depositPaid)),
+      (
+        'Phí dịch vụ',
+        unit.serviceFee == null
+            ? 'Chưa có thông tin'
+            : _currency.format(unit.serviceFee)
+      ),
     ];
     Navigator.push(
         context,
@@ -88,6 +101,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
   }
 
   void _showUnitActions(MyUnitModel unit) {
+    if (unit.isRefunded) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -615,27 +629,35 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
       ),
     );
 
-    if (confirmed != true) return;
-
-    try {
-      await _bookingService.cancelBooking(unit.bookingId);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã gửi yêu cầu hủy'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-      _loadUnits();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: AppColors.error,
-        ),
-      );
-    }
+    if (confirmed != true || !mounted) return;
+    final finalConfirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+              title: const Text('Xác nhận hủy đơn lần cuối'),
+              content: const Text(
+                  'Bạn chắc chắn muốn hủy đơn này? Sau khi gửi yêu cầu, đơn không còn được bàn giao. Tiếp theo, hãy nhập tài khoản nhận hoàn tiền.'),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Giữ đơn')),
+                FilledButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('Xác nhận & tiếp tục'))
+              ],
+            ));
+    if (finalConfirm != true || !mounted) return;
+    final sent = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => RefundAccountDialog(
+            onSubmit: (account) => _bookingService.cancelWithRefundAccount(
+                unit.bookingId, account)));
+    if (sent != true || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content:
+            Text('Đã gửi yêu cầu hủy và thông tin tài khoản nhận hoàn tiền'),
+        backgroundColor: AppColors.success));
+    _loadUnits();
   }
 
   Future<void> _openContractOperation(
@@ -689,6 +711,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
   }
 
   String _unitBadgeLabel(MyUnitModel unit) {
+    if (unit.isRefunded) return 'Đã hoàn tiền';
     if (unit.status == 'CANCELLED') return 'Đã gửi yêu cầu hủy';
     if (unit.overdue) return 'Quá hạn';
     if (unit.isActive && unit.scheduledReturnTime != null) {
@@ -698,6 +721,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
   }
 
   Color _unitBadgeColor(MyUnitModel unit) {
+    if (unit.isRefunded) return AppColors.success;
     if (unit.overdue) return AppColors.error;
     if (unit.isActive && unit.scheduledReturnTime != null) {
       return AppColors.warning;
@@ -783,7 +807,8 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
+                            Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
                                 Text(
                                   '${active.length} đang thuê',
@@ -849,7 +874,8 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                                         ? Colors.white
                                         : AppColors.onSurfaceVariant),
                                 const SizedBox(width: 6),
-                                Text(
+                                Flexible(
+                                    child: Text(
                                   'Đang thuê (${active.length})',
                                   style: TextStyle(
                                     fontSize: 13,
@@ -860,7 +886,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                                         ? Colors.white
                                         : AppColors.onSurfaceVariant,
                                   ),
-                                ),
+                                )),
                               ],
                             ),
                           ),
@@ -888,7 +914,8 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                                         ? Colors.white
                                         : AppColors.onSurfaceVariant),
                                 const SizedBox(width: 6),
-                                Text(
+                                Flexible(
+                                    child: Text(
                                   'Chờ nhận (${awaiting.length})',
                                   style: TextStyle(
                                     fontSize: 13,
@@ -899,7 +926,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                                         ? Colors.white
                                         : AppColors.onSurfaceVariant,
                                   ),
-                                ),
+                                )),
                               ],
                             ),
                           ),
@@ -936,7 +963,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => _showUnitActions(unit),
+        onTap: unit.isRefunded ? null : () => _showUnitActions(unit),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -999,7 +1026,13 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                   ),
                 ],
               ),
-              if (unit.status == 'CANCELLED') ...[
+              if (unit.isRefunded) ...[
+                const SizedBox(height: 10),
+                const Text('Cơ sở đã hoàn tất hoàn tiền cho đơn này.',
+                    style: TextStyle(
+                        fontSize: 12, color: AppColors.onSurfaceVariant)),
+              ],
+              if (unit.status == 'CANCELLED' && !unit.isRefunded) ...[
                 const SizedBox(height: 10),
                 const Text(
                     'Đã gửi yêu cầu hủy. Đơn không còn chờ bàn giao. '
@@ -1177,47 +1210,49 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                   label: const Text('Hợp đồng & Cam kết'),
                 ),
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: ElevatedButton.icon(
-                      onPressed: unit.hasActiveAccess
-                          ? () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => SmartKeyScreen(
-                                    bookingId: unit.bookingId,
-                                    unitNumber: unit.unitCode,
+              if (!unit.isRefunded) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: ElevatedButton.icon(
+                        onPressed: unit.hasActiveAccess
+                            ? () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => SmartKeyScreen(
+                                      bookingId: unit.bookingId,
+                                      unitNumber: unit.unitCode,
+                                    ),
                                   ),
-                                ),
-                              );
-                            }
-                          : null,
-                      icon: const Icon(Icons.key, size: 16),
-                      label: const Text('Mở khóa',
-                          style: TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(42)),
+                                );
+                              }
+                            : null,
+                        icon: const Icon(Icons.key, size: 16),
+                        label: const Text('Mở khóa',
+                            style: TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(42)),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 2,
-                    child: OutlinedButton.icon(
-                      onPressed: () => _showUnitActions(unit),
-                      icon: const Icon(Icons.more_horiz, size: 16),
-                      label:
-                          const Text('Quản lý', style: TextStyle(fontSize: 13)),
-                      style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(42)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showUnitActions(unit),
+                        icon: const Icon(Icons.more_horiz, size: 16),
+                        label: const Text('Quản lý',
+                            style: TextStyle(fontSize: 13)),
+                        style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(42)),
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

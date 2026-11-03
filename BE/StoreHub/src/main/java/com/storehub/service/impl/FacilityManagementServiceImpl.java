@@ -608,7 +608,8 @@ public class FacilityManagementServiceImpl
                 booking.getTermsAccepted(),
                 booking.getProhibitedItemsAccepted(),
                 booking.getTermsAcceptedAt(),
-                booking.getContractPhotos()
+                booking.getContractPhotos(),
+                booking.getQuotedManagementFee()
         );
     }
 

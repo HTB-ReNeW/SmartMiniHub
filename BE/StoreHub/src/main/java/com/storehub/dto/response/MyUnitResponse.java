@@ -17,6 +17,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class MyUnitResponse {
     private UUID bookingId;
+    private boolean refundCompleted;
     private java.util.List<String> contractPhotos;
     private LocalDateTime createdAt;
     private Double cancellationWithin24hPercent;
@@ -33,6 +34,8 @@ public class MyUnitResponse {
     private LocalDateTime handoverIssueDueAt;
     private LocalDateTime scheduledCheckInTime;
     private String bookingCode;
+    private String customerName;
+    private BigDecimal serviceFee;
     private String facilityName;
     private String facilityAddress;
     private String unitCode;

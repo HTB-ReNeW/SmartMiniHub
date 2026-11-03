@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 
 @ExtendWith(MockitoExtension.class)
 class MyRentedUnitsStatusTest {
+    @Mock com.storehub.repository.RefundRequestRepository refunds;
     @Mock BookingRepository bookings;
     @Mock UserRepository users;
     @Mock PaymentRepository payments;
@@ -57,4 +58,18 @@ class MyRentedUnitsStatusTest {
         verify(bookings).findActiveBookingsByCustomerId(customerId, List.of(BookingStatus.ACTIVE));
         verify(bookings).findAwaitingOrCancelledPaidBookingsByCustomerId(customerId);
     }
+    @Test
+    void cancelledBookingIsRefundedOnlyAfterEveryRefundIsCompleted() {
+        UUID customerId = UUID.randomUUID(), bookingId = UUID.randomUUID();
+        User customer = new User(); customer.setId(customerId);
+        Booking booking = Booking.builder().status(BookingStatus.CANCELLED).build(); booking.setId(bookingId);
+        when(users.findByEmail("customer@test.com")).thenReturn(Optional.of(customer));
+        when(bookings.findAwaitingOrCancelledPaidBookingsByCustomerId(customerId)).thenReturn(List.of(booking));
+        when(mapper.toMyUnitResponse(booking)).thenAnswer(inv -> MyUnitResponse.builder().build());
+        when(refunds.existsByBooking_IdAndStatus(bookingId, com.storehub.enums.RefundStatus.COMPLETED)).thenReturn(true);
+        when(refunds.existsByBooking_IdAndStatusNot(bookingId, com.storehub.enums.RefundStatus.COMPLETED)).thenReturn(true, false);
+        org.junit.jupiter.api.Assertions.assertFalse(storage.getAwaitingHandover("customer@test.com").get(0).isRefundCompleted());
+        org.junit.jupiter.api.Assertions.assertTrue(storage.getAwaitingHandover("customer@test.com").get(0).isRefundCompleted());
+    }
+
 }

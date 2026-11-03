@@ -52,6 +52,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CustomerStorageServiceImpl implements CustomerStorageService {
 
+    private final com.storehub.repository.RefundRequestRepository refundRequests;
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
@@ -573,6 +574,10 @@ public class CustomerStorageServiceImpl implements CustomerStorageService {
 
     private MyUnitResponse mapToResponse(Booking b) {
         MyUnitResponse response = customerStorageMapper.toMyUnitResponse(b);
+        // Every refund for the cancelled booking must be settled, not just one payment attempt.
+        response.setRefundCompleted(b.getStatus() == BookingStatus.CANCELLED
+                && refundRequests.existsByBooking_IdAndStatus(b.getId(), com.storehub.enums.RefundStatus.COMPLETED)
+                && !refundRequests.existsByBooking_IdAndStatusNot(b.getId(), com.storehub.enums.RefundStatus.COMPLETED));
 
         if (b.getStatus() == BookingStatus.ACTIVE && b.getEndDate() != null
                 && b.getEndDate().isBefore(LocalDate.now())) {

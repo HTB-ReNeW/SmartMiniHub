@@ -132,8 +132,6 @@ class _SmartKeyScreenState extends State<SmartKeyScreen> {
 
   // ---------------------------------------------------------------- actions
 
-
-
   Future<void> _unlock() async {
     final pin = _pinController.text.trim();
     if (pin.length != 6) {
@@ -167,98 +165,121 @@ class _SmartKeyScreenState extends State<SmartKeyScreen> {
   }
 
   Future<void> _showGeneratedPin(String pin) {
+    bool acknowledged = false;
     return showDialog<void>(
       context: context,
-      barrierDismissible: true,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        elevation: 8,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-        clipBehavior: Clip.antiAlias,
-        backgroundColor: Colors.white,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 360),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.key_rounded,
-                      size: 32, color: AppColors.primary),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Mã PIN của bạn',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Hệ thống đã cấp mã PIN 6 số an toàn',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.25),
-                      width: 1.5,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => PopScope(
+          canPop: acknowledged,
+          child: Dialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            elevation: 8,
+            insetPadding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            clipBehavior: Clip.antiAlias,
+            backgroundColor: Colors.white,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.key_rounded,
+                          size: 32, color: AppColors.primary),
                     ),
-                  ),
-                  child: Text(
-                    pin.split('').join('  '),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 6,
-                      color: AppColors.primary,
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Mã PIN của bạn',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Hệ thống đã cấp mã PIN 6 số an toàn',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.25),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Text(
+                        pin.split('').join('  '),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 6,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 44,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: pin));
+                          _toast('Đã sao chép mã PIN');
+                        },
+                        icon: const Icon(Icons.copy_rounded, size: 18),
+                        label: const Text('Sao chép mã PIN'),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Hãy ghi nhớ mã này để tự nhập khi mở khóa ngăn kho của bạn.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 11.5, color: AppColors.onSurfaceVariant),
+                    ),
+                    const SizedBox(height: 12),
+                    CheckboxListTile(
+                      value: acknowledged,
+                      onChanged: (value) => setDialogState(() {
+                        acknowledged = value ?? false;
+                      }),
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: const Text('Tôi chắc chắn đã ghi nhớ mã PIN',
+                          style: TextStyle(fontSize: 13)),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 44,
+                      child: FilledButton(
+                        onPressed:
+                            acknowledged ? () => Navigator.pop(ctx) : null,
+                        child: const Text('Xác nhận'),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: pin));
-                      _toast('Đã sao chép mã PIN');
-                    },
-                    icon: const Icon(Icons.copy_rounded, size: 18),
-                    label: const Text('Sao chép mã PIN'),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Hãy ghi nhớ mã này để tự nhập khi mở khóa ngăn kho của bạn.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 11.5, color: AppColors.onSurfaceVariant),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: FilledButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Tôi đã ghi nhớ'),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -285,7 +306,8 @@ class _SmartKeyScreenState extends State<SmartKeyScreen> {
     if (!mounted || result == null) return;
     await Future.delayed(const Duration(milliseconds: 80));
     final model = await _run(() => _service.updatePin(
-        widget.bookingId, result.currentPin!, newPin: result.newPin));
+        widget.bookingId, result.currentPin!,
+        newPin: result.newPin));
     if (model == null) return;
     if (model.generatedPin != null) {
       if (!mounted) return;
@@ -306,8 +328,8 @@ class _SmartKeyScreenState extends State<SmartKeyScreen> {
     if (!mounted || result == null) return;
     await Future.delayed(const Duration(milliseconds: 80));
 
-    final model = await _run(() => _service.resetPin(widget.bookingId,
-        result.password!, newPin: result.newPin));
+    final model = await _run(() => _service
+        .resetPin(widget.bookingId, result.password!, newPin: result.newPin));
     if (model == null) return;
     if (model.generatedPin != null) {
       if (!mounted) return;
@@ -355,7 +377,8 @@ class _SmartKeyScreenState extends State<SmartKeyScreen> {
               color: AppColors.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.pin_outlined, size: 48, color: AppColors.primary),
+            child: const Icon(Icons.pin_outlined,
+                size: 48, color: AppColors.primary),
           ),
           const SizedBox(height: 14),
           const Text('Bạn chưa có mã PIN mở khóa',
@@ -365,7 +388,8 @@ class _SmartKeyScreenState extends State<SmartKeyScreen> {
             'Mã PIN 6 số dùng để mở khóa ngăn kho của bạn trực tiếp tại cơ sở. '
             'Bạn có thể nhận mã do hệ thống tạo ngẫu nhiên hoặc tự đặt mã.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant, height: 1.4),
+            style: TextStyle(
+                fontSize: 13, color: AppColors.onSurfaceVariant, height: 1.4),
           ),
           const SizedBox(height: 20),
           SizedBox(
@@ -408,10 +432,13 @@ class _SmartKeyScreenState extends State<SmartKeyScreen> {
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
-                  border: Border.all(color: color.withValues(alpha: 0.25), width: 2),
+                  border: Border.all(
+                      color: color.withValues(alpha: 0.25), width: 2),
                 ),
-                child: Icon(locked ? Icons.lock_rounded : Icons.lock_open_rounded,
-                    size: 40, color: color),
+                child: Icon(
+                    locked ? Icons.lock_rounded : Icons.lock_open_rounded,
+                    size: 40,
+                    color: color),
               ),
               const SizedBox(height: 14),
               Text(locked ? 'Cửa đang KHÓA' : 'Cửa đang MỞ',
@@ -419,7 +446,8 @@ class _SmartKeyScreenState extends State<SmartKeyScreen> {
                       fontSize: 20, fontWeight: FontWeight.bold, color: color)),
               const SizedBox(height: 4),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(12),
@@ -434,7 +462,8 @@ class _SmartKeyScreenState extends State<SmartKeyScreen> {
                 const SizedBox(height: 8),
                 const Text(
                   'Nhập mã PIN 6 số của bạn bên dưới để mở khóa',
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style:
+                      TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
               ],
               const SizedBox(height: 16),
@@ -447,7 +476,9 @@ class _SmartKeyScreenState extends State<SmartKeyScreen> {
                   textAlign: TextAlign.center,
                   inputFormatters: _digitsOnly,
                   style: const TextStyle(
-                      fontSize: 30, letterSpacing: 14, fontWeight: FontWeight.bold),
+                      fontSize: 30,
+                      letterSpacing: 14,
+                      fontWeight: FontWeight.bold),
                   decoration: InputDecoration(
                     hintText: '••••••',
                     labelText: 'Nhập mã PIN 6 số để mở',
@@ -458,7 +489,8 @@ class _SmartKeyScreenState extends State<SmartKeyScreen> {
                         color: AppColors.textSecondary,
                       ),
                       tooltip: _obscurePin ? 'Hiện mã PIN' : 'Ẩn mã PIN',
-                      onPressed: () => setState(() => _obscurePin = !_obscurePin),
+                      onPressed: () =>
+                          setState(() => _obscurePin = !_obscurePin),
                     ),
                   ),
                   onSubmitted: (_) => _unlock(),
@@ -475,21 +507,26 @@ class _SmartKeyScreenState extends State<SmartKeyScreen> {
                       child: Text(_blockedText(a.pinLockedUntil!),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                              color: AppColors.error, fontSize: 12, fontWeight: FontWeight.w500)),
+                              color: AppColors.error,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500)),
                     ),
                   )
                 else if (a.attemptsRemaining < 5)
                   Padding(
                     padding: const EdgeInsets.only(top: 10),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: AppColors.warning.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text('Còn ${a.attemptsRemaining} lần thử',
                           style: const TextStyle(
-                              color: AppColors.warning, fontSize: 12, fontWeight: FontWeight.bold)),
+                              color: AppColors.warning,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold)),
                     ),
                   ),
                 const SizedBox(height: 16),
@@ -518,12 +555,14 @@ class _SmartKeyScreenState extends State<SmartKeyScreen> {
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.check_circle_outline, color: AppColors.success, size: 18),
+                      Icon(Icons.check_circle_outline,
+                          color: AppColors.success, size: 18),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Ngăn kho đang mở. Khi hoàn tất cất/lấy đồ, hãy bấm nút dưới để đóng khóa lại.',
-                          style: TextStyle(fontSize: 12.5, color: AppColors.textPrimary),
+                          style: TextStyle(
+                              fontSize: 12.5, color: AppColors.textPrimary),
                         ),
                       ),
                     ],
@@ -556,13 +595,16 @@ class _SmartKeyScreenState extends State<SmartKeyScreen> {
                     color: AppColors.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.password, size: 20, color: AppColors.primary),
+                  child: const Icon(Icons.password,
+                      size: 20, color: AppColors.primary),
                 ),
                 title: const Text('Đổi mã PIN',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    style:
+                        TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                 subtitle: const Text('Tự đặt mã mới hoặc để hệ thống cấp mới',
                     style: TextStyle(fontSize: 12)),
-                trailing: const Icon(Icons.chevron_right, size: 20, color: AppColors.outline),
+                trailing: const Icon(Icons.chevron_right,
+                    size: 20, color: AppColors.outline),
                 onTap: _busy ? null : _changePinDialog,
               ),
               const Divider(height: 1),
@@ -574,38 +616,44 @@ class _SmartKeyScreenState extends State<SmartKeyScreen> {
                     color: AppColors.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.help_outline, size: 20, color: AppColors.secondary),
+                  child: const Icon(Icons.help_outline,
+                      size: 20, color: AppColors.secondary),
                 ),
                 title: const Text('Quên mã PIN?',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                subtitle:
-                    const Text('Đặt lại bằng mật khẩu tài khoản của bạn',
-                        style: TextStyle(fontSize: 12)),
-                trailing: const Icon(Icons.chevron_right, size: 20, color: AppColors.outline),
+                    style:
+                        TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                subtitle: const Text('Đặt lại bằng mật khẩu tài khoản của bạn',
+                    style: TextStyle(fontSize: 12)),
+                trailing: const Icon(Icons.chevron_right,
+                    size: 20, color: AppColors.outline),
                 onTap: _busy ? null : _forgotPinDialog,
               ),
             ],
           ),
         ),
-
         const SizedBox(height: 14),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: AppColors.surfaceContainerLow,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.outline.withValues(alpha: 0.15)),
+            border:
+                Border.all(color: AppColors.outline.withValues(alpha: 0.15)),
           ),
           child: const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.shield_outlined, size: 18, color: AppColors.onSurfaceVariant),
+              Icon(Icons.shield_outlined,
+                  size: 18, color: AppColors.onSurfaceVariant),
               SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'Mã PIN được lưu mã hóa an toàn. Nhân viên không thể xem mã của bạn. '
                   'Nếu gặp sự cố truy cập, hãy gửi yêu cầu hỗ trợ (loại "Sự cố mã PIN") để được trợ giúp.',
-                  style: TextStyle(fontSize: 11.5, color: AppColors.onSurfaceVariant, height: 1.35),
+                  style: TextStyle(
+                      fontSize: 11.5,
+                      color: AppColors.onSurfaceVariant,
+                      height: 1.35),
                 ),
               ),
             ],
@@ -738,7 +786,8 @@ class _PinEntryDialogState extends State<_PinEntryDialog> {
     Navigator.pop(
       context,
       _PinDialogResult(
-        currentPin: widget.mode == _PinDialogMode.change ? _current.text.trim() : null,
+        currentPin:
+            widget.mode == _PinDialogMode.change ? _current.text.trim() : null,
         newPin: _generate ? null : _pin.text.trim(),
         password: widget.mode == _PinDialogMode.reset ? _password.text : null,
       ),
@@ -775,7 +824,8 @@ class _PinEntryDialogState extends State<_PinEntryDialog> {
               if (reset) ...[
                 const Text(
                   'Nhập mật khẩu tài khoản để xác minh, sau đó tạo mã PIN mới. Mã cũ sẽ không còn dùng được.',
-                  style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                  style:
+                      TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 10),
                 TextFormField(
@@ -785,14 +835,18 @@ class _PinEntryDialogState extends State<_PinEntryDialog> {
                     labelText: 'Mật khẩu tài khoản',
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                         size: 18,
                         color: AppColors.textSecondary,
                       ),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
-                  validator: (v) => v == null || v.isEmpty ? 'Nhập mật khẩu' : null,
+                  validator: (v) =>
+                      v == null || v.isEmpty ? 'Nhập mật khẩu' : null,
                 ),
                 const SizedBox(height: 12),
               ],
@@ -801,7 +855,8 @@ class _PinEntryDialogState extends State<_PinEntryDialog> {
                 const SizedBox(height: 4),
                 const Text(
                   'Nếu không nhớ mã hiện tại, hãy hủy và chọn mục "Quên mã PIN?".',
-                  style: TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
+                  style: TextStyle(
+                      fontSize: 11, color: AppColors.onSurfaceVariant),
                 ),
                 const SizedBox(height: 12),
               ],
@@ -825,7 +880,8 @@ class _PinEntryDialogState extends State<_PinEntryDialog> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.auto_awesome, size: 20, color: AppColors.primary),
+                      const Icon(Icons.auto_awesome,
+                          size: 20, color: AppColors.primary),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
@@ -834,7 +890,8 @@ class _PinEntryDialogState extends State<_PinEntryDialog> {
                               : reset
                                   ? 'Hệ thống sẽ cấp ngẫu nhiên 1 mã PIN 6 số mới.'
                                   : 'Hệ thống sẽ cấp ngẫu nhiên 1 mã PIN 6 số bảo mật.',
-                          style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                          style: const TextStyle(
+                              fontSize: 12.5, color: AppColors.textSecondary),
                         ),
                       ),
                     ],
@@ -861,7 +918,8 @@ class _PinEntryDialogState extends State<_PinEntryDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+        TextButton(
+            onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
         ElevatedButton(onPressed: _submit, child: Text(submitText)),
       ],
     );

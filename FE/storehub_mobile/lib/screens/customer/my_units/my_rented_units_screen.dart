@@ -62,6 +62,65 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
     return (active: parse(results[0]), awaiting: parse(results[1]));
   }
 
+  void _showRentalContract(MyUnitModel unit) {
+    String date(DateTime? value) =>
+        value == null ? 'Chưa có thông tin' : _dateFmt.format(value);
+    final fields = <(String, String)>[
+      ('Mã đơn thuê', unit.bookingCode),
+      ('Ngăn kho', unit.displayUnit),
+      ('Cơ sở', unit.facilityName),
+      ('Địa chỉ', unit.facilityAddress),
+      ('Loại kho', unit.typeName),
+      ('Kích thước', unit.dimensions),
+      ('Ngày bắt đầu thuê', date(unit.startDate)),
+      ('Ngày hết hạn', date(unit.endDate)),
+      ('Trạng thái', ViLabels.booking(unit.status)),
+      ('Tổng tiền thuê', _currency.format(unit.totalRentalFee)),
+      if (unit.depositPaid != null)
+        ('Tiền cọc đã thanh toán', _currency.format(unit.depositPaid)),
+    ];
+    Navigator.push(
+        context,
+        MaterialPageRoute<void>(
+            builder: (_) => Scaffold(
+                  appBar: AppBar(title: const Text('Hợp đồng thuê')),
+                  body: ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      const Text('Thông tin thuê kho',
+                          style: TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      const Text(
+                          'Thông tin từ đơn thuê hiện tại. Đây không phải bản hợp đồng đã ký.',
+                          style: TextStyle(color: AppColors.onSurfaceVariant)),
+                      const SizedBox(height: 20),
+                      for (final field in fields)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(field.$1,
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.onSurfaceVariant)),
+                                const SizedBox(height: 4),
+                                SelectableText(
+                                    field.$2.isEmpty
+                                        ? 'Chưa có thông tin'
+                                        : field.$2,
+                                    style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w500)),
+                                const Divider(height: 20),
+                              ]),
+                        ),
+                    ],
+                  ),
+                )));
+  }
+
   void _showUnitActions(MyUnitModel unit) {
     showModalBottomSheet(
       context: context,
@@ -201,14 +260,18 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                     : unit.hasPendingExtension
                         ? const Text(
                             'Tiếp tục hoặc hủy yêu cầu gia hạn đang chờ thanh toán',
-                            style: TextStyle(fontSize: 12, color: AppColors.primary))
+                            style: TextStyle(
+                                fontSize: 12, color: AppColors.primary))
                         : unit.hasLateFeeDue
                             ? const Text(
                                 'Vui lòng thanh toán phí trễ hạn trước',
-                                style: TextStyle(fontSize: 12, color: AppColors.error))
+                                style: TextStyle(
+                                    fontSize: 12, color: AppColors.error))
                             : const Text(
                                 'Gia hạn thêm thời gian thuê bất cứ lúc nào',
-                                style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant)),
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.onSurfaceVariant)),
                 onTap: _canExtend(unit)
                     ? () {
                         Navigator.pop(ctx);
@@ -1039,6 +1102,12 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                   ),
                 ),
               ],
+              if (monthlyRate != null) ...[
+                const SizedBox(height: 12),
+                Text('${_currency.format(monthlyRate)} / tháng',
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600)),
+              ],
               const SizedBox(height: 12),
               Container(
                 padding:
@@ -1051,29 +1120,25 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                 ),
                 child: Row(
                   children: [
-                    if (monthlyRate != null) ...[
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Giá thuê / tháng',
-                                style: TextStyle(
-                                    fontSize: 10,
-                                    color: AppColors.onSurfaceVariant)),
-                            const SizedBox(height: 2),
-                            Text(_currency.format(monthlyRate),
-                                style: const TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Ngày bắt đầu thuê',
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.onSurfaceVariant)),
+                          const SizedBox(height: 2),
+                          Text(
+                              unit.startDate != null
+                                  ? _dateFmt.format(unit.startDate!)
+                                  : 'Chưa có thông tin',
+                              style: const TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.bold)),
+                        ],
                       ),
-                      Container(
-                        height: 28,
-                        width: 1,
-                        color: AppColors.outline.withValues(alpha: 0.2),
-                        margin: const EdgeInsets.symmetric(horizontal: 12),
-                      ),
-                    ],
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1094,6 +1159,15 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                       ),
                     ),
                   ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: () => _showRentalContract(unit),
+                  icon: const Icon(Icons.description_outlined, size: 18),
+                  label: const Text('Hợp đồng thuê'),
                 ),
               ),
               const SizedBox(height: 12),

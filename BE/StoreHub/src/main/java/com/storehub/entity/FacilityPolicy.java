@@ -13,6 +13,10 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Builder
 public class FacilityPolicy extends BaseEntity {
+    @Builder.Default
+    private Double cancellationWithin24hPercent = 100.0;
+    @Builder.Default
+    private Double cancellationAfter24hPercent = 50.0;
 
     // Updates take effect immediately for new reservations only.
     @Builder.Default

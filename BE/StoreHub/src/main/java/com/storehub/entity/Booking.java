@@ -17,6 +17,14 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class Booking extends BaseEntity {
+    @Builder.Default
+    private Boolean paymentDeferred = false;
+    private Double cancellationWithin24hPercent;
+    private Double cancellationAfter24hPercent;
+    @jakarta.persistence.Convert(converter = com.storehub.util.StringListAttributeConverter.class)
+    @jakarta.persistence.Column(columnDefinition = "TEXT")
+    @Builder.Default
+    private java.util.List<String> contractPhotos = new java.util.ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20)

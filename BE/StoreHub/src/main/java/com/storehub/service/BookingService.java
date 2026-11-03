@@ -9,6 +9,8 @@ import java.util.UUID;
 import java.util.List;
 
 public interface BookingService {
+    void deferPayment(UUID bookingId, String customerEmail);
+    java.util.Map<String, Object> cancellationQuote(UUID bookingId, String customerEmail);
 
     /**
      * Tạo đơn đặt chỗ kho mới.

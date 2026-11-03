@@ -10,6 +10,10 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Builder
 public class FacilityPolicyCreateRequest {
+    @jakarta.validation.constraints.DecimalMin("0.0") @jakarta.validation.constraints.DecimalMax("100.0")
+    private Double cancellationWithin24hPercent;
+    @jakarta.validation.constraints.DecimalMin("0.0") @jakarta.validation.constraints.DecimalMax("100.0")
+    private Double cancellationAfter24hPercent;
 
     @NotNull(message = "Vui lòng chọn cơ sở")
     private java.util.UUID facilityId;

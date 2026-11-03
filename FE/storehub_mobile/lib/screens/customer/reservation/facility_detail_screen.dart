@@ -1674,6 +1674,22 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                           ),
                           const SizedBox(height: 16),
 
+                          Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                  color: AppColors.background,
+                                  border: Border.all(color: AppColors.border),
+                                  borderRadius: BorderRadius.circular(12)),
+                              child: Text(
+                                  'Chính sách hủy trước bàn giao\n'
+                                  'Trong 24 giờ kể từ lúc đặt: hoàn ${policy['cancellationWithin24hPercent'] ?? 100}% tiền cọc.\n'
+                                  'Sau 24 giờ: hoàn ${policy['cancellationAfter24hPercent'] ?? 50}% tiền cọc.\n'
+                                  'Tiền thuê: hoàn 100% toàn bộ số tháng đã thanh toán. '
+                                  'Hệ thống tính theo thời điểm nhận yêu cầu hủy.',
+                                  style: const TextStyle(
+                                      fontSize: 13, height: 1.6))),
+                          const SizedBox(height: 16),
                           // Prohibited Items Warning Card
                           Container(
                             padding: const EdgeInsets.all(14),

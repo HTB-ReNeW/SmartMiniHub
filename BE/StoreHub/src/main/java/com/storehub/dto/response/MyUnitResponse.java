@@ -17,6 +17,10 @@ import java.util.UUID;
 @AllArgsConstructor
 public class MyUnitResponse {
     private UUID bookingId;
+    private java.util.List<String> contractPhotos;
+    private LocalDateTime createdAt;
+    private Double cancellationWithin24hPercent;
+    private Double cancellationAfter24hPercent;
     private String termsVersion;
     private String termsContentSnapshot;
     private String prohibitedItemsSnapshot;

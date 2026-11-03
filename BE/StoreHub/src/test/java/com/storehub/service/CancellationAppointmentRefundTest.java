@@ -70,4 +70,28 @@ class CancellationAppointmentRefundTest {
         verify(pricing).calculateCancellationRefund(eq(booking), eq(BigDecimal.valueOf(100)),
                 eq(appointment), any(LocalDateTime.class));
     }
+    @Test
+    void partialDepositStillRefundsAllRentalMonths() {
+        Facility facility = new Facility(); facility.setId(UUID.randomUUID());
+        Booking booking = Booking.builder().startDate(LocalDate.now().plusDays(2))
+            .storageUnit(StorageUnit.builder().facility(facility).build())
+            .depositPaid(new BigDecimal("500000")).build();
+        booking.setId(UUID.randomUUID());
+        var deposit = com.storehub.entity.Payment.builder().amount(new BigDecimal("500000"))
+            .paymentType(com.storehub.enums.PaymentType.DEPOSIT).build();
+        deposit.setId(UUID.randomUUID());
+        var rental = com.storehub.entity.Payment.builder().amount(new BigDecimal("3000000")).build();
+        when(payments.findFirstByBooking_IdAndPaymentTypeAndStatusOrderByPaymentTimeDesc(
+            booking.getId(), com.storehub.enums.PaymentType.DEPOSIT, com.storehub.enums.PaymentStatus.PAID)).thenReturn(java.util.Optional.of(deposit));
+        when(payments.findFirstByBooking_IdAndPaymentTypeAndStatusOrderByPaymentTimeDesc(
+            booking.getId(), com.storehub.enums.PaymentType.RENTAL_FEE, com.storehub.enums.PaymentStatus.PAID)).thenReturn(java.util.Optional.of(rental));
+        when(pricing.calculateCancellationRefund(eq(booking), eq(new BigDecimal("500000")), any(), any())).thenReturn(new BigDecimal("250000"));
+        when(payments.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        assertEquals(new BigDecimal("3250000"), service.refundOnCancellation(booking));
+        var captor = org.mockito.ArgumentCaptor.forClass(com.storehub.entity.RefundRequest.class);
+        verify(refunds).save(captor.capture());
+        assertEquals(new BigDecimal("250000"), captor.getValue().getDepositAmount());
+        assertEquals(new BigDecimal("3000000"), captor.getValue().getRentalAmount());
+    }
+
 }

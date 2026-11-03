@@ -42,6 +42,21 @@ public class BookingController {
                 .body(ApiResponse.success("Booking created successfully. Please complete payment to confirm.", booking));
     }
 
+    @PostMapping("/{id}/defer-payment")
+    @PreAuthorize("hasRole('CUSTOMER') and hasAuthority('BOOKING_CREATE')")
+    public ApiResponse<Void> deferPayment(@PathVariable UUID id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        bookingService.deferPayment(id, userDetails.getUsername());
+        return ApiResponse.success("Đã lưu đơn thanh toán sau", null);
+    }
+
+    @GetMapping("/{id}/cancellation-quote")
+    @PreAuthorize("hasRole('CUSTOMER') and hasAuthority('BOOKING_CANCEL')")
+    public ApiResponse<java.util.Map<String, Object>> cancellationQuote(
+            @PathVariable UUID id, @AuthenticationPrincipal UserDetails userDetails) {
+        return ApiResponse.success(bookingService.cancellationQuote(id, userDetails.getUsername()));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('CUSTOMER') and hasAuthority('BOOKING_CANCEL')")
     @SecurityRequirement(name = "bearerAuth")

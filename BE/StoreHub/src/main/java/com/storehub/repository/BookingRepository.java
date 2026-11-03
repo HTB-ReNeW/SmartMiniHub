@@ -56,6 +56,16 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             """)
     List<Booking> findAwaitingOrCancelledPaidBookingsByCustomerId(@Param("customerId") UUID customerId);
 
+    @Query("""
+            SELECT COUNT(b) > 0 FROM Booking b
+            WHERE b.customer.id = :customerId AND b.id <> :bookingId
+            AND b.paymentDeferred = true
+            AND b.status = com.storehub.enums.BookingStatus.PENDING_PAYMENT
+            AND b.expiresAt > :now
+            """)
+    boolean hasOtherDeferredPayment(@Param("customerId") UUID customerId,
+            @Param("bookingId") UUID bookingId, @Param("now") LocalDateTime now);
+
     boolean existsByBookingCode(String bookingCode);
 
     Optional<Booking> findByBookingCode(String bookingCode);

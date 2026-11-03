@@ -251,11 +251,47 @@ class _FacilityContractsTabState extends State<FacilityContractsTab> {
                 ],
               ],
             ),
+            const SizedBox(height: 8),
+            Text(
+              '${item.customerName} • ${item.customerEmail}',
+              style: const TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Ngăn ${item.unitCode} • ${item.unitType}',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${_formatDate(item.startDate)} → ${_formatDate(item.endDate)}'
+              '${item.rentalMonths > 0 ? ' (${item.rentalMonths} tháng)' : ''}',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Đã cọc ${_currency.format(item.depositPaid)}'
+              ' • Tổng tiền thuê ${_currency.format(item.totalRentalFee)}',
+              style: const TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 10),
+            const Divider(height: 1),
             SizedBox(
                 width: double.infinity,
-                child: OutlinedButton.icon(
+                child: TextButton.icon(
                   icon: const Icon(Icons.description_outlined, size: 18),
-                  label: const Text('Hợp đồng & Cam kết'),
+                  style: TextButton.styleFrom(
+                      alignment: Alignment.centerLeft,
+                      minimumSize: const Size(0, 44),
+                      padding: EdgeInsets.zero),
+                  label: const Text('Xem hợp đồng & cam kết',
+                      style:
+                          TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                   onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute<void>(
@@ -286,34 +322,6 @@ class _FacilityContractsTabState extends State<FacilityContractsTab> {
                                     ),
                                   ]))),
                 )),
-            const SizedBox(height: 8),
-            Text(
-              '${item.customerName} • ${item.customerEmail}',
-              style: const TextStyle(fontSize: 12),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Ngăn ${item.unitCode} • ${item.unitType}',
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${item.startDate} → ${item.endDate}'
-              '${item.rentalMonths > 0 ? ' (${item.rentalMonths} tháng)' : ''}',
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Đã cọc ${_currency.format(item.depositPaid)}'
-              ' • Tổng tiền thuê ${_currency.format(item.totalRentalFee)}',
-              style: const TextStyle(fontSize: 12),
-            ),
             if (status == 'CONFIRMED') ...[
               const SizedBox(height: 8),
               Container(

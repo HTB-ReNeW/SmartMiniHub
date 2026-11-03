@@ -245,7 +245,8 @@ class FacilityOpsApiService {
   }
 
   // GET /facility/management/{facilityId}/managers
-  Future<List<FacilityStaffModel>> getFacilityManagers(String facilityId) async {
+  Future<List<FacilityStaffModel>> getFacilityManagers(
+      String facilityId) async {
     try {
       final response = await _http.get(
         ApiEndpoints.facilityManagers(facilityId),
@@ -256,7 +257,8 @@ class FacilityOpsApiService {
           : (raw is List ? raw : []);
       return list
           .whereType<Map>()
-          .map((m) => FacilityManagementMapper.staffFromJson(Map<String, dynamic>.from(m)))
+          .map((m) => FacilityManagementMapper.staffFromJson(
+              Map<String, dynamic>.from(m)))
           .toList();
     } on ApiException catch (error) {
       throw _err(error, 'tải danh sách quản lý cơ sở');
@@ -519,6 +521,7 @@ class FacilityOpsApiService {
     required String lockCondition,
     String? notes,
     List<String>? photos,
+    List<String>? contractPhotos,
   }) async {
     try {
       final response = await _http.post(
@@ -526,12 +529,15 @@ class FacilityOpsApiService {
         queryParameters: {
           'facilityId': facilityId,
         },
-        data: FacilityOperationsMapper.handoverRequestToJson(
-          unitCondition: unitCondition,
-          lockCondition: lockCondition,
-          notes: notes,
-          photos: photos,
-        ),
+        data: {
+          'contractPhotos': contractPhotos ?? [],
+          ...FacilityOperationsMapper.handoverRequestToJson(
+            unitCondition: unitCondition,
+            lockCondition: lockCondition,
+            notes: notes,
+            photos: photos,
+          )
+        },
       );
 
       return FacilityOperationsMapper.handoverFromJson(

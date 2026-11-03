@@ -69,6 +69,8 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
   final _lateFeeController = TextEditingController();
   final _minMonthsController = TextEditingController();
   final _renewalWindowController = TextEditingController();
+  final _within24hController = TextEditingController(text: '100');
+  final _after24hController = TextEditingController(text: '50');
   final _fullRefundHoursController = TextEditingController(text: '24');
   final _partialRefundHoursController = TextEditingController(text: '24');
   final _partialRefundPercentController = TextEditingController(text: '50.0');
@@ -148,6 +150,8 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     _lateFeeController.dispose();
     _minMonthsController.dispose();
     _renewalWindowController.dispose();
+    _within24hController.dispose();
+    _after24hController.dispose();
     _fullRefundHoursController.dispose();
     _partialRefundHoursController.dispose();
     _partialRefundPercentController.dispose();
@@ -185,6 +189,10 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
               (policy['minimumRentalMonths'] ?? '').toString();
           _renewalWindowController.text =
               (policy['renewalWindowDays'] ?? '').toString();
+          _within24hController.text =
+              (policy['cancellationWithin24hPercent'] ?? 100).toString();
+          _after24hController.text =
+              (policy['cancellationAfter24hPercent'] ?? 50).toString();
           _fullRefundHoursController.text =
               (policy['cancellationFullRefundHours'] ?? '24').toString();
           _partialRefundHoursController.text =
@@ -565,11 +573,27 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
       return;
     }
 
+    final within = double.tryParse(_within24hController.text);
+    final after = double.tryParse(_after24hController.text);
+    if (within == null ||
+        after == null ||
+        !within.isFinite ||
+        !after.isFinite ||
+        within < 0 ||
+        within > 100 ||
+        after < 0 ||
+        after > 100) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tỷ lệ hoàn cọc phải từ 0 đến 100%.')));
+      return;
+    }
     final facilityId = widget.facility!['id'].toString();
     final body = {
       'facilityId': facilityId,
       'depositPercentage': deposit,
       'renewalWindowDays': renewalWindow,
+      'cancellationWithin24hPercent': within,
+      'cancellationAfter24hPercent': after,
       'cancellationFullRefundHours': fullRefundHours,
       'cancellationPartialRefundHours': partialRefundHours,
       'cancellationPartialRefundPercent': partialRefundPercent,
@@ -1350,20 +1374,14 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
           ),
           _section(
             icon: Icons.event_busy_outlined,
-            title: 'Hoàn tiền khi hủy',
-            subtitle: 'Tính theo số giờ trước ngày bắt đầu thuê.',
+            title: 'Hoàn tiền khi hủy trước bàn giao',
+            subtitle:
+                'Tính từ lúc đặt đơn đến lúc nhận yêu cầu hủy. Tiền thuê được hoàn 100% toàn bộ số tháng đã thanh toán.',
             children: [
-              _pair(
-                _policyField(
-                    _fullRefundHoursController, 'Hoàn 100% nếu hủy trước',
-                    int_: true, suffix: 'giờ'),
-                _policyField(
-                    _partialRefundHoursController, 'Hoàn một phần nếu hủy sau',
-                    int_: true, suffix: 'giờ'),
-              ),
+              _policyField(_within24hController, 'Hoàn cọc trong 24 giờ',
+                  suffix: '%'),
               _gap,
-              _policyField(
-                  _partialRefundPercentController, 'Tỷ lệ hoàn một phần',
+              _policyField(_after24hController, 'Hoàn cọc sau 24 giờ',
                   suffix: '%'),
             ],
           ),

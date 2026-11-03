@@ -581,15 +581,27 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
   }
 
   Future<void> _confirmCancelBooking(MyUnitModel unit) async {
+    Map<String, dynamic> quote;
+    try {
+      quote = await _bookingService.cancellationQuote(unit.bookingId);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Không tải được số tiền hoàn: $e')));
+      return;
+    }
+    if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Hủy đơn đặt kho?'),
         content: Text(
-          unit.hasHandoverIssue
-              ? 'Đơn ${unit.bookingCode} sẽ hủy do lỗi cơ sở. Hệ thống tạo yêu cầu hoàn toàn bộ khoản đã thu, không áp phí hủy của khách.'
-              : 'Đơn ${unit.bookingCode} (${unit.displayUnit}) sẽ bị hủy và ngăn kho được trả lại. Tiền cọc được hoàn theo chính sách hủy của cơ sở.',
-        ),
+            'Tiền cọc hoàn: ${_currency.format(quote['depositRefund'])}\n'
+            'Tiền thuê hoàn: ${_currency.format(quote['rentalRefund'])}\n'
+            'Tổng dự kiến: ${_currency.format(quote['totalRefund'])}\n\n'
+            'Mốc 24 giờ từ lúc đặt: ${DateTime.tryParse(quote['deadline'].toString()) != null ? _dateTimeFmt.format(DateTime.parse(quote['deadline'].toString())) : quote['deadline']}\n'
+            'Máy chủ tính lại khi nhận yêu cầu hủy; tiền hoàn có thể thay đổi nếu vượt mốc 24 giờ. '
+            'Sau khi hủy, đơn không còn được bàn giao.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),

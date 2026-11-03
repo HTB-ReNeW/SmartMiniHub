@@ -607,7 +607,8 @@ public class FacilityManagementServiceImpl
                 booking.getProhibitedItemsSnapshot(),
                 booking.getTermsAccepted(),
                 booking.getProhibitedItemsAccepted(),
-                booking.getTermsAcceptedAt()
+                booking.getTermsAcceptedAt(),
+                booking.getContractPhotos()
         );
     }
 

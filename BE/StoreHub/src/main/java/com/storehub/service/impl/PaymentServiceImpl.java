@@ -985,15 +985,12 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElse(null);
         BigDecimal rentPaid = rent != null ? rent.getAmount() : BigDecimal.ZERO;
 
-        BigDecimal refundTotal = pricingService.calculateCancellationRefund(
-                booking,
-                depositPaid.add(rentPaid),
-                booking.getScheduledCheckInTime() != null
-                        ? booking.getScheduledCheckInTime()
-                        : booking.getStartDate().atStartOfDay(),
-                LocalDateTime.now());
-        BigDecimal depositPart = refundTotal.max(BigDecimal.ZERO).min(depositPaid);
-        BigDecimal rentalPart = refundTotal.subtract(depositPart).min(rentPaid);
+        BigDecimal depositPart = pricingService.calculateCancellationRefund(
+                booking, depositPaid,
+                booking.getScheduledCheckInTime() != null ? booking.getScheduledCheckInTime() : booking.getStartDate().atStartOfDay(),
+                LocalDateTime.now()).max(BigDecimal.ZERO).min(depositPaid);
+        BigDecimal rentalPart = rentPaid;
+        BigDecimal refundTotal = depositPart.add(rentalPart);
         BigDecimal retained = depositPaid.subtract(depositPart);
         if (retained.signum() > 0) {
             Payment original = paymentRepository

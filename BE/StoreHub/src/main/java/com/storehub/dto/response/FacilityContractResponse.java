@@ -34,5 +34,6 @@ public record FacilityContractResponse(
         String prohibitedItemsSnapshot,
         Boolean termsAccepted,
         Boolean prohibitedItemsAccepted,
-        LocalDateTime termsAcceptedAt
+        LocalDateTime termsAcceptedAt,
+        java.util.List<String> contractPhotos
 ) {}

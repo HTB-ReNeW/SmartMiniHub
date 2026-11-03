@@ -42,6 +42,7 @@ public enum ErrorCode {
     INVALID_REQUEST(601, "Yêu cầu không hợp lệ hoặc không phù hợp với trạng thái hiện tại", HttpStatus.BAD_REQUEST),
 
     // ========================= BOOKING & ACCESS (700 - 799) =================
+    DEFERRED_PAYMENT_EXISTS(699, "Bạn cần thanh toán đơn đã chọn Thanh toán sau trước đó trước khi tiếp tục dùng tùy chọn này. Hãy mở mục Đơn đang chờ thanh toán.", HttpStatus.CONFLICT),
     BOOKING_NOT_FOUND(700, "Không tìm thấy đơn đặt kho hoặc đơn không thuộc về bạn", HttpStatus.NOT_FOUND),
     BOOKING_NOT_CHECKED_IN(701, "Ngăn kho chưa được bàn giao cho khách", HttpStatus.FORBIDDEN),
     INVALID_PIN_FORMAT(702, "Mã PIN phải gồm đúng 6 chữ số", HttpStatus.BAD_REQUEST),

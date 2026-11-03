@@ -22,6 +22,16 @@ void main() {
     expect(customer.termsAccepted, isTrue);
     expect(facility.prohibitedItemsAccepted, isTrue);
   });
+  test('Customer and facility expose the same signed contract photos', () {
+    final data = {
+      ...json,
+      'contractPhotos': ['https://example.invalid/signed.jpg']
+    };
+    final customer = MyUnitModel.fromJson(data).agreement;
+    final facility = FacilityManagementMapper.contractFromJson(data).agreement;
+    expect(customer.contractPhotos, ['https://example.invalid/signed.jpg']);
+    expect(facility.contractPhotos, customer.contractPhotos);
+  });
   testWidgets('Shows stored terms and acceptance for a paid booking',
       (tester) async {
     await tester.pumpWidget(MaterialApp(

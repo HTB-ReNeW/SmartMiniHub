@@ -288,6 +288,14 @@ public class PricingServiceImpl implements PricingService {
             return BigDecimal.ZERO;
         }
 
+        if (booking.getCancellationWithin24hPercent() != null && booking.getCancellationAfter24hPercent() != null) {
+            if (booking.getCreatedAt() == null || cancelTime.isBefore(booking.getCreatedAt())) {
+                throw new AppException(ErrorCode.INVALID_REQUEST);
+            }
+            boolean within = !cancelTime.isAfter(booking.getCreatedAt().plusHours(24));
+            double percent = within ? booking.getCancellationWithin24hPercent() : booking.getCancellationAfter24hPercent();
+            return depositPaid.multiply(BigDecimal.valueOf(percent)).divide(ONE_HUNDRED, 0, RoundingMode.HALF_UP);
+        }
         // Never fall back to mutable facility policy, including for malformed legacy data.
         if (booking.getCancellationFullRefundHours() == null
                 || booking.getCancellationPartialRefundHours() == null

@@ -270,6 +270,8 @@ public class SeedConfig implements ApplicationRunner {
         if (hash == null) {
             throw new IllegalStateException("Seed facility agreement is incomplete");
         }
+        booking.setCancellationWithin24hPercent(policy.getCancellationWithin24hPercent());
+        booking.setCancellationAfter24hPercent(policy.getCancellationAfter24hPercent());
         booking.setTermsVersion(policy.getTermsVersion());
         booking.setTermsContentSnapshot(policy.getTermsAndConditions());
         booking.setProhibitedItemsSnapshot(policy.getProhibitedItems());

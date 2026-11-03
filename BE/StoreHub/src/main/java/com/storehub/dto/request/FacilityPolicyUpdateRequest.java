@@ -10,6 +10,10 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Builder
 public class FacilityPolicyUpdateRequest {
+    @jakarta.validation.constraints.DecimalMin("0.0") @jakarta.validation.constraints.DecimalMax("100.0")
+    private Double cancellationWithin24hPercent;
+    @jakarta.validation.constraints.DecimalMin("0.0") @jakarta.validation.constraints.DecimalMax("100.0")
+    private Double cancellationAfter24hPercent;
 
     @DecimalMin(value = "0.0") @DecimalMax(value = "100.0")
     private Double depositPercentage;

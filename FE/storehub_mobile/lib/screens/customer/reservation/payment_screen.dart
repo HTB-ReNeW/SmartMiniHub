@@ -46,6 +46,7 @@ class _PaymentScreenState extends State<PaymentScreen>
 
   bool _isSuccess = false;
   bool _isCancelling = false;
+  bool _isDeferring = false;
 
   bool _isInitiating = true;
   String? _initError;
@@ -106,8 +107,7 @@ class _PaymentScreenState extends State<PaymentScreen>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              wasExpired ? 'Đơn đã hết hạn.' : 'Đã hủy đơn.'),
+          content: Text(wasExpired ? 'Đơn đã hết hạn.' : 'Đã hủy đơn.'),
         ),
       );
       Navigator.pop(context);
@@ -244,7 +244,9 @@ class _PaymentScreenState extends State<PaymentScreen>
                           size: 14, color: Colors.white),
                       const SizedBox(width: 4),
                       Text(
-                        _isExpired ? 'Đã hết hạn' : _formatCountdown(_remaining!),
+                        _isExpired
+                            ? 'Đã hết hạn'
+                            : _formatCountdown(_remaining!),
                         style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,
@@ -640,7 +642,8 @@ class _PaymentScreenState extends State<PaymentScreen>
               _Step(step: '1', text: 'Chạm "Thanh toán qua VNPay" bên dưới'),
               _Step(
                   step: '2',
-                  text: 'Chọn phương thức và hoàn tất thanh toán trên trang VNPay'),
+                  text:
+                      'Chọn phương thức và hoàn tất thanh toán trên trang VNPay'),
               _Step(
                   step: '3',
                   text:
@@ -677,18 +680,36 @@ class _PaymentScreenState extends State<PaymentScreen>
         ),
         const SizedBox(height: 10),
         TextButton(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                    'Đơn đang chờ thanh toán. Ngăn kho được giữ trong thời gian đếm ngược; '
-                    'bạn có thể thanh toán tiếp ở mục "Đơn đang chờ thanh toán".'),
-                duration: Duration(seconds: 5),
-              ),
-            );
-            // Về Trang chủ để thấy ngay mục "Đơn đang chờ thanh toán"
-            goToCustomerTab(context, CustomerTabs.home);
-          },
+          onPressed: _isExpired || _isDeferring
+              ? null
+              : () async {
+                  setState(() => _isDeferring = true);
+                  try {
+                    await _bookingService.deferPayment(widget.bookingId);
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text(
+                            'Đã lưu đơn thanh toán sau. Bạn cần thanh toán đơn này trước khi đặt thêm đơn với tùy chọn Thanh toán sau.'),
+                        duration: Duration(seconds: 5)));
+                    goToCustomerTab(context, CustomerTabs.home);
+                  } catch (e) {
+                    if (!mounted) return;
+                    await showDialog<void>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                              title: const Text('Chưa thể thanh toán sau'),
+                              content: Text(
+                                  e.toString().replaceFirst('Exception: ', '')),
+                              actions: [
+                                TextButton(
+                                    onPressed: () => Navigator.pop(ctx),
+                                    child: const Text('Đã hiểu'))
+                              ],
+                            ));
+                  } finally {
+                    if (mounted) setState(() => _isDeferring = false);
+                  }
+                },
           child: const Text('Thanh toán sau',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
         ),
@@ -791,12 +812,14 @@ class _PaymentScreenState extends State<PaymentScreen>
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.info_outline, size: 15, color: Colors.amber.shade900),
+                Icon(Icons.info_outline,
+                    size: 15, color: Colors.amber.shade900),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     'Lưu ý: Tiền thuê tính từ Ngày bắt đầu (${_formatDate(widget.startDate)}). Việc nhận kho trễ hơn ngày hẹn không làm kéo dài thời hạn thuê.',
-                    style: TextStyle(fontSize: 11, color: Colors.amber.shade900),
+                    style:
+                        TextStyle(fontSize: 11, color: Colors.amber.shade900),
                   ),
                 ),
               ],

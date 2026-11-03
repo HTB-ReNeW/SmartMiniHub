@@ -1,8 +1,10 @@
 class RentalAgreement {
+  final List<String> contractPhotos;
   final String terms, prohibitedItems, version, acceptedAt;
   final bool termsAccepted, prohibitedItemsAccepted;
   const RentalAgreement(
-      {this.terms = '',
+      {this.contractPhotos = const [],
+      this.terms = '',
       this.prohibitedItems = '',
       this.version = '',
       this.acceptedAt = '',
@@ -10,6 +12,9 @@ class RentalAgreement {
       this.prohibitedItemsAccepted = false});
   factory RentalAgreement.fromJson(Map<String, dynamic> json) =>
       RentalAgreement(
+          contractPhotos: (json['contractPhotos'] as List? ?? [])
+              .map((e) => e.toString())
+              .toList(),
           terms: json['termsContentSnapshot']?.toString() ?? '',
           prohibitedItems: json['prohibitedItemsSnapshot']?.toString() ?? '',
           version: json['termsVersion']?.toString() ?? '',

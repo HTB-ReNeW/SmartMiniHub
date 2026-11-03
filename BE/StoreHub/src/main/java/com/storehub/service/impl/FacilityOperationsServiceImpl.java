@@ -383,6 +383,12 @@ public class FacilityOperationsServiceImpl
             throw new AppException(ErrorCode.UNIT_ASSIGNMENT_REQUIRED);
         }
 
+        if (request.getUnitCondition() == com.storehub.enums.HandoverUnitCondition.GOOD
+                && request.getLockCondition() == com.storehub.enums.HandoverLockCondition.LOCKED_WORKING
+                && (request.getContractPhotos() == null || request.getContractPhotos().isEmpty()
+                    || request.getContractPhotos().stream().anyMatch(url -> url == null || url.isBlank()))) {
+            throw new AppException(ErrorCode.INVALID_REQUEST);
+        }
         StorageUnit storageUnit = storageUnitRepository
                 .lockById(booking.getStorageUnit().getId())
                 .orElseThrow(() -> new AppException(
@@ -418,6 +424,7 @@ public class FacilityOperationsServiceImpl
 
         handoverRecordRepository.save(record);
 
+        booking.setContractPhotos(request.getContractPhotos());
         booking.setStatus(BookingStatus.ACTIVE);
         booking.setHandedOverByStaffId(staff.getId());
         if (booking.getAssignedCheckInStaff() == null) {

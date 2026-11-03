@@ -601,7 +601,13 @@ public class FacilityManagementServiceImpl
                 booking.getSealingPendingAt() != null,
                 booking.getPendingExtensionFee(),
                 booking.getSealingPendingAt() != null && booking.getSealingApprovedAt() != null
-                        && !booking.getSealingApprovedAt().isBefore(booking.getSealingPendingAt())
+                        && !booking.getSealingApprovedAt().isBefore(booking.getSealingPendingAt()),
+                booking.getTermsVersion(),
+                booking.getTermsContentSnapshot(),
+                booking.getProhibitedItemsSnapshot(),
+                booking.getTermsAccepted(),
+                booking.getProhibitedItemsAccepted(),
+                booking.getTermsAcceptedAt()
         );
     }
 

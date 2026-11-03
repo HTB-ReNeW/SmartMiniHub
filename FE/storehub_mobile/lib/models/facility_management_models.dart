@@ -1,3 +1,4 @@
+import 'rental_agreement.dart';
 import '../core/utils/vi_labels.dart';
 
 class FacilityUnitModel {
@@ -142,6 +143,7 @@ class FacilityBookingModel {
 }
 
 class FacilityContractModel {
+  final RentalAgreement agreement;
   final String bookingId;
   final String bookingCode;
   final String customerName;
@@ -164,6 +166,7 @@ class FacilityContractModel {
   final bool sealingApproved;
 
   const FacilityContractModel({
+    this.agreement = const RentalAgreement(),
     required this.bookingId,
     required this.bookingCode,
     required this.customerName,

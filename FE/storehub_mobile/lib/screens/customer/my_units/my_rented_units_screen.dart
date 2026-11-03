@@ -1,3 +1,4 @@
+import '../../../widgets/rental_agreement_screen.dart';
 import 'package:flutter/material.dart';
 import '../../../core/utils/vi_labels.dart';
 import 'package:intl/intl.dart';
@@ -82,43 +83,8 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
     Navigator.push(
         context,
         MaterialPageRoute<void>(
-            builder: (_) => Scaffold(
-                  appBar: AppBar(title: const Text('Hợp đồng thuê')),
-                  body: ListView(
-                    padding: const EdgeInsets.all(20),
-                    children: [
-                      const Text('Thông tin thuê kho',
-                          style: TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      const Text(
-                          'Thông tin từ đơn thuê hiện tại. Đây không phải bản hợp đồng đã ký.',
-                          style: TextStyle(color: AppColors.onSurfaceVariant)),
-                      const SizedBox(height: 20),
-                      for (final field in fields)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(field.$1,
-                                    style: const TextStyle(
-                                        fontSize: 12,
-                                        color: AppColors.onSurfaceVariant)),
-                                const SizedBox(height: 4),
-                                SelectableText(
-                                    field.$2.isEmpty
-                                        ? 'Chưa có thông tin'
-                                        : field.$2,
-                                    style: const TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w500)),
-                                const Divider(height: 20),
-                              ]),
-                        ),
-                    ],
-                  ),
-                )));
+            builder: (_) => RentalAgreementScreen(
+                fields: fields, agreement: unit.agreement)));
   }
 
   void _showUnitActions(MyUnitModel unit) {
@@ -181,6 +147,16 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                 ),
               ),
               const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.description_outlined),
+                title: const Text('Hợp đồng & Cam kết lưu kho'),
+                subtitle: const Text('Xem điều khoản và cam kết đã xác nhận'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showRentalContract(unit);
+                },
+              ),
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(8),
@@ -1167,7 +1143,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                 child: TextButton.icon(
                   onPressed: () => _showRentalContract(unit),
                   icon: const Icon(Icons.description_outlined, size: 18),
-                  label: const Text('Hợp đồng thuê'),
+                  label: const Text('Hợp đồng & Cam kết'),
                 ),
               ),
               const SizedBox(height: 12),

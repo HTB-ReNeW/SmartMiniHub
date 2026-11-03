@@ -1,4 +1,7 @@
+import 'rental_agreement.dart';
+
 class MyUnitModel {
+  final RentalAgreement agreement;
   final String bookingId;
   final String handoverIssueStatus;
   final String handoverIssueReason;
@@ -32,6 +35,7 @@ class MyUnitModel {
   final String? closeTime;
 
   MyUnitModel({
+    this.agreement = const RentalAgreement(),
     required this.bookingId,
     this.handoverIssueStatus = '',
     this.handoverIssueReason = '',
@@ -86,6 +90,7 @@ class MyUnitModel {
 
   factory MyUnitModel.fromJson(Map<String, dynamic> json) {
     return MyUnitModel(
+      agreement: RentalAgreement.fromJson(json),
       bookingId: json['bookingId']?.toString() ?? json['id']?.toString() ?? '',
       bookingCode: json['bookingCode']?.toString() ?? '',
       handoverIssueStatus: json['handoverIssueStatus']?.toString() ?? '',

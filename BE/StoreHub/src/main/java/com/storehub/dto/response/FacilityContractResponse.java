@@ -28,5 +28,11 @@ public record FacilityContractResponse(
         boolean accessDisabled,
         boolean sealingPending,
         BigDecimal pendingExtensionFee,
-        boolean sealingApproved
+        boolean sealingApproved,
+        String termsVersion,
+        String termsContentSnapshot,
+        String prohibitedItemsSnapshot,
+        Boolean termsAccepted,
+        Boolean prohibitedItemsAccepted,
+        LocalDateTime termsAcceptedAt
 ) {}

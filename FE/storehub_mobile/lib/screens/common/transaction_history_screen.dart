@@ -1,3 +1,4 @@
+import '../../widgets/paged_list_view.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
@@ -212,12 +213,15 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       selectedColor: AppColors.secondaryFixed,
       checkmarkColor: AppColors.onSecondaryFixed,
       labelStyle: TextStyle(
-        color: isSelected ? AppColors.onSecondaryFixed : AppColors.textSecondary,
+        color:
+            isSelected ? AppColors.onSecondaryFixed : AppColors.textSecondary,
         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
         fontSize: 12,
       ),
       side: BorderSide(
-        color: isSelected ? AppColors.secondaryContainer : AppColors.outlineVariant,
+        color: isSelected
+            ? AppColors.secondaryContainer
+            : AppColors.outlineVariant,
         width: 1,
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -253,8 +257,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             AppEmptyState(
               icon: Icons.receipt_long_outlined,
               title: 'Không có giao dịch',
-              message:
-                  'Không có giao dịch nào phù hợp bộ lọc.',
+              message: 'Không có giao dịch nào phù hợp bộ lọc.',
             ),
           ],
         ),
@@ -263,7 +266,8 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
 
     return RefreshIndicator(
       onRefresh: _loadPayments,
-      child: ListView.builder(
+      child: PagedListView.builder(
+        hasTrailingItem: _hasMore || _loadMoreError != null,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         itemCount:
@@ -279,8 +283,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             return Center(
                 child: TextButton(
               onPressed: () => _loadPayments(more: true),
-              child: Text(
-                  _loadMoreError == null ? 'Tải thêm' : 'Thử tải lại'),
+              child: Text(_loadMoreError == null ? 'Tải thêm' : 'Thử tải lại'),
             ));
           }
           final payment = payments[index];
@@ -402,7 +405,8 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                             color: payment.statusColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: payment.statusColor.withValues(alpha: 0.25),
+                              color:
+                                  payment.statusColor.withValues(alpha: 0.25),
                             ),
                           ),
                           child: Text(

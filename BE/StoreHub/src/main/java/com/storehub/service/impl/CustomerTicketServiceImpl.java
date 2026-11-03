@@ -90,6 +90,8 @@ public class CustomerTicketServiceImpl implements CustomerTicketService {
     @Transactional(readOnly = true)
     public PageResponse<TicketResponse> getMyTickets(String customerEmail, Pageable pageable) {
         User customer = resolveCustomer(customerEmail);
+        pageable = org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), Math.min(10, pageable.getPageSize()),
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt", "id"));
         Page<SupportTicket> ticketPage = ticketRepository.findAllByCustomerId(customer.getId(), pageable);
 
         return PageResponse.from(ticketPage.map(this::mapToResponse));

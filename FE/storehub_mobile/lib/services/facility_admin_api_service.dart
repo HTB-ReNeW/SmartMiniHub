@@ -53,12 +53,12 @@ class FacilityAdminApiService {
         ApiEndpoints.facilitiesAdmin,
         queryParameters: {
           'page': page,
-          'size': 20,
+          'size': 10,
           if (search != null && search.isNotEmpty) 'search': search,
         },
       );
-      return PagedResult.fromApi(response.data,
-          (item) => Map<String, dynamic>.from(item as Map));
+      return PagedResult.fromApi(
+          response.data, (item) => Map<String, dynamic>.from(item as Map));
     } on ApiException catch (e) {
       throw _err(e, 'tải danh sách cơ sở');
     }
@@ -85,7 +85,8 @@ class FacilityAdminApiService {
     }
   }
 
-  Future<String> uploadFacilityImage(String filePath, {String? facilityId}) async {
+  Future<String> uploadFacilityImage(String filePath,
+      {String? facilityId}) async {
     try {
       final url = (facilityId != null && facilityId.isNotEmpty)
           ? '${ApiEndpoints.facilitiesAdmin}/$facilityId/image'
@@ -114,7 +115,9 @@ class FacilityAdminApiService {
         ]),
       );
       if (response.data is Map && response.data['data'] is List) {
-        return (response.data['data'] as List).map((e) => e.toString()).toList();
+        return (response.data['data'] as List)
+            .map((e) => e.toString())
+            .toList();
       }
       return [];
     } catch (_) {
@@ -137,14 +140,17 @@ class FacilityAdminApiService {
 
   Future<List<dynamic>> getFacilityPolicies({String? search}) async {
     try {
-      final response = await _http.get(
+      final response = await _http.getAll(
         ApiEndpoints.facilityPolicies,
         queryParameters: {
-          'size': 200,
+          'size': 10,
           if (search != null && search.isNotEmpty) 'search': search,
         },
       );
       final data = response.data;
+      if (data is Map && data['data'] is List) {
+        return List<dynamic>.from(data['data']);
+      }
       if (data is Map &&
           data['data'] is Map &&
           data['data']['content'] is List) {

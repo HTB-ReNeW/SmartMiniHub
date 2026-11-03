@@ -1,3 +1,4 @@
+import '../../widgets/paged_list_view.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../services/facility_admin_api_service.dart';
@@ -44,9 +45,8 @@ class _FacilityManagementScreenState extends State<FacilityManagementScreen> {
     final facilityId = f['id']?.toString() ?? '';
     final facilityName = f['name']?.toString() ?? '';
     final managerId = f['managerId']?.toString();
-    final currentIds = (managerId != null && managerId.isNotEmpty)
-        ? {managerId}
-        : <String>{};
+    final currentIds =
+        (managerId != null && managerId.isNotEmpty) ? {managerId} : <String>{};
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -218,8 +218,9 @@ class _FacilityManagementScreenState extends State<FacilityManagementScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: Text(
-            widget.canAssignManager ? 'Gán quản lý cơ sở' : 'Cơ sở & chính sách'),
+        title: Text(widget.canAssignManager
+            ? 'Gán quản lý cơ sở'
+            : 'Cơ sở & chính sách'),
       ),
       body: Column(
         children: [
@@ -361,7 +362,8 @@ class _FacilityManagementScreenState extends State<FacilityManagementScreen> {
                                   ),
                                 ),
                               )
-                            : ListView.builder(
+                            : PagedListView.builder(
+                                hasTrailingItem: hasMore,
                                 padding:
                                     const EdgeInsets.fromLTRB(16, 4, 16, 90),
                                 itemCount: displayedFacilities.length +
@@ -419,8 +421,7 @@ class _FacilityManagementScreenState extends State<FacilityManagementScreen> {
                                                         .warning_amber_rounded,
                                                 size: 14,
                                                 color: hasManager
-                                                    ? AppColors
-                                                        .primaryContainer
+                                                    ? AppColors.primaryContainer
                                                     : const Color(0xFFD97706),
                                               ),
                                               const SizedBox(width: 4),
@@ -510,8 +511,7 @@ class _FacilityManagementScreenState extends State<FacilityManagementScreen> {
                                                 borderRadius:
                                                     BorderRadius.circular(10),
                                               ),
-                                              child: Text(
-                                                  _statusLabel(status),
+                                              child: Text(_statusLabel(status),
                                                   style: TextStyle(
                                                       fontSize: 10,
                                                       fontWeight:

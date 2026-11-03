@@ -52,7 +52,7 @@ public class CustomerTicketController {
     @Operation(summary = "Lấy danh sách các yêu cầu hỗ trợ của khách hàng (có phân trang)")
     public ResponseEntity<ApiResponse<PageResponse<TicketResponse>>> getMyTickets(
             @AuthenticationPrincipal UserDetails userDetails,
-            @ParameterObject @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            @ParameterObject @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         PageResponse<TicketResponse> response = customerTicketService.getMyTickets(userDetails.getUsername(), pageable);
         return ResponseEntity.ok(ApiResponse.<PageResponse<TicketResponse>>builder()

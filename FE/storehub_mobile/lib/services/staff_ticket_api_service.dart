@@ -1,4 +1,3 @@
-
 import '../core/constants/api_endpoints.dart';
 import '../core/network/http_client.dart';
 import '../mappers/staff_ticket_mapper.dart';
@@ -8,22 +7,23 @@ import '../models/paged_result.dart';
 class StaffTicketApiService {
   final HttpClient _http = HttpClient.instance;
 
-  Future<PagedResult<StaffTicketModel>> getFacilityTickets(
-    String facilityId, {int page = 0}
-  ) async {
+  Future<PagedResult<StaffTicketModel>> getFacilityTickets(String facilityId,
+      {int page = 0}) async {
     try {
       final response = await _http.get(
         ApiEndpoints.staffTickets,
         queryParameters: {
           'facilityId': facilityId,
           'page': page,
-          'size': 20,
+          'size': 10,
           'sort': 'createdAt,desc',
         },
       );
 
-      return PagedResult.fromApi(response.data, (item) =>
-          StaffTicketMapper.fromJson(StaffTicketMapper.asJsonMap(item)));
+      return PagedResult.fromApi(
+          response.data,
+          (item) =>
+              StaffTicketMapper.fromJson(StaffTicketMapper.asJsonMap(item)));
     } on ApiException catch (error) {
       throw _error(error, 'tải yêu cầu hỗ trợ của cơ sở');
     }

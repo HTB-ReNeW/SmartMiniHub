@@ -144,7 +144,7 @@ public class WaitlistServiceImpl implements WaitlistService {
                 .stream().map(w -> new WaitlistResponse(w.getId(), w.getFacility().getId(),
                         w.getFacility().getName(), w.getUnitType().getId(),
                         w.getUnitType().getTypeName(), w.getStatus(),
-                        w.getNotifiedAt(), w.getOfferExpiresAt())).toList();
+                        w.getNotifiedAt(), w.getOfferExpiresAt(), w.getCreatedAt())).toList();
     }
 
     @Override

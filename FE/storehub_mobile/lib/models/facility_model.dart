@@ -1,4 +1,5 @@
 class FacilityModel {
+  final List<Map<String, dynamic>> unitTypeOptions;
   final String id;
   final String name;
   final String address;
@@ -16,6 +17,7 @@ class FacilityModel {
   final int? unitTypeCount;
 
   FacilityModel({
+    this.unitTypeOptions = const [],
     required this.id,
     required this.name,
     required this.address,
@@ -39,7 +41,8 @@ class FacilityModel {
           .map((e) => e?.toString() ?? '')
           .where((s) => s.isNotEmpty)
           .toList();
-    } else if (json['images'] is String && (json['images'] as String).isNotEmpty) {
+    } else if (json['images'] is String &&
+        (json['images'] as String).isNotEmpty) {
       parsedImages = (json['images'] as String)
           .split(',')
           .map((s) => s.trim())
@@ -121,6 +124,10 @@ class FacilityModel {
       airConditioned24h: airConditioned24h,
       imageUrl: imageUrl,
       images: images,
+      unitTypeOptions: unitTypes
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList(),
       minAreaSqm: minArea,
       maxAreaSqm: maxArea,
       minPricePerMonth: minPrice,

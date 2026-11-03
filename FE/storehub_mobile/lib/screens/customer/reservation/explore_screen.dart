@@ -1,685 +1,583 @@
+import '../../../widgets/paged_list_view.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
+import 'package:intl/intl.dart';
 import '../../../models/facility_model.dart';
+import '../../../models/facility_search_filter.dart';
 import '../../../services/catalog_api_service.dart';
 import 'facility_detail_screen.dart';
 
-class ExploreScreen extends StatefulWidget {
-  const ExploreScreen({super.key});
+const _blue = Color(0xFF0755DF);
+const _ink = Color(0xFF14213D);
+final _money = NumberFormat.decimalPattern('vi_VN');
+String _number(double value) => value == value.roundToDouble()
+    ? value.toInt().toString()
+    : value.toString();
+String _range(double? min, double? max, String unit, {bool money = false}) {
+  String format(double value) => money ? _money.format(value) : _number(value);
+  if (min != null && max != null) {
+    return '${format(min)} – ${format(max)} $unit';
+  }
+  if (min != null) return 'Từ ${format(min)} $unit';
+  return 'Đến ${format(max!)} $unit';
+}
 
+class ExploreScreen extends StatefulWidget {
+  final CatalogApiService? catalogService;
+  const ExploreScreen({super.key, this.catalogService});
   @override
   State<ExploreScreen> createState() => _ExploreScreenState();
 }
 
-class _ExploreScreenState extends State<ExploreScreen>
-    with SingleTickerProviderStateMixin {
-  final CatalogApiService _catalogService = CatalogApiService();
-  final TextEditingController _searchCtrl = TextEditingController();
-
-  List<FacilityModel> _allFacilities = [];
-  List<FacilityModel> _filtered = [];
+class _ExploreScreenState extends State<ExploreScreen> {
+  late final _catalog = widget.catalogService ?? CatalogApiService();
+  final _search = TextEditingController();
+  List<FacilityModel> _facilities = [];
   bool _loading = true;
   String? _error;
-
-  RangeValues _areaRange = const RangeValues(0, 50);
-  bool _areaFilterApplied = false;
-  bool _airConditioned24hOnly = false;
-
-  double get _areaMax => _allFacilities.fold<double>(50, (current, facility) {
-        final area = facility.maxAreaSqm;
-        return area != null && area > current ? area.ceilToDouble() : current;
-      });
-
-  late final AnimationController _fadeCtrl;
-  late final Animation<double> _fadeAnim;
-
+  double? _minArea, _maxArea, _minPrice, _maxPrice;
+  String _region = '';
+  int get _count => [
+        if (_minArea != null || _maxArea != null) 1,
+        if (_minPrice != null || _maxPrice != null) 1,
+        if (_region.isNotEmpty) 1,
+      ].length;
   @override
   void initState() {
     super.initState();
-    _fadeCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
-    );
-    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeIn);
-    _loadFacilities();
+    _load();
   }
 
   @override
   void dispose() {
-    _fadeCtrl.dispose();
-    _searchCtrl.dispose();
+    _search.dispose();
     super.dispose();
   }
 
-  Future<void> _loadFacilities() async {
+  Future<void> _load() async {
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final list = await _catalogService.getFacilitiesWithStats();
-      if (!mounted) return;
-      setState(() {
-        _allFacilities = list.where((f) => f.isBookable).toList();
-        _applyFilter();
-        _loading = false;
-      });
-      _fadeCtrl.forward(from: 0);
+      final data = await _catalog.getFacilitiesWithStats();
+      if (mounted) {
+        setState(() {
+          _facilities = data;
+          _loading = false;
+        });
+      }
     } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString().replaceAll('Exception: ', '');
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString().replaceFirst('Exception: ', '');
+          _loading = false;
+        });
+      }
     }
   }
 
-  void _applyFilter() {
-    final q = _searchCtrl.text.toLowerCase();
-    _filtered = _allFacilities.where((f) {
-      final matchQ = q.isEmpty ||
-          f.name.toLowerCase().contains(q) ||
-          f.fullAddress.toLowerCase().contains(q);
-      final matchArea = !_areaFilterApplied ||
-          f.minAreaSqm == null ||
-          f.maxAreaSqm == null ||
-          (f.minAreaSqm! <= _areaRange.end &&
-              f.maxAreaSqm! >= _areaRange.start);
-      return matchQ &&
-          matchArea &&
-          (!_airConditioned24hOnly || f.airConditioned24h);
-    }).toList();
-  }
+  void _clear() => setState(() {
+        _minArea = _maxArea = _minPrice = _maxPrice = null;
+        _region = '';
+        _search.clear();
+      });
 
-  int get _activeFilterCount {
-    int c = 0;
-    if (_areaFilterApplied) c++;
-    if (_airConditioned24hOnly) c++;
-    return c;
-  }
-
-  void _showFilterSheet() {
-    double tempMax = _areaFilterApplied && _areaRange.end < _areaMax
-        ? _areaRange.end
-        : _areaMax;
-    double tempMin = _areaFilterApplied && _areaRange.start < tempMax
-        ? _areaRange.start
-        : 0;
-    bool tempAirConditioned = _airConditioned24hOnly;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModal) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: EdgeInsets.fromLTRB(
-              24, 20, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Bộ lọc tìm kiếm',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
-                    TextButton(
-                      onPressed: () {
-                        setModal(() {
-                          tempMin = 0;
-                          tempMax = _areaMax;
-                          tempAirConditioned = false;
-                        });
-                      },
-                      child: const Text('Xóa tất cả',
-                          style: TextStyle(color: AppColors.primary)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Diện tích (m²)',
-                        style: TextStyle(fontWeight: FontWeight.w600)),
-                    Text(
-                      '${tempMin.toInt()} – ${tempMax.toInt()} m²',
-                      style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-                RangeSlider(
-                  values: RangeValues(tempMin, tempMax),
-                  min: 0,
-                  max: _areaMax,
-                  divisions: _areaMax.round(),
-                  activeColor: AppColors.primary,
-                  onChanged: (v) => setModal(() {
-                    tempMin = v.start;
-                    tempMax = v.end;
-                  }),
-                ),
-                SwitchListTile(
-                  title: const Text('Máy lạnh 24/7'),
-                  value: tempAirConditioned,
-                  onChanged: (value) =>
-                      setModal(() => tempAirConditioned = value),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      setState(() {
-                        _areaRange = RangeValues(tempMin, tempMax);
-                        _areaFilterApplied = tempMin > 0 || tempMax < _areaMax;
-                        _airConditioned24hOnly = tempAirConditioned;
-                        _applyFilter();
-                      });
-                      _fadeCtrl.forward(from: 0);
-                    },
-                    child: const Text('Áp dụng',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w600)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+  Future<void> _filters() async {
+    final minArea =
+        TextEditingController(text: _minArea == null ? '' : _number(_minArea!));
+    final maxArea =
+        TextEditingController(text: _maxArea == null ? '' : _number(_maxArea!));
+    final minPrice = TextEditingController(
+        text: _minPrice == null ? '' : _money.format(_minPrice!));
+    final maxPrice = TextEditingController(
+        text: _maxPrice == null ? '' : _money.format(_maxPrice!));
+    final region = TextEditingController(text: _region);
+    final form = GlobalKey<FormState>();
+    double? parseArea(String value) =>
+        double.tryParse(value.trim().replaceAll(',', '.'));
+    Widget field(TextEditingController controller, String label, String suffix,
+            {TextEditingController? lower, bool price = false}) =>
+        TextFormField(
+            controller: controller,
+            keyboardType: price
+                ? TextInputType.number
+                : const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(labelText: label, suffixText: suffix),
+            validator: (value) {
+              double? parse(String text) =>
+                  price ? parseMonthlyRent(text) : parseArea(text);
+              final text = value?.trim() ?? '';
+              final amount = parse(text);
+              if (text.isNotEmpty &&
+                  (amount == null || !amount.isFinite || amount < 0)) {
+                return price ? 'Nhập VND, ví dụ 500.000' : 'Nhập số không âm';
+              }
+              final low = lower == null ? null : parse(lower.text);
+              return low != null && amount != null && amount < low
+                  ? 'Phải ≥ mức tối thiểu'
+                  : null;
+            });
+    ModalRoute<dynamic>? filterRoute;
+    await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.white,
+        showDragHandle: true,
+        useSafeArea: true,
+        builder: (ctx) {
+          filterRoute = ModalRoute.of(ctx);
+          return Padding(
+              padding:
+                  EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+              child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  child: Form(
+                      key: form,
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(children: [
+                              const Expanded(
+                                  child: Text('Bộ lọc tìm kiếm',
+                                      style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w700,
+                                          color: _ink))),
+                              TextButton(
+                                  onPressed: () {
+                                    form.currentState?.reset();
+                                    for (final c in [
+                                      minArea,
+                                      maxArea,
+                                      minPrice,
+                                      maxPrice,
+                                      region
+                                    ]) {
+                                      c.clear();
+                                    }
+                                  },
+                                  child: const Text('Xóa tất cả'))
+                            ]),
+                            const SizedBox(height: 16),
+                            const Text('Diện tích kho',
+                                style: TextStyle(fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 12),
+                            Row(children: [
+                              Expanded(
+                                  child: field(minArea, 'Diện tích từ', 'm²')),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                  child: field(maxArea, 'Diện tích đến', 'm²',
+                                      lower: minArea))
+                            ]),
+                            const SizedBox(height: 20),
+                            const Text('Khu vực',
+                                style: TextStyle(fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                                controller: region,
+                                decoration: const InputDecoration(
+                                    labelText: 'Tên khu vực',
+                                    hintText: 'Thành phố, quận hoặc phường',
+                                    prefixIcon:
+                                        Icon(Icons.location_on_outlined))),
+                            const SizedBox(height: 10),
+                            Wrap(spacing: 8, children: [
+                              for (final city in _facilities
+                                  .map((f) => f.city)
+                                  .where((c) => c.isNotEmpty)
+                                  .toSet())
+                                ActionChip(
+                                    label: Text(city),
+                                    onPressed: () => region.text = city)
+                            ]),
+                            const SizedBox(height: 20),
+                            const Text('Giá thuê hàng tháng',
+                                style: TextStyle(fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 12),
+                            Row(children: [
+                              Expanded(
+                                  child: field(minPrice, 'Giá từ', 'đ',
+                                      price: true)),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                  child: field(maxPrice, 'Giá đến', 'đ',
+                                      lower: minPrice, price: true))
+                            ]),
+                            const SizedBox(height: 8),
+                            const Text(
+                                'Nhập VND, ví dụ: 500000 hoặc 500.000. Chưa gồm tiền cọc và phí dịch vụ.',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF64748B),
+                                    height: 1.5)),
+                            const SizedBox(height: 12),
+                            FilledButton(
+                                style: FilledButton.styleFrom(
+                                    backgroundColor: _blue,
+                                    minimumSize: const Size(0, 48)),
+                                onPressed: () {
+                                  if (!form.currentState!.validate()) {
+                                    return;
+                                  }
+                                  setState(() {
+                                    _minArea = parseArea(minArea.text);
+                                    _maxArea = parseArea(maxArea.text);
+                                    _minPrice = parseMonthlyRent(minPrice.text);
+                                    _maxPrice = parseMonthlyRent(maxPrice.text);
+                                    _region = region.text.trim();
+                                  });
+                                  Navigator.pop(ctx);
+                                },
+                                child: const Text('Áp dụng bộ lọc')),
+                          ]))));
+        });
+    await filterRoute?.completed;
+    for (final c in [minArea, maxArea, minPrice, maxPrice, region]) {
+      c.dispose();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
-                ),
-              ),
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Khám phá cơ sở',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: -0.3)),
-                  const SizedBox(height: 4),
-                  const Text('Tìm kiếm kho tự phục vụ phù hợp với nhu cầu của bạn',
-                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13)),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: 46,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.04),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: TextField(
-                            controller: _searchCtrl,
-                            onChanged: (_) => setState(() {
-                              _applyFilter();
-                              _fadeCtrl.forward(from: 0);
-                            }),
-                            decoration: const InputDecoration(
-                              hintText: 'Tìm theo tên hoặc địa chỉ cơ sở...',
-                              prefixIcon: Icon(Icons.search_rounded,
-                                  color: AppColors.textSecondary, size: 20),
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              contentPadding:
-                                  EdgeInsets.symmetric(vertical: 13),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      GestureDetector(
-                        onTap: _showFilterSheet,
-                        child: Stack(
-                          children: [
-                            Container(
-                              height: 46,
-                              width: 46,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.25)),
-                              ),
-                              child:
-                                  const Icon(Icons.tune_rounded, color: Colors.white, size: 20),
-                            ),
-                            if (_activeFilterCount > 0)
-                              Positioned(
-                                top: 4,
-                                right: 4,
-                                child: Container(
-                                  width: 16,
-                                  height: 16,
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.accent,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Center(
-                                    child: Text('$_activeFilterCount',
-                                        style: const TextStyle(
-                                            fontSize: 10,
-                                            color: Colors.black,
-                                            fontWeight: FontWeight.bold)),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            if (_activeFilterCount > 0)
+    final filter = FacilitySearchFilter(
+        query: _search.text,
+        region: _region,
+        minArea: _minArea,
+        maxArea: _maxArea,
+        minPrice: _minPrice,
+        maxPrice: _maxPrice);
+    final results =
+        _facilities.map(filter.apply).whereType<FacilityModel>().toList();
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light,
+        child: Scaffold(
+            backgroundColor: const Color(0xFFF2F6FD),
+            body: Column(children: [
               Container(
-                color: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Row(
-                  children: [
-                    const Icon(Icons.filter_list,
-                        size: 16, color: AppColors.textSecondary),
-                    const SizedBox(width: 6),
-                    if (_areaFilterApplied)
-                      _filterChip(
-                          '📐 ${_areaRange.start.toInt()}–${_areaRange.end.toInt()} m²',
-                          () => setState(() {
-                                _areaRange = RangeValues(0, _areaMax);
-                                _areaFilterApplied = false;
-                                _applyFilter();
-                              })),
-                    if (_airConditioned24hOnly)
-                      _filterChip(
-                          'Máy lạnh 24/7',
-                          () => setState(() {
-                                _airConditioned24hOnly = false;
-                                _applyFilter();
-                              })),
-                  ],
-                ),
-              ),
-            Expanded(child: _buildBody()),
-          ],
-        ),
-      ),
-    );
+                  decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF0B3286), Color(0xFF0668F0)])),
+                  child: SafeArea(
+                      bottom: false,
+                      child: Stack(children: [
+                        const Positioned(
+                            right: -24,
+                            top: 0,
+                            child: Icon(Icons.warehouse_outlined,
+                                size: 160, color: Color(0x1AFFFFFF))),
+                        Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Khám phá cơ sở',
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 27,
+                                          fontWeight: FontWeight.w800)),
+                                  const SizedBox(height: 6),
+                                  const Text(
+                                      'Tìm kho tự phục vụ phù hợp với nhu cầu của bạn',
+                                      style: TextStyle(
+                                          color: Color(0xFFD8E7FF),
+                                          fontSize: 13,
+                                          height: 1.5)),
+                                  const SizedBox(height: 20),
+                                  Row(children: [
+                                    Expanded(
+                                        child: TextField(
+                                            controller: _search,
+                                            onChanged: (_) => setState(() {}),
+                                            decoration: InputDecoration(
+                                                hintText:
+                                                    'Tìm tên hoặc địa chỉ cơ sở...',
+                                                hintStyle: const TextStyle(
+                                                    fontSize: 13,
+                                                    color: Color(0xFF6C7D9B)),
+                                                prefixIcon: const Icon(
+                                                    Icons.search_rounded,
+                                                    color: Color(0xFF536585)),
+                                                filled: true,
+                                                fillColor: Colors.white,
+                                                border: OutlineInputBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            30),
+                                                    borderSide:
+                                                        BorderSide.none),
+                                                enabledBorder: OutlineInputBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            30),
+                                                    borderSide:
+                                                        BorderSide.none),
+                                                contentPadding:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 14)))),
+                                    const SizedBox(width: 10),
+                                    Badge(
+                                        isLabelVisible: _count > 0,
+                                        label: Text('$_count'),
+                                        child: IconButton.filled(
+                                            tooltip: 'Bộ lọc tìm kiếm',
+                                            onPressed:
+                                                _loading ? null : _filters,
+                                            style: IconButton.styleFrom(
+                                                backgroundColor:
+                                                    const Color(0xFF0641B6),
+                                                foregroundColor: Colors.white,
+                                                minimumSize:
+                                                    const Size(48, 48)),
+                                            icon: const Icon(
+                                                Icons.tune_rounded))),
+                                  ]),
+                                ])),
+                      ]))),
+              if (_count > 0)
+                Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Wrap(spacing: 8, runSpacing: 6, children: [
+                          if (_minArea != null || _maxArea != null)
+                            _chip(
+                                _range(_minArea, _maxArea, 'm²'),
+                                () =>
+                                    setState(() => _minArea = _maxArea = null)),
+                          if (_region.isNotEmpty)
+                            _chip(_region, () => setState(() => _region = '')),
+                          if (_minPrice != null || _maxPrice != null)
+                            _chip(
+                                _range(_minPrice, _maxPrice, 'đ/tháng',
+                                    money: true),
+                                () => setState(
+                                    () => _minPrice = _maxPrice = null)),
+                        ]))),
+              Expanded(child: _body(results)),
+            ])));
   }
 
-  Widget _filterChip(String label, VoidCallback onRemove) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: Chip(
-        label: Text(label,
-            style: const TextStyle(fontSize: 12, color: AppColors.primary)),
-        deleteIcon: const Icon(Icons.close, size: 14, color: AppColors.primary),
-        onDeleted: onRemove,
-        backgroundColor: AppColors.primary.withValues(alpha: 0.08),
-        side: const BorderSide(color: AppColors.primary, width: 0.8),
-        padding: EdgeInsets.zero,
-        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ),
-    );
-  }
+  Widget _chip(String label, VoidCallback remove) => InputChip(
+      label: Text(label, style: const TextStyle(fontSize: 12, color: _blue)),
+      onDeleted: remove,
+      deleteIcon: const Icon(Icons.close, size: 16),
+      deleteIconColor: _blue,
+      backgroundColor: const Color(0xFFEAF2FF),
+      side: const BorderSide(color: Color(0xFFB8D2FF)));
 
-  Widget _buildBody() {
-    if (_loading) {
-      return const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(color: AppColors.primary),
-            SizedBox(height: 12),
-            Text('Đang tải danh sách cơ sở...'),
-          ],
-        ),
-      );
-    }
+  Widget _body(List<FacilityModel> results) {
+    if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.wifi_off, size: 48, color: Colors.grey),
-              const SizedBox(height: 12),
-              Text(_error!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textSecondary)),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: _loadFacilities,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Thử lại'),
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white),
-              ),
-            ],
-          ),
-        ),
-      );
+          child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Text(_error!, textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                TextButton.icon(
+                    onPressed: _load,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Thử lại'))
+              ])));
     }
-    if (_filtered.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.search_off, size: 56, color: Colors.grey.shade400),
-            const SizedBox(height: 12),
-            const Text('Không tìm thấy cơ sở phù hợp.',
-                style: TextStyle(color: AppColors.textSecondary)),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () => setState(() {
-                _searchCtrl.clear();
-                _areaRange = RangeValues(0, _areaMax);
-                _areaFilterApplied = false;
-                _airConditioned24hOnly = false;
-                _applyFilter();
-              }),
-              child: const Text('Xóa bộ lọc'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return FadeTransition(
-      opacity: _fadeAnim,
-      child: RefreshIndicator(
-        onRefresh: _loadFacilities,
-        color: AppColors.primary,
-        child: ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          itemCount: _filtered.length,
-          itemBuilder: (_, i) => _FacilityCard(
-            facility: _filtered[i],
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => FacilityDetailScreen(
-                  facilityId: _filtered[i].id,
-                  facilityName: _filtered[i].name,
-                  facilityAddress: _filtered[i].fullAddress,
-                  airConditioned24h: _filtered[i].airConditioned24h,
-                  imageUrl: _filtered[i].imageUrl,
-                  images: _filtered[i].allImages,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+    return RefreshIndicator(
+        onRefresh: _load,
+        child: PagedListView.builder(
+            dataKey:
+                '${_search.text}|$_region|$_minArea|$_maxArea|$_minPrice|$_maxPrice',
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: results.isEmpty ? 1 : results.length,
+            itemBuilder: (context, index) {
+              if (results.isEmpty) {
+                return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    child: Column(children: [
+                      const Icon(Icons.search_off_rounded,
+                          size: 48, color: Color(0xFF8393AF)),
+                      const SizedBox(height: 12),
+                      const Text('Không tìm thấy cơ sở phù hợp.'),
+                      TextButton(
+                          onPressed: _clear, child: const Text('Xóa bộ lọc'))
+                    ]));
+              }
+              final facility = results[index];
+              return _FacilityCard(
+                  facility: facility,
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => FacilityDetailScreen(
+                              facilityId: facility.id,
+                              facilityName: facility.name,
+                              facilityAddress: facility.fullAddress,
+                              airConditioned24h: facility.airConditioned24h,
+                              imageUrl: facility.imageUrl,
+                              images: facility.allImages))));
+            }));
   }
 }
 
 class _FacilityCard extends StatelessWidget {
   final FacilityModel facility;
   final VoidCallback onTap;
-
   const _FacilityCard({required this.facility, required this.onTap});
-
   @override
   Widget build(BuildContext context) {
+    final image = facility.allImages.isEmpty ? null : facility.allImages.first;
+    final area = facility.minAreaSqm == null || facility.maxAreaSqm == null
+        ? 'Chưa có diện tích'
+        : '${_number(facility.minAreaSqm!)} – ${_number(facility.maxAreaSqm!)} m²';
     final available = facility.availableUnits;
-    final availColor = available == null
-        ? Colors.grey
-        : available > 5
-            ? AppColors.success
-            : available > 0
-                ? Colors.orange
-                : AppColors.error;
-    final availLabel = available == null
-        ? 'Không khả dụng'
-        : available > 0
-            ? 'Còn $available ngăn trống'
-            : 'Đã hết chỗ';
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.outlineVariant),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                height: 84,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF0F172A),
-                      Color(0xFF1E293B),
-                    ],
-                  ),
-                  borderRadius:
-                      BorderRadius.vertical(top: Radius.circular(18)),
-                ),
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                child: Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        color: Colors.white.withValues(alpha: 0.12),
-                        child: (facility.imageUrl != null &&
-                                facility.imageUrl!.isNotEmpty)
-                            ? Image.network(
-                                facility.imageUrl!,
-                                width: 50,
-                                height: 50,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const Icon(Icons.warehouse_rounded,
-                                        color: Colors.white, size: 28),
-                              )
-                            : const Icon(Icons.warehouse_rounded,
-                                color: Colors.white, size: 28),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(facility.name,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15.5,
-                                  letterSpacing: -0.2),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis),
-                          const SizedBox(height: 3),
-                          Row(
-                            children: [
-                              const Icon(Icons.location_on_rounded,
-                                  color: AppColors.secondaryContainer, size: 13),
-                              const SizedBox(width: 3),
-                              Expanded(
-                                child: Text(facility.fullAddress,
-                                    style: const TextStyle(
-                                        color: Color(0xFF94A3B8), fontSize: 11.5),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          if (facility.minAreaSqm != null &&
-                              facility.maxAreaSqm != null)
-                            _infoChip(
-                                Icons.straighten_rounded,
-                                '${facility.minAreaSqm!.toInt()}–${facility.maxAreaSqm!.toInt()} m²',
-                                const Color(0xFF0284C7)),
-                          _infoChip(Icons.inventory_2_rounded, availLabel,
-                              availColor),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('Giá từ',
-                            style: TextStyle(
-                                fontSize: 10.5, color: AppColors.textSecondary)),
-                        Text(
-                          facility.minPricePerMonth != null
-                              ? '${_formatPrice(facility.minPricePerMonth!)}/tháng'
-                              : 'Liên hệ',
-                          style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.secondaryContainer),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: onTap,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.secondaryContainer,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: const Text('Xem chi tiết & đặt kho',
-                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _infoChip(IconData icon, String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 3),
-          Text(label, style: TextStyle(fontSize: 11, color: color)),
-        ],
-      ),
-    );
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0xFFE7EEF9)),
+            boxShadow: const [
+              BoxShadow(
+                  color: Color(0x111D4280),
+                  blurRadius: 14,
+                  offset: Offset(0, 6))
+            ]),
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                    width: 94,
+                    height: 88,
+                    color: const Color(0xFFEAF1FC),
+                    child: image == null
+                        ? _fallback()
+                        : Image.network(image,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, error, stack) => _fallback()))),
+            const SizedBox(width: 12),
+            Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text(facility.name,
+                      style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: _ink,
+                          height: 1.25)),
+                  const SizedBox(height: 7),
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Icon(Icons.location_on_rounded,
+                        color: _blue, size: 16),
+                    const SizedBox(width: 4),
+                    Expanded(
+                        child: Text(facility.fullAddress,
+                            style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF52617A),
+                                height: 1.45))),
+                  ]),
+                ])),
+          ]),
+          const SizedBox(height: 14),
+          const Divider(height: 1, color: Color(0xFFEEF2FA)),
+          const SizedBox(height: 12),
+          LayoutBuilder(builder: (ctx, box) {
+            final chips = Wrap(spacing: 6, runSpacing: 6, children: [
+              _pill(Icons.view_in_ar_outlined, area, _blue,
+                  const Color(0xFFEAF4FF)),
+              _pill(
+                  Icons.inventory_2_outlined,
+                  available == null
+                      ? 'Chưa có số ngăn trống'
+                      : available == 0
+                          ? 'Đã hết chỗ'
+                          : 'Còn $available ngăn trống',
+                  const Color(0xFFD97706),
+                  const Color(0xFFFFF3E4)),
+            ]);
+            final price =
+                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              const Text('Giá từ',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+              Text(
+                  facility.minPricePerMonth == null
+                      ? 'Liên hệ'
+                      : '${_money.format(facility.minPricePerMonth)} đ/tháng',
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w800, color: _blue)),
+            ]);
+            if (box.maxWidth < 300) {
+              return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [chips, const SizedBox(height: 10), price]);
+            }
+            return Row(children: [
+              Expanded(child: chips),
+              const SizedBox(width: 12),
+              price
+            ]);
+          }),
+          const SizedBox(height: 12),
+          DecoratedBox(
+              decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                      colors: [Color(0xFF1999EF), Color(0xFF0648D9)]),
+                  borderRadius: BorderRadius.circular(28)),
+              child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                      onTap: onTap,
+                      borderRadius: BorderRadius.circular(28),
+                      child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 13),
+                          child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.visibility_outlined,
+                                    size: 19, color: Colors.white),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                    child: Text(
+                                        available == 0
+                                            ? 'Xem chi tiết cơ sở'
+                                            : 'Xem chi tiết & đặt kho',
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700))),
+                                const SizedBox(width: 8),
+                                const Icon(Icons.arrow_forward_rounded,
+                                    size: 18, color: Colors.white),
+                              ]))))),
+        ]));
   }
 
-  String _formatPrice(double price) {
-    if (price >= 1000000) {
-      return '${(price / 1000000).toStringAsFixed(price % 1000000 == 0 ? 0 : 1)}M ₫';
-    }
-    return '${price.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')} ₫';
-  }
+  Widget _fallback() => const Center(
+      child:
+          Icon(Icons.warehouse_outlined, size: 38, color: Color(0xFF7B9BC9)));
+  Widget _pill(IconData icon, String text, Color color, Color background) =>
+      Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+          decoration: BoxDecoration(
+              color: background, borderRadius: BorderRadius.circular(22)),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(icon, size: 15, color: color),
+            const SizedBox(width: 5),
+            Flexible(
+                child: Text(text,
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: color)))
+          ]));
 }

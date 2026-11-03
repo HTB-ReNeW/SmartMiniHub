@@ -1,5 +1,7 @@
 package com.storehub.controller;
 
+import com.storehub.common.CollectionPages;
+
 import com.storehub.common.ApiResponse;
 import com.storehub.common.PageResponse;
 import com.storehub.dto.request.RolePermissionBulkAssignRequest;
@@ -62,12 +64,12 @@ public class RolePermissionController {
     @GetMapping("/by-role/{roleId}")
     @PreAuthorize("hasRole('ADMIN') and hasAuthority('ROLE_PERMISSION_VIEW')")
     @Operation(summary = "Get all permissions assigned to a role")
-    public ResponseEntity<ApiResponse<List<RolePermissionResponse>>> getByRoleId(
-            @PathVariable UUID roleId) {
+    public ResponseEntity<ApiResponse<PageResponse<RolePermissionResponse>>> getByRoleId(@PathVariable UUID roleId,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
 
         List<RolePermissionResponse> response =
                 rolePermissionService.getByRoleId(roleId);
 
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResponse.success( CollectionPages.page(response, page, size)));
     }
 }

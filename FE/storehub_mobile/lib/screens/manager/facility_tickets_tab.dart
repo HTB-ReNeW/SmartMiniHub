@@ -1,3 +1,4 @@
+import '../../widgets/paged_list_view.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/utils/vi_labels.dart';
@@ -70,8 +71,7 @@ class _FacilityTicketsTabState extends State<FacilityTicketsTab> {
     _reload();
     try {
       await _future;
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   void _toast(String message, {bool error = false}) {
@@ -88,7 +88,8 @@ class _FacilityTicketsTabState extends State<FacilityTicketsTab> {
     List<FacilityStaffModel> staff;
     try {
       staff = (await _opsService.getFacilityStaff(widget.facilityId))
-          .where((member) => member.role == 'STAFF').toList();
+          .where((member) => member.role == 'STAFF')
+          .toList();
     } catch (e) {
       _toast(e.toString().replaceFirst('Exception: ', ''), error: true);
       return;
@@ -201,7 +202,8 @@ class _FacilityTicketsTabState extends State<FacilityTicketsTab> {
         }
 
         final tickets = [...?snapshot.data?.content, ..._additional];
-        final hasMore = snapshot.data != null && !snapshot.data!.last && !_lastPage;
+        final hasMore =
+            snapshot.data != null && !snapshot.data!.last && !_lastPage;
 
         return RefreshIndicator(
           onRefresh: _refresh,
@@ -212,19 +214,23 @@ class _FacilityTicketsTabState extends State<FacilityTicketsTab> {
                     AppEmptyState(
                       icon: Icons.support_agent_outlined,
                       title: 'Chưa có yêu cầu hỗ trợ',
-                      message: 'Yêu cầu hỗ trợ của khách tại cơ sở sẽ hiển thị tại đây.',
+                      message:
+                          'Yêu cầu hỗ trợ của khách tại cơ sở sẽ hiển thị tại đây.',
                     ),
                   ],
                 )
-              : ListView.builder(
+              : PagedListView.builder(
+                  hasTrailingItem: hasMore,
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                   itemCount: tickets.length + (hasMore ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (index == tickets.length) {
-                      return Center(child: TextButton(
+                      return Center(
+                          child: TextButton(
                         onPressed: _loadingMore ? null : _loadMore,
-                        child: Text(_loadingMore ? 'Đang tải...' : 'Xem thêm yêu cầu'),
+                        child: Text(
+                            _loadingMore ? 'Đang tải...' : 'Xem thêm yêu cầu'),
                       ));
                     }
                     final ticket = tickets[index];

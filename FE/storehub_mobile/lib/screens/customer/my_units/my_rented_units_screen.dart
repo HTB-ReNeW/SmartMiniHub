@@ -1,3 +1,4 @@
+import '../../../widgets/paged_list_view.dart';
 import 'refund_account_dialog.dart';
 import '../../../widgets/rental_agreement_screen.dart';
 import 'package:flutter/material.dart';
@@ -468,7 +469,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                       );
                     }
 
-                    return ListView.separated(
+                    return PagedListView.separated(
                       padding: const EdgeInsets.all(16),
                       itemCount: records.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -946,10 +947,14 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                         ? 'Booking đã thanh toán sẽ hiện ở đây cho đến khi nhân viên bàn giao.'
                         : 'Ngăn kho sẽ hiện ở đây sau khi nhân viên hoàn tất bàn giao.',
                   ),
-                ...units.map((unit) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _buildUnitCard(unit),
-                    )),
+                PagedListView.builder(
+                    shrinkWrap: true,
+                    primary: false,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: units.length,
+                    itemBuilder: (context, index) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildUnitCard(units[index]))),
               ],
             );
           },
@@ -1147,7 +1152,9 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                 Text(
                   'Tổng tiền sẽ hoàn: ${_currency.format(unit.totalRentalFee + (unit.depositPaid ?? 0))}',
                   style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.success),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.success),
                 ),
               ] else if (monthlyRate != null) ...[
                 const SizedBox(height: 12),

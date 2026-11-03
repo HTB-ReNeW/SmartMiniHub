@@ -78,7 +78,7 @@ class FacilityOpsApiService {
     String facilityId,
   ) async {
     try {
-      final response = await _http.get(
+      final response = await _http.getAll(
         ApiEndpoints.facilityUnits(facilityId),
       );
 
@@ -187,7 +187,7 @@ class FacilityOpsApiService {
     String facilityId,
   ) async {
     try {
-      final response = await _http.get(
+      final response = await _http.getAll(
         ApiEndpoints.facilityStaffList(
           facilityId,
         ),
@@ -205,7 +205,7 @@ class FacilityOpsApiService {
   Future<List<AssignableUserModel>> getAssignableUsers(
       String facilityId) async {
     try {
-      final response = await _http.get(
+      final response = await _http.getAll(
         ApiEndpoints.facilityAssignableStaff(facilityId),
       );
 
@@ -248,7 +248,7 @@ class FacilityOpsApiService {
   Future<List<FacilityStaffModel>> getFacilityManagers(
       String facilityId) async {
     try {
-      final response = await _http.get(
+      final response = await _http.getAll(
         ApiEndpoints.facilityManagers(facilityId),
       );
       final raw = response.data;
@@ -334,7 +334,7 @@ class FacilityOpsApiService {
     String facilityId,
   ) async {
     try {
-      final response = await _http.get(
+      final response = await _http.getAll(
         ApiEndpoints.facilityConfirmedBookings(facilityId),
       );
 
@@ -352,7 +352,7 @@ class FacilityOpsApiService {
     String facilityId,
   ) async {
     try {
-      final response = await _http.get(
+      final response = await _http.getAll(
         ApiEndpoints.facilityContracts(facilityId),
       );
 
@@ -417,7 +417,7 @@ class FacilityOpsApiService {
     required DateTime date,
   }) async {
     try {
-      final response = await _http.get(
+      final response = await _http.getAll(
         ApiEndpoints.dailySchedule,
         queryParameters: {
           'facilityId': facilityId,
@@ -451,7 +451,7 @@ class FacilityOpsApiService {
   }
 
   Future<Map<String, dynamic>> getFacilityRefunds(String facilityId,
-      {int page = 0, int size = 20}) async {
+      {int page = 0, int size = 10}) async {
     try {
       final response = await _http.get(ApiEndpoints.facilityRefunds(facilityId),
           queryParameters: {'page': page, 'size': size});
@@ -606,7 +606,7 @@ class FacilityOpsApiService {
     required String facilityId,
   }) async {
     try {
-      final response = await _http.get(
+      final response = await _http.getAll(
         ApiEndpoints.handoverRecords(bookingId),
         queryParameters: {
           'facilityId': facilityId,

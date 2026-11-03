@@ -86,6 +86,20 @@ class HttpClient {
       _send('GET', path,
           queryParameters: queryParameters, plainText: plainText);
 
+  /// Collect page-sized API batches for selectors and lists filtered locally.
+  /// Screens still display at most ten rows using PagedListView.
+  Future<ApiResponse> getAll(String path,
+      {Map<String, dynamic>? queryParameters}) async {
+    return collectCollectionPages((page) => get(path, queryParameters: {
+          ...?queryParameters,
+          'page': page,
+          'size': 10,
+          'sortBy': 'createdAt',
+          'sortDir': 'desc',
+          'sort': 'createdAt,desc',
+        }));
+  }
+
   Future<ApiResponse> post(
     String path, {
     dynamic data,
@@ -205,7 +219,9 @@ class HttpClient {
       final ok = response.statusCode >= 200 && response.statusCode < 300;
       return _RawResult(
         response.statusCode,
-        ok ? _decodeBody(text, plainText) : _errorBody(text, response.statusCode),
+        ok
+            ? _decodeBody(text, plainText)
+            : _errorBody(text, response.statusCode),
       );
     } on TimeoutException {
       throw const ApiException(
@@ -340,4 +356,29 @@ class _RawResult {
   final dynamic data;
 
   const _RawResult(this.statusCode, this.data);
+}
+
+/// Loads complete results for local filtering without issuing an oversized API request.
+Future<ApiResponse> collectCollectionPages(
+    Future<ApiResponse> Function(int page) request) async {
+  final items = <dynamic>[];
+  var page = 0;
+  while (true) {
+    final response = await request(page);
+    final body = response.data;
+    final data = body is Map && body.containsKey('data') ? body['data'] : body;
+    if (data is! Map || data['content'] is! List) return response;
+    final content = data['content'] as List;
+    items.addAll(content);
+    final totalPages = (data['totalPages'] as num?)?.toInt();
+    if (data['last'] == true ||
+        content.isEmpty ||
+        (totalPages != null && page + 1 >= totalPages)) {
+      return ApiResponse(statusCode: response.statusCode, data: {
+        if (body is Map) ...Map<String, dynamic>.from(body),
+        'data': items,
+      });
+    }
+    page++;
+  }
 }

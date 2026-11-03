@@ -1,3 +1,4 @@
+import '../../widgets/paged_list_view.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -106,11 +107,13 @@ class _AppointmentAssignmentScreenState
               children: [
                 _quickFilter('Hôm nay', DateTime.now()),
                 const SizedBox(width: 8),
-                _quickFilter('Ngày mai', DateTime.now().add(const Duration(days: 1))),
+                _quickFilter(
+                    'Ngày mai', DateTime.now().add(const Duration(days: 1))),
                 const SizedBox(width: 8),
                 _quickFilter(
                   'Tuần này',
-                  DateTime.now().subtract(Duration(days: DateTime.now().weekday - 1)),
+                  DateTime.now()
+                      .subtract(Duration(days: DateTime.now().weekday - 1)),
                 ),
               ],
             ),
@@ -156,80 +159,90 @@ class _AppointmentAssignmentScreenState
                         style: TextStyle(fontSize: 12),
                       ),
                     ),
-                  Expanded(child: FutureBuilder<List<DailyScheduleModel>>(
-                  future: _schedule,
-                  builder: (context, scheduleSnapshot) {
-                    if (scheduleSnapshot.hasError) {
-                      return Center(child: Text('${scheduleSnapshot.error}'));
-                    }
-                    if (!scheduleSnapshot.hasData) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    final appointments = scheduleSnapshot.data!;
-                    if (appointments.isEmpty) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 24),
-                          child: Text(
-                            'Chưa có lịch nhận/trả kho trong ngày này.\n'
-                            'Lịch chỉ xuất hiện khi khách đã đặt cọc và ngày bắt đầu thuê '
-                            '(nhận kho) hoặc ngày hết hạn (trả kho) trùng với ngày đang chọn. '
-                            'Hãy chọn ngày khác.',
-                            textAlign: TextAlign.center,
+                  Expanded(
+                      child: FutureBuilder<List<DailyScheduleModel>>(
+                    future: _schedule,
+                    builder: (context, scheduleSnapshot) {
+                      if (scheduleSnapshot.hasError) {
+                        return Center(child: Text('${scheduleSnapshot.error}'));
+                      }
+                      if (!scheduleSnapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      final appointments = scheduleSnapshot.data!;
+                      if (appointments.isEmpty) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 24),
+                            child: Text(
+                              'Chưa có lịch nhận/trả kho trong ngày này.\n'
+                              'Lịch chỉ xuất hiện khi khách đã đặt cọc và ngày bắt đầu thuê '
+                              '(nhận kho) hoặc ngày hết hạn (trả kho) trùng với ngày đang chọn. '
+                              'Hãy chọn ngày khác.',
+                              textAlign: TextAlign.center,
+                            ),
                           ),
+                        );
+                      }
+                      final staff = staffSnapshot.data!;
+                      return RefreshIndicator(
+                        onRefresh: () async {
+                          _reload();
+                          await _schedule;
+                        },
+                        child: PagedListView.builder(
+                          itemCount: appointments.length,
+                          itemBuilder: (context, index) {
+                            final item = appointments[index];
+                            final chosen =
+                                staff.any((s) => s.id == item.assignedStaffId)
+                                    ? item.assignedStaffId
+                                    : null;
+                            return Card(
+                              margin: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                        '${item.bookingCode} • ${item.unitCode}',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold)),
+                                    Text(
+                                        '${item.isCheckIn ? 'Nhận kho' : 'Trả kho'} • '
+                                        '${item.customerName} • '
+                                        '${item.scheduledTime == null ? '-' : DateFormat('HH:mm').format(item.scheduledTime!)}'),
+                                    const SizedBox(height: 12),
+                                    DropdownButtonFormField<String>(
+                                      key: ValueKey(
+                                          '${item.bookingId}-${item.scheduleType}-${chosen ?? ''}'),
+                                      initialValue: chosen ?? '',
+                                      decoration: const InputDecoration(
+                                          labelText: 'Nhân viên phụ trách'),
+                                      items: [
+                                        const DropdownMenuItem(
+                                            value: '',
+                                            child: Text('Chưa phân công')),
+                                        ...staff.map((s) => DropdownMenuItem(
+                                              value: s.id,
+                                              child: Text(s.fullName),
+                                            )),
+                                      ],
+                                      onChanged: _updating == item.bookingId
+                                          ? null
+                                          : (id) => _assign(
+                                              item, id == '' ? null : id),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       );
-                    }
-                    final staff = staffSnapshot.data!;
-                    return RefreshIndicator(
-                      onRefresh: () async {
-                        _reload();
-                        await _schedule;
-                      },
-                      child: ListView.builder(
-                        itemCount: appointments.length,
-                        itemBuilder: (context, index) {
-                          final item = appointments[index];
-                          final chosen = staff.any((s) => s.id == item.assignedStaffId)
-                              ? item.assignedStaffId
-                              : null;
-                          return Card(
-                            margin: const EdgeInsets.fromLTRB(12, 6, 12, 6),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('${item.bookingCode} • ${item.unitCode}',
-                                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  Text('${item.isCheckIn ? 'Nhận kho' : 'Trả kho'} • '
-                                      '${item.customerName} • '
-                                      '${item.scheduledTime == null ? '-' : DateFormat('HH:mm').format(item.scheduledTime!)}'),
-                                  const SizedBox(height: 12),
-                                  DropdownButtonFormField<String>(
-                                    key: ValueKey('${item.bookingId}-${item.scheduleType}-${chosen ?? ''}'),
-                                    initialValue: chosen ?? '',
-                                    decoration: const InputDecoration(labelText: 'Nhân viên phụ trách'),
-                                    items: [
-                                      const DropdownMenuItem(value: '', child: Text('Chưa phân công')),
-                                      ...staff.map((s) => DropdownMenuItem(
-                                            value: s.id,
-                                            child: Text(s.fullName),
-                                          )),
-                                    ],
-                                    onChanged: _updating == item.bookingId
-                                        ? null
-                                        : (id) => _assign(item, id == '' ? null : id),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                )),
+                    },
+                  )),
                 ]);
               },
             ),

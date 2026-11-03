@@ -38,7 +38,7 @@ public class StaffTicketController {
             @RequestParam UUID facilityId,
             @AuthenticationPrincipal UserDetails userDetails,
             @ParameterObject
-            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC)
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable
     ) {
         PageResponse<TicketResponse> response = staffTicketService.getFacilityTickets(

@@ -1,4 +1,3 @@
-
 import '../core/constants/api_endpoints.dart';
 import '../core/network/http_client.dart';
 import '../mappers/facility_operations_mapper.dart';
@@ -10,7 +9,7 @@ class StorageApiService {
   // Lấy danh sách kho đang thuê của khách hàng
   Future<List<dynamic>> getMyRentedUnits() async {
     try {
-      final response = await _http.get(ApiEndpoints.myUnits);
+      final response = await _http.getAll(ApiEndpoints.myUnits);
       if (response.data is List) {
         return response.data;
       } else if (response.data['result'] is List) {
@@ -27,7 +26,7 @@ class StorageApiService {
 
   Future<List<dynamic>> getAwaitingHandover() async {
     try {
-      final response = await _http.get(ApiEndpoints.awaitingHandover);
+      final response = await _http.getAll(ApiEndpoints.awaitingHandover);
       final body = response.data;
       return body is Map && body['data'] is List
           ? List<dynamic>.from(body['data'])
@@ -77,14 +76,15 @@ class StorageApiService {
   }
 
   // Đổi PIN: phải nhập đúng PIN hiện tại. newPin == null -> hệ thống cấp mới.
-  Future<Map<String, dynamic>> updatePin(
-      String bookingId, String currentPin, {String? newPin}) async {
+  Future<Map<String, dynamic>> updatePin(String bookingId, String currentPin,
+      {String? newPin}) async {
     try {
       final response = await _http.put(
         ApiEndpoints.updatePin(bookingId),
         data: {
           'currentPin': currentPin,
-          if (newPin != null && newPin.trim().isNotEmpty) 'newPin': newPin.trim(),
+          if (newPin != null && newPin.trim().isNotEmpty)
+            'newPin': newPin.trim(),
         },
       );
       return _unwrapMap(response.data);
@@ -228,13 +228,17 @@ class StorageApiService {
     }
   }
 
-  Future<List<HandoverRecordModel>> getCustomerHandoverRecords(String bookingId) async {
+  Future<List<HandoverRecordModel>> getCustomerHandoverRecords(
+      String bookingId) async {
     try {
-      final response = await _http.get(ApiEndpoints.customerHandoverRecords(bookingId));
+      final response =
+          await _http.getAll(ApiEndpoints.customerHandoverRecords(bookingId));
       final data = response.data;
-      final list = (data is Map && data['data'] is List) ? data['data'] as List : [];
+      final list =
+          (data is Map && data['data'] is List) ? data['data'] as List : [];
       return list
-          .map((e) => FacilityOperationsMapper.handoverRecordFromJson(Map<String, dynamic>.from(e as Map)))
+          .map((e) => FacilityOperationsMapper.handoverRecordFromJson(
+              Map<String, dynamic>.from(e as Map)))
           .toList();
     } on ApiException catch (e) {
       final message = e.response?.data?['message'] ?? e.message;

@@ -14,6 +14,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DailyScheduleResponse {
+    private java.time.LocalDateTime createdAt;
 
     private UUID bookingId;
 

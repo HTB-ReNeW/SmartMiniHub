@@ -29,23 +29,28 @@ public interface RefundRequestRepository extends JpaRepository<RefundRequest, UU
     @Query(value = """
             SELECT r FROM RefundRequest r
             WHERE r.booking.storageUnit.facility.id = :facilityId
-            ORDER BY CASE WHEN r.status = :completed THEN 1 ELSE 0 END,
-                     CASE WHEN r.dueAt < :now AND r.status <> :completed THEN 0 ELSE 1 END,
-                     CASE WHEN r.status <> :completed THEN r.dueAt END ASC,
-                     CASE WHEN r.status = :completed THEN r.createdAt END DESC,
-                     r.id ASC
+            ORDER BY r.createdAt DESC, r.id DESC
             """, countQuery = """
             SELECT COUNT(r) FROM RefundRequest r
             WHERE r.booking.storageUnit.facility.id = :facilityId
             """)
-    Page<RefundRequest> findForManager(@Param("facilityId") UUID facilityId,
-            @Param("completed") RefundStatus completed, @Param("now") LocalDateTime now,
-            Pageable pageable);
+    Page<RefundRequest> findForManager(@Param("facilityId") UUID facilityId, Pageable pageable);
 
-    List<RefundRequest> findTop20ByStatusOrderByDueAtAsc(RefundStatus status);
+    @Query(value = """
+            SELECT r.* FROM refund_requests r JOIN bookings b ON b.id = r.booking_id
+            WHERE r.status = :status AND b.booking_code NOT LIKE 'DEMO-PG-%'
+            ORDER BY r.due_at ASC LIMIT 20
+            """, nativeQuery = true)
+    List<RefundRequest> findTop20ByStatusOrderByDueAtAsc(@Param("status") String status);
 
+    @Query(value = """
+            SELECT r.* FROM refund_requests r JOIN bookings b ON b.id = r.booking_id
+            WHERE r.status IN (:statuses) AND r.updated_status_at < :before
+            AND b.booking_code NOT LIKE 'DEMO-PG-%'
+            ORDER BY r.updated_status_at ASC LIMIT 20
+            """, nativeQuery = true)
     List<RefundRequest> findTop20ByStatusInAndUpdatedStatusAtBeforeOrderByUpdatedStatusAtAsc(
-            List<RefundStatus> statuses, LocalDateTime before);
+            @Param("statuses") List<String> statuses, @Param("before") LocalDateTime before);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from RefundRequest r where r.id = :id")

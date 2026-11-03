@@ -4,12 +4,24 @@ import '../models/notification_model.dart';
 import '../models/paged_result.dart';
 
 class NotificationApiService {
+  Future<List<NotificationModel>> getAllNotifications(
+      {bool? unreadOnly}) async {
+    final response = await _http.getAll(ApiEndpoints.notifications,
+        queryParameters: {if (unreadOnly != null) 'unreadOnly': unreadOnly});
+    final data = response.data;
+    final items = data is Map ? data['data'] : data;
+    return (items as List)
+        .map((item) =>
+            NotificationModel.fromJson(Map<String, dynamic>.from(item as Map)))
+        .toList();
+  }
+
   final HttpClient _http = HttpClient.instance;
 
   Future<PagedResult<NotificationModel>> getNotifications({
     bool? unreadOnly,
     int page = 0,
-    int size = 20,
+    int size = 10,
   }) async {
     try {
       final query = <String, dynamic>{
@@ -25,7 +37,8 @@ class NotificationApiService {
       );
       return PagedResult.fromApi(
         response.data,
-        (item) => NotificationModel.fromJson(Map<String, dynamic>.from(item as Map)),
+        (item) =>
+            NotificationModel.fromJson(Map<String, dynamic>.from(item as Map)),
       );
     } catch (e) {
       rethrow;

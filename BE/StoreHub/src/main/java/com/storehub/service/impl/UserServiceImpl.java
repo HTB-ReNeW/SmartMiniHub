@@ -178,7 +178,7 @@ public class UserServiceImpl implements UserService {
                 ? Sort.by(direction, "role.name").and(Sort.by(Sort.Direction.ASC, "email"))
                 : Sort.by(direction, resolvedSortBy);
 
-        Pageable pageable = PageRequest.of(page, size, sort);
+        Pageable pageable = PageRequest.of(page, size, sort.and(Sort.by(Sort.Direction.DESC, "id")));
 
         Page<UserResponse> result = userRepository
                 .findAllWithFilters(search, isActive, roleName, facilityId, pageable)

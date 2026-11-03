@@ -51,22 +51,20 @@ class RefundReviewPaginationTest {
                 .dueAt(LocalDateTime.now().minusDays(2))
                 .build();
         oldRefund.setId(UUID.randomUUID());
-        when(refunds.findForManager(eq(facilityId), eq(RefundStatus.COMPLETED),
-                any(LocalDateTime.class), eq(PageRequest.of(2, 20))))
-                .thenReturn(new PageImpl<>(java.util.Collections.nCopies(11, oldRefund),
-                        PageRequest.of(2, 20), 51));
+        when(refunds.findForManager(eq(facilityId), eq(PageRequest.of(5, 10))))
+                .thenReturn(new PageImpl<>(java.util.Collections.nCopies(1, oldRefund),
+                        PageRequest.of(5, 10), 51));
 
-        var page = service.list(facilityId, manager, 2, 20);
+        var page = service.list(facilityId, manager, 5, 10);
 
         assertEquals("Vietcombank", page.getContent().get(0).bankCode());
         assertEquals("0012345678", page.getContent().get(0).bankAccountNumber());
         assertEquals("NGUYEN VAN AN", page.getContent().get(0).bankAccountName());
         assertEquals(51, page.getTotalElements());
-        assertEquals(3, page.getTotalPages());
+        assertEquals(6, page.getTotalPages());
         assertEquals("BK-OLD", page.getContent().get(0).bookingCode());
         assertEquals(true, page.getContent().get(0).overdue());
-        verify(refunds).findForManager(eq(facilityId), eq(RefundStatus.COMPLETED),
-                any(LocalDateTime.class), eq(PageRequest.of(2, 20)));
+        verify(refunds).findForManager(eq(facilityId), eq(PageRequest.of(5, 10)));
     }
 
     @Test
@@ -75,6 +73,6 @@ class RefundReviewPaginationTest {
         String manager = "manager@example.invalid";
         when(users.existsByEmailAndRole_NameAndFacility_IdAndIsActiveTrue(
                 manager, "FACILITY_MANAGER", facilityId)).thenReturn(true);
-        assertThrows(AppException.class, () -> service.list(facilityId, manager, 0, 101));
+        assertThrows(AppException.class, () -> service.list(facilityId, manager, 0, 11));
     }
 }

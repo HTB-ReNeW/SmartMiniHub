@@ -1,5 +1,9 @@
 package com.storehub.controller;
 
+import com.storehub.common.CollectionPages;
+
+import com.storehub.common.PageResponse;
+
 import com.storehub.common.ApiResponse;
 import com.storehub.service.WaitlistService;
 import com.storehub.dto.response.WaitlistResponse;
@@ -41,10 +45,9 @@ public class WaitlistController {
 
     @GetMapping("/mine")
     @PreAuthorize("hasRole('CUSTOMER') and hasAuthority('BOOKING_VIEW')")
-    public ResponseEntity<ApiResponse<List<WaitlistResponse>>> myWaitlist(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(ApiResponse.success(
-                waitlistService.myWaitlist(userDetails.getUsername())));
+    public ResponseEntity<ApiResponse<PageResponse<WaitlistResponse>>> myWaitlist(@AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(ApiResponse.success( CollectionPages.page(waitlistService.myWaitlist(userDetails.getUsername()), page, size)));
     }
 
     @DeleteMapping("/{waitlistId}")

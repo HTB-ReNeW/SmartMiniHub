@@ -1,5 +1,9 @@
 package com.storehub.controller;
 
+import com.storehub.common.CollectionPages;
+
+import com.storehub.common.PageResponse;
+
 import com.storehub.common.ApiResponse;
 import com.storehub.dto.request.BookingCreationRequest;
 import com.storehub.dto.request.RentalQuoteRequest;
@@ -82,10 +86,8 @@ public class BookingController {
     @PreAuthorize("hasRole('CUSTOMER') and hasAuthority('BOOKING_VIEW')")
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Các booking còn hạn đang chờ thanh toán của khách hiện tại")
-    public ResponseEntity<ApiResponse<List<BookingResponse>>> getPayableBookings(
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
-        return ResponseEntity.ok(ApiResponse.success("Payable bookings retrieved",
-                bookingService.getPayableBookings(userDetails.getUsername())));
+    public ResponseEntity<ApiResponse<PageResponse<BookingResponse>>> getPayableBookings(@AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(ApiResponse.success("Payable bookings retrieved", CollectionPages.page(bookingService.getPayableBookings(userDetails.getUsername()), page, size)));
     }
 }

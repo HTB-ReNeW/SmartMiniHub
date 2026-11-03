@@ -7,10 +7,13 @@ class TicketApiService {
 
   Future<PagedResult<Map<String, dynamic>>> getMyTickets({int page = 0}) async {
     try {
-      final response = await _http.get(ApiEndpoints.tickets,
-          queryParameters: {'page': page, 'size': 20, 'sort': 'createdAt,desc'});
-      return PagedResult.fromApi(response.data,
-          (item) => Map<String, dynamic>.from(item as Map));
+      final response = await _http.get(ApiEndpoints.tickets, queryParameters: {
+        'page': page,
+        'size': 10,
+        'sort': 'createdAt,desc'
+      });
+      return PagedResult.fromApi(
+          response.data, (item) => Map<String, dynamic>.from(item as Map));
     } on ApiException catch (e) {
       final message = e.response?.data?['message'] ?? e.message;
       throw Exception('Không tải được yêu cầu hỗ trợ: $message');
@@ -27,7 +30,9 @@ class TicketApiService {
         ]),
       );
       if (response.data is Map && response.data['data'] is List) {
-        return (response.data['data'] as List).map((e) => e.toString()).toList();
+        return (response.data['data'] as List)
+            .map((e) => e.toString())
+            .toList();
       }
       return [];
     } on ApiException catch (e) {

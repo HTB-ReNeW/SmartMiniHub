@@ -17,7 +17,7 @@ class PaginationUtilsTest {
     void rejectsInvalidPageSizeDirectionAndSortProperty() {
         assertInvalid(() -> PaginationUtils.pageRequest(-1, 10));
         assertInvalid(() -> PaginationUtils.pageRequest(0, 0));
-        assertInvalid(() -> PaginationUtils.pageRequest(0, 101));
+        assertInvalid(() -> PaginationUtils.pageRequest(0, 11));
         assertInvalid(() -> PaginationUtils.pageRequest(
                 0, 10, "createdAt", "sideways", Map.of("createdAt", "createdAt")));
         assertInvalid(() -> PaginationUtils.pageRequest(
@@ -27,10 +27,10 @@ class PaginationUtilsTest {
     @Test
     void resolvesAllowedAliasAndDirection() {
         PageRequest request = PaginationUtils.pageRequest(
-                2, 25, "facilityName", "DESC", Map.of("facilityName", "facility.name"));
+                2, 10, "facilityName", "DESC", Map.of("facilityName", "facility.name"));
 
         assertEquals(2, request.getPageNumber());
-        assertEquals(25, request.getPageSize());
+        assertEquals(10, request.getPageSize());
         assertEquals(Sort.Direction.DESC,
                 request.getSort().getOrderFor("facility.name").getDirection());
     }

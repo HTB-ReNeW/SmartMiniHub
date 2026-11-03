@@ -1,3 +1,4 @@
+import '../../widgets/paged_list_view.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/utils/vi_labels.dart';
@@ -295,7 +296,9 @@ class _StaffTicketScreenState extends State<StaffTicketScreen> {
               SelectableText(
                 pin,
                 style: const TextStyle(
-                    fontSize: 36, fontWeight: FontWeight.bold, letterSpacing: 8),
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 8),
               ),
               const SizedBox(height: 10),
               const Text(
@@ -395,7 +398,8 @@ class _StaffTicketScreenState extends State<StaffTicketScreen> {
           }
 
           final tickets = [...?snapshot.data?.content, ..._additional];
-          final hasMore = snapshot.data != null && !snapshot.data!.last && !_lastPage;
+          final hasMore =
+              snapshot.data != null && !snapshot.data!.last && !_lastPage;
 
           if (tickets.isEmpty) {
             return RefreshIndicator(
@@ -416,16 +420,19 @@ class _StaffTicketScreenState extends State<StaffTicketScreen> {
 
           return RefreshIndicator(
             onRefresh: _refreshTickets,
-            child: ListView.separated(
+            child: PagedListView.separated(
+              hasTrailingItem: hasMore,
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               itemCount: tickets.length + (hasMore ? 1 : 0),
               separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 if (index == tickets.length) {
-                  return Center(child: TextButton(
+                  return Center(
+                      child: TextButton(
                     onPressed: _loadingMore ? null : _loadMore,
-                    child: Text(_loadingMore ? 'Đang tải...' : 'Xem thêm yêu cầu'),
+                    child:
+                        Text(_loadingMore ? 'Đang tải...' : 'Xem thêm yêu cầu'),
                   ));
                 }
                 final ticket = tickets[index];

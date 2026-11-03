@@ -52,12 +52,14 @@ public class SeedConfig implements ApplicationRunner {
     private final SupportTicketRepository supportTicketRepository;
     private final ActivityLogRepository activityLogRepository;
     private final WaitlistRepository waitlistRepository;
+    private final PaginationDemoSeeder paginationDemoSeeder;
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
         seedUsers();
         seedOperationalData();
+        paginationDemoSeeder.seed();
     }
 
     private void seedUsers() {

@@ -10,7 +10,7 @@ import java.util.Locale;
 
 public final class PaginationUtils {
 
-    public static final int MAX_PAGE_SIZE = 100;
+    public static final int MAX_PAGE_SIZE = 10;
 
     private PaginationUtils() {
     }
@@ -58,6 +58,6 @@ public final class PaginationUtils {
     ) {
         validatePage(page, size);
         String property = resolveSortProperty(sortBy, allowedProperties);
-        return PageRequest.of(page, size, Sort.by(direction(sortDir), property));
+        return PageRequest.of(page, size, Sort.by(direction(sortDir), property).and(Sort.by(Sort.Direction.DESC, "id")));
     }
 }

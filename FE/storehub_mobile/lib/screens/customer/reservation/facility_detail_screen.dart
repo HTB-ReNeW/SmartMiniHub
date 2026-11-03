@@ -1,3 +1,4 @@
+import '../../../widgets/paged_list_view.dart';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../models/unit_type_model.dart';
@@ -609,19 +610,27 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
             child: Center(child: Text('Chưa có loại kho khả dụng.')),
           )
         else
-          ...unitTypes.map((type) => _UnitTypeCard(
-                type: type,
-                isSelected: _selectedType?.id == type.id,
-                onTap: type.availableUnits > 0
-                    ? () {
-                        setState(() {
-                          _selectedType = type;
-                          _quote = null;
-                        });
-                        _refreshQuote();
-                      }
-                    : null,
-              )),
+          PagedListView.builder(
+              shrinkWrap: true,
+              primary: false,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: unitTypes.length,
+              itemBuilder: (context, index) {
+                final type = unitTypes[index];
+                return _UnitTypeCard(
+                  type: type,
+                  isSelected: _selectedType?.id == type.id,
+                  onTap: type.availableUnits > 0
+                      ? () {
+                          setState(() {
+                            _selectedType = type;
+                            _quote = null;
+                          });
+                          _refreshQuote();
+                        }
+                      : null,
+                );
+              }),
         if (_selectedType != null) ...[
           const SizedBox(height: 12),
           _buildSelectedTypeAvailabilityInfo(_selectedType!),

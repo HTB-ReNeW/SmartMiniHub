@@ -1,5 +1,9 @@
 package com.storehub.controller;
 
+import com.storehub.common.CollectionPages;
+
+import com.storehub.common.PageResponse;
+
 import com.storehub.common.ApiResponse;
 import com.storehub.dto.request.FacilityUnitRequest;
 import com.storehub.dto.response.*;
@@ -45,16 +49,13 @@ public class FacilityManagementController {
 
     @GetMapping("/{facilityId}/units")
     @PreAuthorize("hasAnyRole('STAFF', 'FACILITY_MANAGER') and hasAuthority('STORAGE_UNIT_VIEW')")
-    public ApiResponse<List<FacilityUnitResponse>> units(
-            @PathVariable UUID facilityId,
-            @AuthenticationPrincipal UserDetails principal
-    ) {
-        return ApiResponse.success(
-                service.units(
+    public ApiResponse<PageResponse<FacilityUnitResponse>> units(@PathVariable UUID facilityId,
+            @AuthenticationPrincipal UserDetails principal,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+        return ApiResponse.success( CollectionPages.page(service.units(
                         facilityId,
                         principal.getUsername()
-                )
-        );
+                ), page, size));
     }
 
     @PostMapping("/{facilityId}/units")
@@ -125,27 +126,21 @@ public class FacilityManagementController {
 
     @GetMapping("/{facilityId}/staff")
     @PreAuthorize("hasRole('FACILITY_MANAGER') and hasAuthority('STAFF_ASSIGNMENT_VIEW')")
-    public ApiResponse<List<FacilityStaffResponse>> staff(
-            @PathVariable UUID facilityId,
-            @AuthenticationPrincipal UserDetails principal
-    ) {
-        return ApiResponse.success(
-                service.staff(
+    public ApiResponse<PageResponse<FacilityStaffResponse>> staff(@PathVariable UUID facilityId,
+            @AuthenticationPrincipal UserDetails principal,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+        return ApiResponse.success( CollectionPages.page(service.staff(
                         facilityId,
                         principal.getUsername()
-                )
-        );
+                ), page, size));
     }
 
     @GetMapping("/{facilityId}/staff/assignable")
     @PreAuthorize("hasRole('FACILITY_MANAGER') and hasAuthority('STAFF_ASSIGNMENT_VIEW')")
-    public ApiResponse<List<AssignableStaffResponse>> assignableStaff(
-            @PathVariable UUID facilityId,
-            @AuthenticationPrincipal UserDetails principal
-    ) {
-        return ApiResponse.success(
-                service.assignableStaff(facilityId, principal.getUsername())
-        );
+    public ApiResponse<PageResponse<AssignableStaffResponse>> assignableStaff(@PathVariable UUID facilityId,
+            @AuthenticationPrincipal UserDetails principal,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+        return ApiResponse.success( CollectionPages.page(service.assignableStaff(facilityId, principal.getUsername()), page, size));
     }
 
     @PutMapping("/{facilityId}/staff/{userId}")
@@ -167,12 +162,9 @@ public class FacilityManagementController {
 
     @GetMapping("/{facilityId}/managers")
     @PreAuthorize("hasAnyRole('ADMIN', 'FACILITY_MANAGER', 'BUSINESS_MANAGER')")
-    public ApiResponse<List<FacilityStaffResponse>> managers(
-            @PathVariable UUID facilityId
-    ) {
-        return ApiResponse.success(
-                service.managers(facilityId)
-        );
+    public ApiResponse<PageResponse<FacilityStaffResponse>> managers(@PathVariable UUID facilityId,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+        return ApiResponse.success( CollectionPages.page(service.managers(facilityId), page, size));
     }
 
     @PutMapping("/{facilityId}/managers/{userId}")
@@ -225,16 +217,13 @@ public class FacilityManagementController {
 
     @GetMapping("/{facilityId}/bookings")
     @PreAuthorize("hasRole('FACILITY_MANAGER') and hasAuthority('BOOKING_VIEW')")
-    public ApiResponse<List<FacilityContractResponse>> contracts(
-            @PathVariable UUID facilityId,
-            @AuthenticationPrincipal UserDetails principal
-    ) {
-        return ApiResponse.success(
-                service.contracts(
+    public ApiResponse<PageResponse<FacilityContractResponse>> contracts(@PathVariable UUID facilityId,
+            @AuthenticationPrincipal UserDetails principal,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+        return ApiResponse.success( CollectionPages.page(service.contracts(
                         facilityId,
                         principal.getUsername()
-                )
-        );
+                ), page, size));
     }
 
     @PutMapping("/{facilityId}/bookings/{bookingId}/sealing/approve")
@@ -255,15 +244,12 @@ public class FacilityManagementController {
 
     @GetMapping("/{facilityId}/bookings/confirmed")
     @PreAuthorize("hasRole('FACILITY_MANAGER') and hasAuthority('BOOKING_VIEW')")
-    public ApiResponse<List<FacilityBookingResponse>> confirmedBookings(
-            @PathVariable UUID facilityId,
-            @AuthenticationPrincipal UserDetails principal
-    ) {
-        return ApiResponse.success(
-                service.confirmedBookings(
+    public ApiResponse<PageResponse<FacilityBookingResponse>> confirmedBookings(@PathVariable UUID facilityId,
+            @AuthenticationPrincipal UserDetails principal,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+        return ApiResponse.success( CollectionPages.page(service.confirmedBookings(
                         facilityId,
                         principal.getUsername()
-                )
-        );
+                ), page, size));
     }
 }

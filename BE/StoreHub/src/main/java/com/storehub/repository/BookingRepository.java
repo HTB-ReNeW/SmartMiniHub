@@ -42,6 +42,20 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             @Param("staffId") UUID staffId, @Param("bookingId") UUID bookingId,
             @Param("slotStart") LocalDateTime slotStart, @Param("slotEnd") LocalDateTime slotEnd);
 
+    @Query("""
+            SELECT b FROM Booking b
+            JOIN FETCH b.storageUnit su
+            LEFT JOIN FETCH su.facility
+            LEFT JOIN FETCH su.unitType
+            WHERE b.customer.id = :customerId
+            AND (b.status = com.storehub.enums.BookingStatus.CONFIRMED
+                 OR (b.status = com.storehub.enums.BookingStatus.CANCELLED
+                     AND (b.depositPaid > 0 OR EXISTS
+                         (SELECT r.id FROM RefundRequest r WHERE r.booking = b))))
+            ORDER BY b.createdAt DESC
+            """)
+    List<Booking> findAwaitingOrCancelledPaidBookingsByCustomerId(@Param("customerId") UUID customerId);
+
     boolean existsByBookingCode(String bookingCode);
 
     Optional<Booking> findByBookingCode(String bookingCode);

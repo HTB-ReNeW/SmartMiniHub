@@ -81,8 +81,7 @@ public class CustomerStorageServiceImpl implements CustomerStorageService {
     @Transactional(readOnly = true)
     public List<MyUnitResponse> getAwaitingHandover(String customerEmail) {
         UUID customerId = resolveCustomerId(customerEmail);
-        return bookingRepository.findActiveBookingsByCustomerId(
-                        customerId, List.of(BookingStatus.CONFIRMED))
+        return bookingRepository.findAwaitingOrCancelledPaidBookingsByCustomerId(customerId)
                 .stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 

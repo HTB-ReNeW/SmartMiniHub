@@ -7,18 +7,20 @@ import '../../services/facility_ops_api_service.dart';
 
 class RefundReviewScreen extends StatefulWidget {
   final String facilityId;
-  const RefundReviewScreen({super.key, required this.facilityId});
+  final FacilityOpsApiService? service;
+  const RefundReviewScreen({super.key, required this.facilityId, this.service});
 
   @override
   State<RefundReviewScreen> createState() => _RefundReviewScreenState();
 }
 
 class _RefundReviewScreenState extends State<RefundReviewScreen> {
-  final _api = FacilityOpsApiService();
+  late final _api = widget.service ?? FacilityOpsApiService();
   late Future<Map<String, dynamic>> _requests;
   int _page = 0;
   String _filter = 'ALL';
-  final _money = NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
+  final _money =
+      NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
 
   @override
   void initState() {
@@ -44,30 +46,41 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
           title: const Text('Giao dịch VNPay gốc'),
           content: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Text('Sao chép các giá trị này từ giao dịch gốc trên VNPay. '
+              const Text(
+                  'Sao chép các giá trị này từ giao dịch gốc trên VNPay. '
                   'Không nhập ngày yêu cầu hoàn tiền.'),
-              TextField(controller: date,
-                  decoration: const InputDecoration(labelText: 'Ngày tạo giao dịch (yyyyMMddHHmmss)')),
-              TextField(controller: transactionNo,
-                  decoration: const InputDecoration(labelText: 'Mã giao dịch VNPay (không bắt buộc)')),
-              TextField(controller: amount,
+              TextField(
+                  controller: date,
+                  decoration: const InputDecoration(
+                      labelText: 'Ngày tạo giao dịch (yyyyMMddHHmmss)')),
+              TextField(
+                  controller: transactionNo,
+                  decoration: const InputDecoration(
+                      labelText: 'Mã giao dịch VNPay (không bắt buộc)')),
+              TextField(
+                  controller: amount,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Số tiền giao dịch gốc (VND)')),
+                  decoration: const InputDecoration(
+                      labelText: 'Số tiền giao dịch gốc (VND)')),
             ]),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false),
+            TextButton(
+                onPressed: () => Navigator.pop(context, false),
                 child: const Text('Hủy')),
-            FilledButton(onPressed: () => Navigator.pop(context, true),
+            FilledButton(
+                onPressed: () => Navigator.pop(context, true),
                 child: const Text('Gửi')),
           ],
         ),
       );
       if (submitted != true) return;
       final value = num.tryParse(amount.text.trim());
-      if (!RegExp(r'^\d{14}$').hasMatch(date.text.trim()) || value == null
-          || value < (num.tryParse('${refund['amount']}') ?? 0)) {
-        throw const FormatException('Kiểm tra lại ngày và số tiền của giao dịch gốc.');
+      if (!RegExp(r'^\d{14}$').hasMatch(date.text.trim()) ||
+          value == null ||
+          value < (num.tryParse('${refund['amount']}') ?? 0)) {
+        throw const FormatException(
+            'Kiểm tra lại ngày và số tiền của giao dịch gốc.');
       }
       await _api.provideRefundDetails(widget.facilityId, '${refund['id']}',
           date.text.trim(), transactionNo.text.trim(), value);
@@ -142,7 +155,8 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
             SizedBox(
               width: 16,
               height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: Colors.white),
             ),
             SizedBox(width: 12),
             Text('Đang truy vấn đối soát với cổng VNPay...'),
@@ -181,7 +195,8 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
 
   String _generateRefCode() {
     final now = DateTime.now();
-    final ymd = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+    final ymd =
+        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
     final millis = now.millisecondsSinceEpoch.toString();
     final suffix = millis.substring(millis.length > 5 ? millis.length - 5 : 0);
     return 'REF-$ymd-$suffix';
@@ -203,10 +218,14 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
               children: [
                 Text(
                   'Số tiền hoàn cọc: ${_money.format(amount)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.blue),
                 ),
                 const SizedBox(height: 12),
-                if (refund['bankCode'] != null || refund['bankAccountNumber'] != null) ...[
+                if (refund['bankCode'] != null ||
+                    refund['bankAccountNumber'] != null) ...[
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
@@ -218,9 +237,13 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (refund['bankCode'] != null)
-                          Text('Ngân hàng: ${refund['bankCode']}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                          Text('Ngân hàng: ${refund['bankCode']}',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w600)),
                         if (refund['bankAccountNumber'] != null)
-                          Text('Số tài khoản: ${refund['bankAccountNumber']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          Text('Số tài khoản: ${refund['bankAccountNumber']}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 15)),
                         if (refund['bankAccountName'] != null)
                           Text('Chủ tài khoản: ${refund['bankAccountName']}'),
                       ],
@@ -228,7 +251,8 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
                   ),
                   const SizedBox(height: 12),
                 ],
-                const Text('Mã giao dịch ngân hàng đã được hệ thống tự tạo sẵn (bạn có thể đổi nếu muốn):'),
+                const Text(
+                    'Mã giao dịch ngân hàng đã được hệ thống tự tạo sẵn (bạn có thể đổi nếu muốn):'),
                 const SizedBox(height: 8),
                 TextField(
                   controller: refController,
@@ -264,7 +288,8 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
               onPressed: () {
                 if (refController.text.trim().isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Vui lòng nhập mã tham chiếu giao dịch')),
+                    const SnackBar(
+                        content: Text('Vui lòng nhập mã tham chiếu giao dịch')),
                   );
                   return;
                 }
@@ -282,7 +307,9 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
         widget.facilityId,
         '${refund['id']}',
         transferReference: refController.text.trim(),
-        notes: noteController.text.trim().isNotEmpty ? noteController.text.trim() : null,
+        notes: noteController.text.trim().isNotEmpty
+            ? noteController.text.trim()
+            : null,
       );
 
       if (mounted) {
@@ -305,7 +332,8 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
     }
   }
 
-  Widget _buildFilterTab(String label, String value, int count, Color activeColor) {
+  Widget _buildFilterTab(
+      String label, String value, int count, Color activeColor) {
     final isSelected = _filter == value;
     return InkWell(
       onTap: () => setState(() => _filter = value),
@@ -313,7 +341,9 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? activeColor.withValues(alpha: 0.12) : Colors.transparent,
+          color: isSelected
+              ? activeColor.withValues(alpha: 0.12)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? activeColor : Colors.grey.shade300,
@@ -356,7 +386,8 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
   Widget _buildStatusBadge(String status) {
     final isCompleted = status == 'COMPLETED';
     final isPendingBank = status == 'AWAITING_BANK_TRANSFER';
-    final isAwaitingVnpay = status == 'AWAITING_CONFIRMATION' || status == 'SENDING';
+    final isAwaitingVnpay =
+        status == 'AWAITING_CONFIRMATION' || status == 'SENDING';
 
     final Color bgColor;
     final Color borderColor;
@@ -402,14 +433,15 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
         children: [
           Icon(icon, size: 13, color: textColor),
           const SizedBox(width: 4),
-          Text(
+          Flexible(
+              child: Text(
             label,
             style: TextStyle(
               color: textColor,
               fontSize: 11,
               fontWeight: FontWeight.bold,
             ),
-          ),
+          )),
         ],
       ),
     );
@@ -430,25 +462,37 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
         body: FutureBuilder<Map<String, dynamic>>(
           future: _requests,
           builder: (context, snapshot) {
-            if (snapshot.hasError) return Center(child: Text('${snapshot.error}'));
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (snapshot.hasError) {
+              return Center(child: Text('${snapshot.error}'));
+            }
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
             final result = snapshot.data!;
             final allRequests = (result['content'] as List? ?? const [])
-                .map((item) => Map<String, dynamic>.from(item as Map)).toList();
+                .map((item) => Map<String, dynamic>.from(item as Map))
+                .toList();
             final totalPages = (result['totalPages'] as num?)?.toInt() ?? 0;
             final total = (result['totalElements'] as num?)?.toInt() ?? 0;
 
-            final pendingCount = allRequests.where((r) => r['status'] != 'COMPLETED').length;
-            final completedCount = allRequests.where((r) => r['status'] == 'COMPLETED').length;
+            final pendingCount =
+                allRequests.where((r) => r['status'] != 'COMPLETED').length;
+            final completedCount =
+                allRequests.where((r) => r['status'] == 'COMPLETED').length;
 
             final requests = _filter == 'ALL'
                 ? allRequests
                 : (_filter == 'COMPLETED'
-                    ? allRequests.where((r) => r['status'] == 'COMPLETED').toList()
-                    : allRequests.where((r) => r['status'] != 'COMPLETED').toList());
+                    ? allRequests
+                        .where((r) => r['status'] == 'COMPLETED')
+                        .toList()
+                    : allRequests
+                        .where((r) => r['status'] != 'COMPLETED')
+                        .toList());
 
             if (allRequests.isEmpty && total == 0) {
-              return const Center(child: Text('Chưa có yêu cầu hoàn tiền nào.'));
+              return const Center(
+                  child: Text('Chưa có yêu cầu hoàn tiền nào.'));
             }
 
             return Column(
@@ -456,20 +500,25 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
                 // Filter Tabs Bar
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                    border:
+                        Border(bottom: BorderSide(color: Colors.grey.shade200)),
                   ),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _buildFilterTab('Tất cả', 'ALL', allRequests.length, Colors.blue.shade800),
+                        _buildFilterTab('Tất cả', 'ALL', allRequests.length,
+                            Colors.blue.shade800),
                         const SizedBox(width: 8),
-                        _buildFilterTab('Chờ hoàn tiền', 'PENDING', pendingCount, Colors.orange.shade800),
+                        _buildFilterTab('Chờ hoàn tiền', 'PENDING',
+                            pendingCount, Colors.orange.shade800),
                         const SizedBox(width: 8),
-                        _buildFilterTab('Đã hoàn tiền', 'COMPLETED', completedCount, Colors.green.shade800),
+                        _buildFilterTab('Đã hoàn tiền', 'COMPLETED',
+                            completedCount, Colors.green.shade800),
                       ],
                     ),
                   ),
@@ -500,7 +549,10 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
                                         ? () {
                                             setState(() {
                                               _page--;
-                                              _requests = _api.getFacilityRefunds(widget.facilityId, page: _page);
+                                              _requests =
+                                                  _api.getFacilityRefunds(
+                                                      widget.facilityId,
+                                                      page: _page);
                                             });
                                           }
                                         : null,
@@ -518,7 +570,10 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
                                         ? () {
                                             setState(() {
                                               _page++;
-                                              _requests = _api.getFacilityRefunds(widget.facilityId, page: _page);
+                                              _requests =
+                                                  _api.getFacilityRefunds(
+                                                      widget.facilityId,
+                                                      page: _page);
                                             });
                                           }
                                         : null,
@@ -531,19 +586,26 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
                             final refund = requests[index];
                             final status = '${refund['status']}';
                             final isCompleted = status == 'COMPLETED';
-                            final isPendingBank = status == 'AWAITING_BANK_TRANSFER';
-                            final damageDeduction = num.tryParse('${refund['damageDeduction']}') ?? 0;
+                            final isPendingBank =
+                                status == 'AWAITING_BANK_TRANSFER';
+                            final damageDeduction =
+                                num.tryParse('${refund['damageDeduction']}') ??
+                                    0;
 
                             return Card(
                               margin: const EdgeInsets.fromLTRB(12, 6, 12, 6),
                               elevation: isCompleted ? 0.5 : 2,
-                              color: isCompleted ? const Color(0xFFF9FDF9) : Colors.white,
+                              color: isCompleted
+                                  ? const Color(0xFFF9FDF9)
+                                  : Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 side: BorderSide(
                                   color: isCompleted
                                       ? Colors.green.shade300
-                                      : (isPendingBank ? Colors.orange.shade400 : Colors.blue.shade200),
+                                      : (isPendingBank
+                                          ? Colors.orange.shade400
+                                          : Colors.blue.shade200),
                                   width: isCompleted ? 1.2 : 1.5,
                                 ),
                               ),
@@ -553,32 +615,36 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     // Header: Mã đơn + Số tiền bên trái, Badge trạng thái bên phải
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                '${refund['bookingCode']}',
-                                                style: const TextStyle(
-                                                    fontWeight: FontWeight.bold, fontSize: 15),
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                _money.format(num.tryParse('${refund['amount']}') ?? 0),
-                                                style: TextStyle(
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              '${refund['bookingCode']}',
+                                              style: const TextStyle(
                                                   fontWeight: FontWeight.bold,
-                                                  fontSize: 16,
-                                                  color: isCompleted
-                                                      ? Colors.green.shade700
-                                                      : Colors.blue.shade800,
-                                                ),
+                                                  fontSize: 15),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              _money.format(num.tryParse(
+                                                      '${refund['amount']}') ??
+                                                  0),
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                                color: isCompleted
+                                                    ? Colors.green.shade700
+                                                    : Colors.blue.shade800,
                                               ),
-                                            ],
-                                          ),
+                                            ),
+                                          ],
                                         ),
                                         _buildStatusBadge(status),
                                       ],
@@ -586,8 +652,10 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
                                     const Divider(height: 14),
 
                                     if (refund['originalTransactionId'] != null)
-                                      Text('Giao dịch gốc: ${refund['originalTransactionId']}',
-                                          style: const TextStyle(fontSize: 12.5)),
+                                      Text(
+                                          'Giao dịch gốc: ${refund['originalTransactionId']}',
+                                          style:
+                                              const TextStyle(fontSize: 12.5)),
                                     if (damageDeduction > 0)
                                       Padding(
                                         padding: const EdgeInsets.only(top: 2),
@@ -600,44 +668,58 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
                                         ),
                                       ),
                                     if (refund['bankAccountNumber'] != null &&
-                                        '${refund['bankAccountNumber']}'.isNotEmpty) ...[
+                                        '${refund['bankAccountNumber']}'
+                                            .isNotEmpty) ...[
                                       const SizedBox(height: 6),
                                       Container(
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
-                                          color: Colors.blue.shade50.withValues(alpha: 0.5),
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: Colors.blue.shade100),
+                                          color: Colors.blue.shade50
+                                              .withValues(alpha: 0.5),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          border: Border.all(
+                                              color: Colors.blue.shade100),
                                         ),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Row(
                                               children: [
-                                                const Icon(Icons.account_balance,
-                                                    size: 16, color: Colors.blue),
+                                                const Icon(
+                                                    Icons.account_balance,
+                                                    size: 16,
+                                                    color: Colors.blue),
                                                 const SizedBox(width: 6),
                                                 Text(
                                                   '${refund['bankCode'] ?? 'Ngân hàng'}: ${refund['bankAccountNumber']}',
                                                   style: const TextStyle(
-                                                      fontWeight: FontWeight.bold, fontSize: 13),
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 13),
                                                 ),
                                               ],
                                             ),
-                                            if (refund['bankAccountName'] != null)
-                                              Text('Chủ TK: ${refund['bankAccountName']}',
-                                                  style: const TextStyle(fontSize: 12)),
+                                            if (refund['bankAccountName'] !=
+                                                null)
+                                              Text(
+                                                  'Chủ TK: ${refund['bankAccountName']}',
+                                                  style: const TextStyle(
+                                                      fontSize: 12)),
                                           ],
                                         ),
                                       ),
                                     ],
                                     if (refund['transferReference'] != null &&
-                                        '${refund['transferReference']}'.isNotEmpty)
+                                        '${refund['transferReference']}'
+                                            .isNotEmpty)
                                       Padding(
                                         padding: const EdgeInsets.only(top: 4),
                                         child: Row(
                                           children: [
-                                            const Icon(Icons.check_circle, size: 15, color: Colors.teal),
+                                            const Icon(Icons.check_circle,
+                                                size: 15, color: Colors.teal),
                                             const SizedBox(width: 4),
                                             Text(
                                               'Mã GD chuyển tiền: ${refund['transferReference']}',
@@ -666,7 +748,8 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
                                       if (refund['overdue'] == true)
                                         const Text(
                                           'Đã quá hạn cam kết: cần xử lý/đối soát ngay.',
-                                          style: TextStyle(color: Colors.red, fontSize: 12),
+                                          style: TextStyle(
+                                              color: Colors.red, fontSize: 12),
                                         ),
                                     ],
                                     if (refund['gatewayResponseCode'] != null)
@@ -676,9 +759,11 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
                                           'Phản hồi VNPay: ${_vnpayCodeDescription(refund['gatewayResponseCode']?.toString())}',
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: refund['gatewayResponseCode'] == '00'
-                                                ? Colors.teal.shade800
-                                                : Colors.orange.shade800,
+                                            color:
+                                                refund['gatewayResponseCode'] ==
+                                                        '00'
+                                                    ? Colors.teal.shade800
+                                                    : Colors.orange.shade800,
                                             fontWeight: FontWeight.w500,
                                           ),
                                         ),
@@ -689,20 +774,26 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
                                           color: Colors.blue.shade50,
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: Colors.blue.shade200),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          border: Border.all(
+                                              color: Colors.blue.shade200),
                                         ),
                                         child: Row(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Icon(Icons.info_outline,
-                                                size: 16, color: Colors.blue.shade700),
+                                                size: 16,
+                                                color: Colors.blue.shade700),
                                             const SizedBox(width: 6),
                                             Expanded(
                                               child: Text(
                                                 'Cổng VNPay đã tiếp nhận yêu cầu hoàn tiền. Trong môi trường thử nghiệm hoặc khi cần xử lý nhanh, bạn có thể bấm "Hoàn tất thủ công" để ghi nhận hoàn tiền cho khách ngay.',
                                                 style: TextStyle(
-                                                    fontSize: 12, color: Colors.blue.shade900),
+                                                    fontSize: 12,
+                                                    color:
+                                                        Colors.blue.shade900),
                                               ),
                                             ),
                                           ],
@@ -715,36 +806,53 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
                                         child: SizedBox(
                                           width: double.infinity,
                                           child: FilledButton.icon(
-                                            onPressed: () => _confirmBankTransfer(refund),
-                                            icon: const Icon(Icons.check_circle_outline, size: 18),
-                                            label: const Text('Xác nhận đã chuyển khoản hoàn cọc'),
+                                            onPressed: () =>
+                                                _confirmBankTransfer(refund),
+                                            icon: const Icon(
+                                                Icons.check_circle_outline,
+                                                size: 18),
+                                            label: const Text(
+                                                'Xác nhận đã chuyển khoản hoàn cọc'),
                                             style: FilledButton.styleFrom(
-                                                backgroundColor: Colors.green.shade700),
+                                                backgroundColor:
+                                                    Colors.green.shade700),
                                           ),
                                         ),
                                       ),
-                                    if (status == 'MISSING_METADATA' || status == 'REJECTED')
+                                    if (status == 'MISSING_METADATA' ||
+                                        status == 'REJECTED')
                                       TextButton(
-                                          onPressed: () => _provideDetails(refund),
-                                          child: const Text('Nhập/sửa thông tin giao dịch gốc')),
+                                          onPressed: () =>
+                                              _provideDetails(refund),
+                                          child: const Text(
+                                              'Nhập/sửa thông tin giao dịch gốc')),
                                     if (status == 'REJECTED')
                                       Padding(
                                         padding: const EdgeInsets.only(top: 4),
-                                        child: Row(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.stretch,
                                           children: [
-                                            Expanded(
-                                              child: FilledButton.icon(
-                                                onPressed: () => _confirmBankTransfer(refund),
-                                                icon: const Icon(Icons.check_circle_outline, size: 16),
-                                                label: const Text('Hoàn tất thủ công'),
-                                                style: FilledButton.styleFrom(
-                                                    backgroundColor: Colors.teal.shade700),
-                                              ),
+                                            FilledButton.icon(
+                                              onPressed: () =>
+                                                  _confirmBankTransfer(refund),
+                                              icon: const Icon(
+                                                  Icons.check_circle_outline,
+                                                  size: 16),
+                                              label: const Text(
+                                                  'Hoàn tất thủ công'),
+                                              style: FilledButton.styleFrom(
+                                                  backgroundColor:
+                                                      Colors.teal.shade700),
                                             ),
-                                            const SizedBox(width: 8),
+                                            const SizedBox(height: 8),
                                             OutlinedButton(
+                                              style: OutlinedButton.styleFrom(
+                                                  minimumSize:
+                                                      const Size(0, 44)),
                                               onPressed: () => _retry(refund),
-                                              child: const Text('Gửi lại VNPay'),
+                                              child:
+                                                  const Text('Gửi lại VNPay'),
                                             ),
                                           ],
                                         ),
@@ -754,30 +862,42 @@ class _RefundReviewScreenState extends State<RefundReviewScreen> {
                                         status == 'AWAITING_CONFIRMATION')
                                       Padding(
                                         padding: const EdgeInsets.only(top: 8),
-                                        child: Row(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.stretch,
                                           children: [
-                                            Expanded(
-                                              child: FilledButton.icon(
-                                                onPressed: () => _confirmBankTransfer(refund),
-                                                icon: const Icon(Icons.check_circle_outline, size: 16),
-                                                label: const Text('Hoàn tất thủ công'),
-                                                style: FilledButton.styleFrom(
-                                                    backgroundColor: Colors.teal.shade700),
-                                              ),
+                                            FilledButton.icon(
+                                              onPressed: () =>
+                                                  _confirmBankTransfer(refund),
+                                              icon: const Icon(
+                                                  Icons.check_circle_outline,
+                                                  size: 16),
+                                              label: const Text(
+                                                  'Hoàn tất thủ công'),
+                                              style: FilledButton.styleFrom(
+                                                  backgroundColor:
+                                                      Colors.teal.shade700),
                                             ),
-                                            const SizedBox(width: 8),
+                                            const SizedBox(height: 8),
                                             OutlinedButton.icon(
-                                              onPressed:
-                                                  _isReconciling ? null : () => _reconcile(refund),
+                                              style: OutlinedButton.styleFrom(
+                                                  minimumSize:
+                                                      const Size(0, 44)),
+                                              onPressed: _isReconciling
+                                                  ? null
+                                                  : () => _reconcile(refund),
                                               icon: _isReconciling
                                                   ? const SizedBox(
                                                       width: 14,
                                                       height: 14,
-                                                      child: CircularProgressIndicator(
-                                                          strokeWidth: 2),
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                              strokeWidth: 2),
                                                     )
-                                                  : const Icon(Icons.sync, size: 16),
-                                              label: const Text('Đối soát VNPay'),
+                                                  : const Icon(Icons.sync,
+                                                      size: 16),
+                                              label:
+                                                  const Text('Đối soát VNPay'),
                                             ),
                                           ],
                                         ),

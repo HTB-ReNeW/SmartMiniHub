@@ -148,10 +148,20 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
               ),
               const Divider(height: 1),
               ListTile(
-                leading: const Icon(Icons.description_outlined),
-                title: const Text('Hợp đồng & Cam kết lưu kho'),
-                subtitle: const Text('Xem điều khoản và cam kết đã xác nhận'),
-                trailing: const Icon(Icons.chevron_right),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.description_outlined,
+                      color: AppColors.primary),
+                ),
+                title: const Text('Hợp đồng & Cam kết lưu kho',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                subtitle: const Text('Xem điều khoản và cam kết đã xác nhận',
+                    style: TextStyle(fontSize: 12)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _showRentalContract(unit);
@@ -600,7 +610,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Đã hủy đơn'),
+          content: Text('Đã gửi yêu cầu hủy'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -667,6 +677,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
   }
 
   String _unitBadgeLabel(MyUnitModel unit) {
+    if (unit.status == 'CANCELLED') return 'Đã gửi yêu cầu hủy';
     if (unit.overdue) return 'Quá hạn';
     if (unit.isActive && unit.scheduledReturnTime != null) {
       return 'Đã hẹn trả kho';
@@ -976,6 +987,14 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                   ),
                 ],
               ),
+              if (unit.status == 'CANCELLED') ...[
+                const SizedBox(height: 10),
+                const Text(
+                    'Đã gửi yêu cầu hủy. Đơn không còn chờ bàn giao. '
+                    'Khoản hoàn tiền (nếu có) được xử lý theo chính sách của cơ sở.',
+                    style: TextStyle(
+                        fontSize: 12, color: AppColors.onSurfaceVariant)),
+              ],
               if (unit.hasHandoverIssue) ...[
                 const SizedBox(height: 10),
                 Text(

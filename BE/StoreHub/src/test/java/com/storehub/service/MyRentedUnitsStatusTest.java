@@ -45,14 +45,16 @@ class MyRentedUnitsStatusTest {
         when(users.findByEmail("customer@test.com")).thenReturn(Optional.of(customer));
         when(bookings.findActiveBookingsByCustomerId(customerId, List.of(BookingStatus.ACTIVE)))
                 .thenReturn(List.of(new Booking()));
-        when(bookings.findActiveBookingsByCustomerId(customerId, List.of(BookingStatus.CONFIRMED)))
-                .thenReturn(List.of(new Booking()));
+        Booking awaiting = Booking.builder().status(BookingStatus.CONFIRMED).build();
+        Booking cancelled = Booking.builder().status(BookingStatus.CANCELLED).build();
+        when(bookings.findAwaitingOrCancelledPaidBookingsByCustomerId(customerId))
+                .thenReturn(List.of(awaiting, cancelled));
         when(mapper.toMyUnitResponse(any(Booking.class)))
                 .thenReturn(MyUnitResponse.builder().build());
 
         assertEquals(1, storage.getMyRentedUnits("customer@test.com").size());
-        assertEquals(1, storage.getAwaitingHandover("customer@test.com").size());
+        assertEquals(2, storage.getAwaitingHandover("customer@test.com").size());
         verify(bookings).findActiveBookingsByCustomerId(customerId, List.of(BookingStatus.ACTIVE));
-        verify(bookings).findActiveBookingsByCustomerId(customerId, List.of(BookingStatus.CONFIRMED));
+        verify(bookings).findAwaitingOrCancelledPaidBookingsByCustomerId(customerId);
     }
 }

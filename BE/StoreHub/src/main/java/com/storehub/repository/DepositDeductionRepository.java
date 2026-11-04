@@ -9,6 +9,7 @@ import java.util.*;
 
 public interface DepositDeductionRepository extends JpaRepository<DepositDeduction, UUID> {
     boolean existsByOriginalPayment_Id(UUID originalPaymentId);
+    boolean existsByOriginalPayment_IdAndDeductionType(UUID originalPaymentId, String deductionType);
 
     @Query(value = "select coalesce(sum(d.amount), 0) from deposit_deduction_events d "
             + "join bookings b on b.id = d.booking_id join storage_units u on u.id = b.storage_unit_id "

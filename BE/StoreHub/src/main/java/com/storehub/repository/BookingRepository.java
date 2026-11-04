@@ -111,10 +111,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             LEFT JOIN FETCH su.unitType
             WHERE b.customer.id = :customerId
               AND (b.status IN (:statuses) OR (b.status = com.storehub.enums.BookingStatus.COMPLETED
-                   AND b.returnTime IS NOT NULL AND EXISTS (SELECT p.id FROM Payment p
-                     WHERE p.booking = b AND p.paymentType = com.storehub.enums.PaymentType.EXTRA_CHARGE
-                     AND p.note = 'OVERDUE_LATE_FEE' AND p.voidedAt IS NULL AND p.amount > 0
-                     AND p.status IN (com.storehub.enums.PaymentStatus.PENDING, com.storehub.enums.PaymentStatus.FAILED))))
+                   AND b.returnTime IS NOT NULL))
             ORDER BY b.startDate DESC
             """)
     List<Booking> findActiveBookingsByCustomerId(

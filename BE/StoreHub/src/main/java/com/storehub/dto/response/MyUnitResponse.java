@@ -49,6 +49,7 @@ public class MyUnitResponse {
     private LocalDate startDate;
     private LocalDate endDate;
     private LocalDateTime returnTime;
+    private ReturnSettlementResponse returnSettlement;
     private Integer rentalMonths;
     private BookingStatus status;
     private BigDecimal totalRentalFee;

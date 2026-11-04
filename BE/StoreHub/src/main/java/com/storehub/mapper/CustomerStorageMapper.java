@@ -17,6 +17,7 @@ import org.mapstruct.Mapping;
 public interface CustomerStorageMapper {
 
     @Mapping(target = "refundCompleted", ignore = true)
+    @Mapping(target = "returnSettlement", ignore = true)
     @Mapping(target = "rentalPolicy", expression = "java(com.storehub.dto.response.RentalPolicyResponse.from(booking))")
     @Mapping(target = "bookingId", source = "id")
     @Mapping(target = "customerName", source = "customer.fullName", defaultValue = "")

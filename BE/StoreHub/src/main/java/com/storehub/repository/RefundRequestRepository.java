@@ -19,6 +19,8 @@ import java.time.LocalDateTime;
 import java.math.BigDecimal;
 
 public interface RefundRequestRepository extends JpaRepository<RefundRequest, UUID> {
+    Optional<RefundRequest> findFirstByBooking_IdAndOriginalPayment_PaymentTypeOrderByCreatedAtDesc(
+            UUID bookingId, com.storehub.enums.PaymentType paymentType);
     @Query("select r.id from RefundRequest r where r.status <> com.storehub.enums.RefundStatus.COMPLETED "
             + "and r.dueAt <= :now order by r.dueAt, r.id")
     Page<UUID> findDueReminderIds(@Param("now") LocalDateTime now, Pageable pageable);

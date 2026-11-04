@@ -1,3 +1,4 @@
+import '../../../widgets/return_settlement_card.dart';
 import 'refund_account_dialog.dart';
 import '../../../widgets/rental_agreement_screen.dart';
 import 'package:flutter/material.dart';
@@ -117,7 +118,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
   }
 
   void _showUnitActions(MyUnitModel unit) {
-    if (unit.isRefunded) return;
+    if (unit.isRefunded || unit.hasReturned) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -705,7 +706,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
   }
 
   String _unitBadgeLabel(MyUnitModel unit) {
-    if (unit.isReturnSettlement) return 'Chờ đối soát trả kho';
+    if (unit.hasReturned) return 'Đã trả kho';
     if (unit.isRefunded) return 'Đã hoàn tiền';
     if (unit.status == 'CANCELLED') return 'Đã gửi yêu cầu hủy';
     if (unit.overdue) return 'Quá hạn';
@@ -807,7 +808,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
                               children: [
                                 Text(
                                   '${active.where((unit) => unit.isActive).length} đang thuê'
-                                  '${active.any((unit) => unit.isReturnSettlement) ? ' • ${active.where((unit) => unit.isReturnSettlement).length} chờ đối soát' : ''}',
+                                  '${active.any((unit) => unit.hasReturned) ? ' • ${active.where((unit) => unit.hasReturned).length} đã trả' : ''}',
                                   style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
@@ -872,8 +873,8 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
                                 const SizedBox(width: 6),
                                 Flexible(
                                     child: Text(
-                                  active.any((unit) => unit.isReturnSettlement)
-                                      ? 'Thuê / Trả kho (${active.length})'
+                                  active.any((unit) => unit.hasReturned)
+                                      ? 'Đang thuê / Đã trả (${active.length})'
                                       : 'Đang thuê (${active.length})',
                                   style: TextStyle(
                                     fontSize: 13,
@@ -961,7 +962,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: unit.isRefunded
+        onTap: (unit.isRefunded || unit.hasReturned)
             ? null
             : unit.isReturnSettlement
                 ? () => _openContractOperation(unit, isExtension: false)
@@ -1231,25 +1232,39 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
                   label: const Text('Hợp đồng & Cam kết'),
                 ),
               ),
-              if (unit.returnIsDue || unit.isReturnSettlement) ...[
+              if (unit.returnIsDue ||
+                  unit.hasReturned ||
+                  unit.scheduledReturnTime != null) ...[
                 const SizedBox(height: 10),
-                if (unit.isReturnSettlement)
-                  Text(
-                      'Kho đã được nhân viên nhận lại. Phí đã chốt: ${_currency.format(unit.overdueFeeOutstanding)}. Thanh toán để xử lý hoàn cọc; không tính thêm phí sau thời điểm bàn giao.',
-                      style: const TextStyle(fontSize: 12)),
-                const SizedBox(height: 6),
+                if (unit.hasReturned) ...[
+                  ReturnSettlementCard(settlement: unit.returnSettlement),
+                  const SizedBox(height: 10),
+                ],
                 SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
-                      onPressed: () =>
-                          _openContractOperation(unit, isExtension: false),
+                      onPressed: unit.hasReturned ||
+                              unit.scheduledReturnTime != null
+                          ? null
+                          : () =>
+                              _openContractOperation(unit, isExtension: false),
                       icon: const Icon(Icons.logout, size: 18),
-                      label: Text(unit.isReturnSettlement
-                          ? 'Trả kho • Đối soát thanh toán'
-                          : 'Trả kho'),
+                      label: Text(unit.hasReturned
+                          ? 'Đã trả kho'
+                          : unit.scheduledReturnTime != null
+                              ? 'Đã gửi yêu cầu trả kho'
+                              : 'Trả kho'),
                     )),
+                if (unit.isReturnSettlement)
+                  SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        onPressed: () =>
+                            _openContractOperation(unit, isExtension: false),
+                        child: const Text('Thanh toán phần còn thiếu'),
+                      )),
               ],
-              if (!unit.isRefunded && !unit.isReturnSettlement) ...[
+              if (!unit.isRefunded && !unit.hasReturned) ...[
                 const SizedBox(height: 12),
                 Row(
                   children: [

@@ -617,6 +617,23 @@ public class CustomerStorageServiceImpl implements CustomerStorageService {
                         .map(Payment::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add)
                 : BigDecimal.ZERO;
         response.setOverdueFeeOutstanding(lateFees);
+        if (b.getEndDate() != null && (b.getStatus() == BookingStatus.ACTIVE || b.getReturnTime() != null)) {
+            BigDecimal paid = paymentRepository.findByBooking_IdAndPaymentTypeAndNoteAndStatusIn(
+                    b.getId(), PaymentType.EXTRA_CHARGE, OVERDUE_LATE_FEE, List.of(PaymentStatus.PAID)).stream()
+                    .filter(p -> p.getVoidedAt() == null && p.getAmount() != null && p.getPaymentTime() != null
+                            && !p.getPaymentTime().isBefore(b.getEndDate().plusDays(1).atStartOfDay()))
+                    .map(Payment::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+            var record = b.getReturnTime() == null ? null : handoverRecordRepository
+                    .findByBookingIdOrderByRecordedAtDesc(b.getId()).stream()
+                    .filter(r -> "RETURN".equals(r.getRecordType())).findFirst().orElse(null);
+            response.setReturnSettlement(com.storehub.dto.response.ReturnSettlementResponse.calculate(
+                    b, LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")), paid, lateFees, record));
+            if (b.getReturnTime() != null && (record == null || record.getDepositBeforeReturn() == null)) {
+                refundRequests.findFirstByBooking_IdAndOriginalPayment_PaymentTypeOrderByCreatedAtDesc(
+                        b.getId(), PaymentType.DEPOSIT).ifPresent(refund -> response.setReturnSettlement(
+                                response.getReturnSettlement().withHistoricalRefund(refund)));
+            }
+        }
 
         if (b.getStatus() == BookingStatus.ACTIVE && b.getEndDate() != null
                 && b.getStorageUnit() != null && b.getStorageUnit().getFacility() != null) {

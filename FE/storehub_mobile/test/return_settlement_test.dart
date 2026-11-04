@@ -47,11 +47,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Thanh toán phí trễ hạn'), findsNothing);
       if (returned) {
-        expect(find.text('Chờ đối soát trả kho'), findsOneWidget);
-        expect(find.text('Trả kho • Đối soát thanh toán'), findsOneWidget);
-        expect(
-            find.textContaining('không tính thêm phí sau thời điểm bàn giao'),
-            findsOneWidget);
+        expect(find.text('Đã trả kho'), findsNWidgets(2));
+        expect(find.text('Thanh toán phần còn thiếu'), findsOneWidget);
+        final button = tester.widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Đã trả kho'));
+        expect(button.onPressed, isNull);
         expect(find.text('Mở khóa'), findsNothing);
         expect(find.text('Quản lý'), findsNothing);
       } else {

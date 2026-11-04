@@ -1,6 +1,8 @@
 import 'rental_agreement.dart';
+import 'return_settlement.dart';
 
 class MyUnitModel {
+  final ReturnSettlement? returnSettlement;
   final String refundBankCode,
       refundAccountNumber,
       refundAccountName,
@@ -44,6 +46,7 @@ class MyUnitModel {
   final String? closeTime;
 
   MyUnitModel({
+    this.returnSettlement,
     this.refundBankCode = '',
     this.refundAccountNumber = '',
     this.refundAccountName = '',
@@ -111,6 +114,7 @@ class MyUnitModel {
 
   bool get isRefunded => status == 'CANCELLED' && refundCompleted;
   bool get isActive => status == 'ACTIVE';
+  bool get hasReturned => status == 'COMPLETED' && returnTime != null;
   bool get isReturnSettlement =>
       status == 'COMPLETED' && returnTime != null && hasLateFeeDue;
   bool get returnIsDue {
@@ -140,6 +144,10 @@ class MyUnitModel {
 
   factory MyUnitModel.fromJson(Map<String, dynamic> json) {
     return MyUnitModel(
+      returnSettlement: json['returnSettlement'] is Map
+          ? ReturnSettlement.fromJson(
+              Map<String, dynamic>.from(json['returnSettlement'] as Map))
+          : null,
       refundBankCode: json['refundBankCode']?.toString() ?? '',
       refundAccountNumber: json['refundAccountNumber']?.toString() ?? '',
       refundAccountName: json['refundAccountName']?.toString() ?? '',

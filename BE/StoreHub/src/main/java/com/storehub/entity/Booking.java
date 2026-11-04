@@ -17,6 +17,9 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class Booking extends BaseEntity {
+    @Column(name = "return_late_fee_deduction", nullable = false, precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal returnLateFeeDeduction = BigDecimal.ZERO;
     @Builder.Default
     private Boolean paymentDeferred = false;
     private Double cancellationWithin24hPercent;

@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public interface PaymentService {
+    BigDecimal deductReturnLateFeeFromDeposit(Booking booking, BigDecimal damageFee);
 
     PaymentResponse initiatePayment(
             String customerEmail,

@@ -80,6 +80,7 @@ class FacilityOperationsReturnScheduleTest {
         when(units.lockById(unitId)).thenReturn(Optional.of(unit));
         when(overdueScheduler.accrueOutstandingForCheckout(org.mockito.ArgumentMatchers.eq(booking), any()))
                 .thenReturn(true);
+        when(payments.deductReturnLateFeeFromDeposit(booking, null)).thenReturn(new BigDecimal("150"));
 
         operations.checkOut(bookingId, facilityId, "staff@test.com",
                         HandoverRequest.builder().unitCondition(com.storehub.enums.HandoverUnitCondition.GOOD)

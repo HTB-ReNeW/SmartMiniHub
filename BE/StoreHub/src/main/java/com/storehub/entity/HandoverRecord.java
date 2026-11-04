@@ -17,6 +17,14 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class HandoverRecord extends BaseEntity {
+    @Column(precision = 12, scale = 2)
+    private BigDecimal depositBeforeReturn;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal lateFeeDeduction;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal depositRefundAmount;
+    @Column(precision = 12, scale = 2)
+    private BigDecimal additionalPaymentAmount;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booking_id", nullable = false)

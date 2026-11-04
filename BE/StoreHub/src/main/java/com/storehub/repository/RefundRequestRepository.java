@@ -19,6 +19,20 @@ import java.time.LocalDateTime;
 import java.math.BigDecimal;
 
 public interface RefundRequestRepository extends JpaRepository<RefundRequest, UUID> {
+    long countByBooking_StorageUnit_Facility_Id(UUID facilityId);
+    long countByBooking_StorageUnit_Facility_IdAndStatus(UUID facilityId, RefundStatus status);
+    @Query(value = """
+            select r from RefundRequest r where r.booking.storageUnit.facility.id = :facilityId
+            and (:filter = 'ALL' or (:filter = 'COMPLETED' and r.status = :completed)
+                 or (:filter = 'PENDING' and r.status <> :completed))
+            order by r.createdAt desc, r.id desc
+            """, countQuery = """
+            select count(r) from RefundRequest r where r.booking.storageUnit.facility.id = :facilityId
+            and (:filter = 'ALL' or (:filter = 'COMPLETED' and r.status = :completed)
+                 or (:filter = 'PENDING' and r.status <> :completed))
+            """)
+    Page<RefundRequest> findFilteredForManager(@Param("facilityId") UUID facilityId,
+            @Param("completed") RefundStatus completed, @Param("filter") String filter, Pageable pageable);
     Optional<RefundRequest> findFirstByBooking_IdAndOriginalPayment_PaymentTypeOrderByCreatedAtDesc(
             UUID bookingId, com.storehub.enums.PaymentType paymentType);
     @Query("select r.id from RefundRequest r where r.status <> com.storehub.enums.RefundStatus.COMPLETED "

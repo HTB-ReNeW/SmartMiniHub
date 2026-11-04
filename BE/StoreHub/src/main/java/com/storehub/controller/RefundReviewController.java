@@ -25,9 +25,17 @@ public class RefundReviewController {
     public ApiResponse<PageResponse<RefundRequestResponse>> list(@PathVariable UUID facilityId,
             @AuthenticationPrincipal UserDetails principal,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "ALL") String filter) {
         return ApiResponse.success("Refund requests",
-                service.list(facilityId, principal.getUsername(), page, size));
+                service.listFiltered(facilityId, principal.getUsername(), page, size, filter));
+    }
+
+    @GetMapping("/{refundId}")
+    @PreAuthorize("hasRole('FACILITY_MANAGER') and hasAuthority('REFUND_VIEW')")
+    public ApiResponse<RefundRequestResponse> detail(@PathVariable UUID facilityId, @PathVariable UUID refundId,
+            @AuthenticationPrincipal UserDetails principal) {
+        return ApiResponse.success("Refund details", service.detail(facilityId,refundId,principal.getUsername()));
     }
 
     @PutMapping("/{refundId}/gateway-details")

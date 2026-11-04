@@ -9,7 +9,7 @@ class RefundApi extends FacilityOpsApiService {
   RefundApi(this.status);
   @override
   Future<Map<String, dynamic>> getFacilityRefunds(String facilityId,
-          {int page = 0, int size = 20}) async =>
+          {int page = 0, int size = 10, String filter = 'ALL'}) async =>
       {
         'content': [
           {

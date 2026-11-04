@@ -451,13 +451,24 @@ class FacilityOpsApiService {
   }
 
   Future<Map<String, dynamic>> getFacilityRefunds(String facilityId,
-      {int page = 0, int size = 20}) async {
+      {int page = 0, int size = 10, String filter = 'ALL'}) async {
     try {
       final response = await _http.get(ApiEndpoints.facilityRefunds(facilityId),
-          queryParameters: {'page': page, 'size': size});
+          queryParameters: {'page': page, 'size': size, 'filter': filter});
       return _unwrap(response.data);
     } on ApiException catch (error) {
       throw _err(error, 'tải yêu cầu hoàn tiền');
+    }
+  }
+
+  Future<Map<String, dynamic>> getFacilityRefundDetail(
+      String facilityId, String refundId) async {
+    try {
+      final response = await _http
+          .get('${ApiEndpoints.facilityRefunds(facilityId)}/$refundId');
+      return _unwrap(response.data);
+    } on ApiException catch (error) {
+      throw _err(error, 'tải chi tiết hoàn tiền');
     }
   }
 

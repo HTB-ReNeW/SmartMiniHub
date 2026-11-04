@@ -39,6 +39,21 @@ class MyRentedUnitsStatusTest {
     @Mock PasswordEncoder encoder;
     @InjectMocks CustomerStorageServiceImpl storage;
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+            "ACTIVE,-2,true,2", "ACTIVE,-1,true,1", "ACTIVE,0,false,0", "ACTIVE,1,false,0",
+            "CONFIRMED,-2,false,0", "COMPLETED,-2,false,0", "CANCELLED,-2,false,0"
+    })
+    void expiryComesFromVietnamCalendarRatherThanSchedulerMarker(BookingStatus status, int offset, boolean expired, long days) {
+        Booking booking = Booking.builder().status(status)
+                .endDate(java.time.LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).plusDays(offset))
+                .overdueDetectedAt(offset >= 0 ? java.time.LocalDateTime.now().minusDays(2) : null).build();
+        when(mapper.toMyUnitResponse(booking)).thenReturn(MyUnitResponse.builder().build());
+        MyUnitResponse response = org.springframework.test.util.ReflectionTestUtils.invokeMethod(storage, "mapToResponse", booking);
+        assertEquals(expired, response.isOverdue());
+        assertEquals(days, response.getOverdueDays());
+    }
+
     @Test
     void rentedUnitsAndAwaitingHandoverUseSeparateStatuses() {
         UUID customerId = UUID.randomUUID();

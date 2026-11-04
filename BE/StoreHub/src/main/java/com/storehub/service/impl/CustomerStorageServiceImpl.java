@@ -365,15 +365,15 @@ public class CustomerStorageServiceImpl implements CustomerStorageService {
         UUID facilityId = booking.getStorageUnit().getFacility().getId();
 
         var facility = booking.getStorageUnit().getFacility();
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+        if (request.getScheduledReturnTime() == null || !request.getScheduledReturnTime().isAfter(now)) {
+            throw new AppException(ErrorCode.CHECKOUT_TIME_IN_PAST);
+        }
         var returnTime = request.getScheduledReturnTime().toLocalTime();
         var openTime = facility.getOpenTime() != null ? facility.getOpenTime() : java.time.LocalTime.of(8, 0);
         var closeTime = facility.getCloseTime() != null ? facility.getCloseTime() : java.time.LocalTime.of(20, 0);
         if (returnTime.isBefore(openTime) || returnTime.isAfter(closeTime)) {
             throw new AppException(ErrorCode.CHECKOUT_TIME_OUTSIDE_OPEN_HOURS);
-        }
-
-        if (!facilityPolicyService.isReturnNoticeSatisfied(facilityId, request.getScheduledReturnTime())) {
-            throw new AppException(ErrorCode.RETURN_NOTICE_NOT_SATISFIED);
         }
 
         if (request.getBankAccountNumber() == null || request.getBankAccountNumber().isBlank()
@@ -382,11 +382,23 @@ public class CustomerStorageServiceImpl implements CustomerStorageService {
             throw new AppException(ErrorCode.REFUND_BANK_INFO_REQUIRED);
         }
 
+        var window = com.storehub.common.CheckoutScheduleWindow.forBooking(booking, now.toLocalDate());
+        if (request.getScheduledReturnTime().toLocalDate().isAfter(window.latest())) {
+            throw new AppException(ErrorCode.CHECKOUT_SCHEDULE_OUT_OF_RANGE);
+        }
+        if (request.getScheduledReturnTime().toLocalDate().isBefore(window.earliest())) {
+            throw new AppException(ErrorCode.RETURN_NOTICE_NOT_SATISFIED);
+        }
+        User previousStaff = booking.getAssignedCheckOutStaff();
+        boolean existingAppointment = booking.getScheduledReturnTime() != null;
+        boolean changed = existingAppointment
+                && !request.getScheduledReturnTime().equals(booking.getScheduledReturnTime());
         if (!request.getScheduledReturnTime().equals(booking.getScheduledReturnTime())) {
             // Lịch cũ đã giao cho nhân viên không tự động chuyển sang giờ mới.
             booking.setAssignedCheckOutStaff(null);
         }
         booking.setScheduledReturnTime(request.getScheduledReturnTime());
+        booking.setCheckoutNotes(request.getNotes() == null ? null : request.getNotes().trim());
         booking.setRefundBankCode(request.getBankCode().trim());
         booking.setRefundAccountNumber(request.getBankAccountNumber().trim());
         booking.setRefundAccountName(request.getBankAccountName().trim());
@@ -405,15 +417,23 @@ public class CustomerStorageServiceImpl implements CustomerStorageService {
 
         notificationService.notifyFacilityManager(
                 facility,
-                "Yêu cầu trả kho mới",
+                changed ? "Khách thay đổi lịch trả kho — cần phân công lại"
+                        : existingAppointment ? "Khách cập nhật thông tin trả kho" : "Yêu cầu trả kho mới",
                 "Khách hàng " + customerName + " yêu cầu trả ngăn " + unitCode
                         + " (Mã đơn: " + booking.getBookingCode() + ") vào lúc " + returnTimeStr
-                        + ". Vui lòng phân công nhân viên nghiệm thu.",
+                        + (booking.getAssignedCheckOutStaff() == null ? ". Vui lòng phân công nhân viên nghiệm thu."
+                        : ". Lịch hẹn và nhân viên phụ trách không thay đổi."),
                 com.storehub.enums.NotificationType.CHECKOUT_REQUEST,
                 booking.getId(),
                 "BOOKING"
         );
 
+        if (changed && previousStaff != null) {
+            notificationService.notifyUser(previousStaff, "Lịch trả kho đã thay đổi",
+                    "Khách đã đổi lịch trả ngăn " + unitCode + " sang " + returnTimeStr
+                            + ". Phân công cũ đã hủy; vui lòng chờ quản lý phân công lại.",
+                    com.storehub.enums.NotificationType.CHECKOUT_REQUEST, booking.getId(), "BOOKING", facility);
+        }
         if (booking.getAssignedCheckOutStaff() != null) {
             notificationService.notifyUser(
                     booking.getAssignedCheckOutStaff(),
@@ -514,7 +534,7 @@ public class CustomerStorageServiceImpl implements CustomerStorageService {
     // started closing overdue episodes immediately. Never clear unpaid late fees.
     private void reconcileOverdueState(Booking booking) {
         if (booking.getEndDate() == null
-                || booking.getEndDate().isBefore(LocalDate.now())
+                || booking.getEndDate().isBefore(LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")))
                 || findPendingLateFee(booking.getId()) != null) {
             return;
         }
@@ -579,12 +599,13 @@ public class CustomerStorageServiceImpl implements CustomerStorageService {
                 && refundRequests.existsByBooking_IdAndStatus(b.getId(), com.storehub.enums.RefundStatus.COMPLETED)
                 && !refundRequests.existsByBooking_IdAndStatusNot(b.getId(), com.storehub.enums.RefundStatus.COMPLETED));
 
-        if (b.getStatus() == BookingStatus.ACTIVE && b.getEndDate() != null
-                && b.getEndDate().isBefore(LocalDate.now())) {
-            response.setOverdueDays(ChronoUnit.DAYS.between(b.getEndDate(), LocalDate.now()));
-        }
+        LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+        long overdueDays = b.getStatus() == BookingStatus.ACTIVE && b.getEndDate() != null
+                ? Math.max(0, ChronoUnit.DAYS.between(b.getEndDate(), today)) : 0;
+        response.setOverdue(overdueDays > 0);
+        response.setOverdueDays(overdueDays);
 
-        BigDecimal lateFees = b.getOverdueDetectedAt() != null
+        BigDecimal lateFees = overdueDays > 0 || b.getOverdueDetectedAt() != null
                 ? paymentRepository.findByBooking_IdAndPaymentTypeAndNoteAndStatusIn(
                         b.getId(), PaymentType.EXTRA_CHARGE, OVERDUE_LATE_FEE,
                         List.of(PaymentStatus.PENDING, PaymentStatus.FAILED))

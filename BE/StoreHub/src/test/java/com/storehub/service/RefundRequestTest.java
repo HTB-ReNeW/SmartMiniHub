@@ -81,6 +81,8 @@ class RefundRequestTest {
     @Test
     void returnQueuesGatewayRefundWithoutPrematurelyMarkingItRefunded() {
         Booking booking = Booking.builder().bookingCode("BK-1")
+                .status(com.storehub.enums.BookingStatus.ACTIVE)
+                .returnTime(LocalDateTime.now().minusMinutes(1))
                 .depositPaid(new BigDecimal("200000")).build();
         booking.setId(UUID.randomUUID());
         Payment paid = Payment.builder().booking(booking).paymentType(PaymentType.DEPOSIT)
@@ -101,15 +103,15 @@ class RefundRequestTest {
         assertEquals(RefundStatus.QUEUED, captor.getValue().getStatus());
         assertEquals(PaymentStatus.REFUND_PENDING,
                 captor.getValue().getRefundPayment().getStatus());
-        assertEquals(5, java.time.Duration.between(
-                captor.getValue().getUpdatedStatusAt(), captor.getValue().getDueAt()).toDays());
+        assertEquals(booking.getReturnTime().plusDays(5), captor.getValue().getDueAt());
     }
 
     @Test
-    void snapshotsFacilityRefundDeadlineAtRequestCreation() {
+    void usesBookedRefundDeadlineEvenAfterFacilityPolicyEdits() {
         Facility facility = Facility.builder().build();
         facility.setId(UUID.randomUUID());
         Booking booking = Booking.builder().bookingCode("BK-SLA")
+                .refundSlaDays(2)
                 .storageUnit(StorageUnit.builder().facility(facility).build())
                 .depositPaid(new BigDecimal("100")).build();
         booking.setId(UUID.randomUUID());
@@ -117,8 +119,8 @@ class RefundRequestTest {
                 .paymentType(PaymentType.DEPOSIT).status(PaymentStatus.PAID)
                 .transactionId("TXN-SLA").amount(new BigDecimal("100"))
                 .gatewayCreateDate("20261009123456").build();
-        when(facilityPolicies.findByFacility_Id(facility.getId()))
-                .thenReturn(Optional.of(FacilityPolicy.builder().depositRefundSlaDays(2).build()));
+        lenient().when(facilityPolicies.findByFacility_Id(facility.getId()))
+                .thenReturn(Optional.of(FacilityPolicy.builder().depositRefundSlaDays(90).build()));
         when(payments.findFirstByBooking_IdAndPaymentTypeAndStatusOrderByPaymentTimeDesc(
                 booking.getId(), PaymentType.DEPOSIT, PaymentStatus.PAID))
                 .thenReturn(Optional.of(original));
@@ -130,6 +132,7 @@ class RefundRequestTest {
         verify(refunds).save(captured.capture());
         LocalDateTime due = captured.getValue().getDueAt();
         assertEquals(captured.getValue().getUpdatedStatusAt().plusDays(2), due);
+        org.mockito.Mockito.verifyNoInteractions(facilityPolicies);
     }
 
     @Test

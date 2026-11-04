@@ -611,7 +611,8 @@ public class FacilityManagementServiceImpl
                 booking.getProhibitedItemsAccepted(),
                 booking.getTermsAcceptedAt(),
                 booking.getContractPhotos(),
-                booking.getQuotedManagementFee()
+                booking.getQuotedManagementFee(),
+                com.storehub.dto.response.RentalPolicyResponse.from(booking)
         );
     }
 

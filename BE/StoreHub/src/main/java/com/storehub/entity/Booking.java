@@ -140,6 +140,21 @@ public class Booking extends BaseEntity {
     @Column(name = "scheduled_return_time")
     private LocalDateTime scheduledReturnTime;
 
+    @Column(columnDefinition = "TEXT")
+    private String checkoutNotes;
+
+    @Column(nullable = false, updatable = false)
+    @Builder.Default
+    private Integer returnNoticeDays = 0;
+
+    @Column(nullable = false, updatable = false)
+    @Builder.Default
+    private Integer refundSlaDays = 5;
+
+    @Column(nullable = false, updatable = false)
+    @Builder.Default
+    private Boolean refundPolicyLegacy = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_check_in_staff_id")
     private User assignedCheckInStaff;

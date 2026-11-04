@@ -1,4 +1,5 @@
 import 'photo_preview_dialog.dart';
+import 'rental_policy_terms.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/rental_agreement.dart';
@@ -100,6 +101,16 @@ class RentalAgreementScreen extends StatelessWidget {
                               _heading('02', 'Điều khoản thuê kho'),
                               _paragraphs(agreement.terms,
                                   'Đơn thuê này chưa lưu nội dung điều khoản.'),
+                              const SizedBox(height: 12),
+                              const Text(
+                                  'Chính sách quá hạn & thời hạn hoàn tiền',
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 12),
+                              RentalPolicyTerms(
+                                  policy: agreement.policy,
+                                  endDate: agreement.endDate),
                               _heading('03', 'Danh mục hàng hóa cấm lưu trữ'),
                               _paragraphs(agreement.prohibitedItems,
                                   'Đơn thuê này chưa lưu nội dung danh mục hàng cấm.',

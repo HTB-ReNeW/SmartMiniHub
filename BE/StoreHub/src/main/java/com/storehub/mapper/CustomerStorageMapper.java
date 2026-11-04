@@ -17,6 +17,7 @@ import org.mapstruct.Mapping;
 public interface CustomerStorageMapper {
 
     @Mapping(target = "refundCompleted", ignore = true)
+    @Mapping(target = "rentalPolicy", expression = "java(com.storehub.dto.response.RentalPolicyResponse.from(booking))")
     @Mapping(target = "bookingId", source = "id")
     @Mapping(target = "customerName", source = "customer.fullName", defaultValue = "")
     @Mapping(target = "serviceFee", source = "quotedManagementFee")
@@ -29,7 +30,8 @@ public interface CustomerStorageMapper {
     @Mapping(target = "areaSqm", source = "storageUnit.unitType.areaSqm")
     @Mapping(target = "activeAccess", expression = "java(booking.getStatus() == com.storehub.enums.BookingStatus.ACTIVE && booking.getAccessDisabledAt() == null)")
     @Mapping(target = "accessDisabled", expression = "java(booking.getAccessDisabledAt() != null)")
-    @Mapping(target = "overdue", expression = "java(booking.getOverdueDetectedAt() != null)")
+    // Calendar expiry is filled by the service; processing markers are not an expiry date.
+    @Mapping(target = "overdue", ignore = true)
     @Mapping(target = "overdueDays", ignore = true)
     @Mapping(target = "overdueFeeOutstanding", ignore = true)
     @Mapping(target = "renewalOpensDate", ignore = true)

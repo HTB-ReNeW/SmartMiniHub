@@ -7,6 +7,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/api_endpoints.dart';
+import '../../../core/network/http_client.dart';
+import '../../../core/utils/vnpay_return.dart';
 
 /// Màn hình thanh toán dùng chung (đặt cọc, gia hạn, phí trễ hạn).
 ///
@@ -35,8 +38,8 @@ class VnpayCheckoutScreen extends StatefulWidget {
 }
 
 class _VnpayCheckoutScreenState extends State<VnpayCheckoutScreen> {
-  static const bool _sandboxMode =
-      bool.fromEnvironment('VNPAY_SANDBOX') || !bool.fromEnvironment('dart.vm.product');
+  static const bool _sandboxMode = bool.fromEnvironment('VNPAY_SANDBOX') ||
+      !bool.fromEnvironment('dart.vm.product');
   late final WebViewController _controller;
   Timer? _pollTimer;
 
@@ -46,12 +49,16 @@ class _VnpayCheckoutScreenState extends State<VnpayCheckoutScreen> {
   bool _isRefundStatus = false;
   String? _failedMessage;
   String? _loadError; // lỗi tải trang VNPay (mạng, SSL, ...)
+  Uri? _pendingReturn;
+  bool _submittingReturn = false;
 
   @override
   void initState() {
     super.initState();
-    if (!_sandboxMode && Uri.tryParse(widget.paymentUrl)?.host == 'sandbox.vnpayment.vn') {
-      throw StateError('Đường dẫn thanh toán bản phát hành đang trỏ tới VNPay sandbox');
+    if (!_sandboxMode &&
+        Uri.tryParse(widget.paymentUrl)?.host == 'sandbox.vnpayment.vn') {
+      throw StateError(
+          'Đường dẫn thanh toán bản phát hành đang trỏ tới VNPay sandbox');
     }
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -101,7 +108,8 @@ class _VnpayCheckoutScreenState extends State<VnpayCheckoutScreen> {
             if (mounted) {
               setState(() {
                 _pageLoading = false;
-                _loadError = 'Chứng chỉ bảo mật của trang thanh toán không hợp lệ. '
+                _loadError =
+                    'Chứng chỉ bảo mật của trang thanh toán không hợp lệ. '
                     'Nguyên nhân thường gặp: ngày giờ của máy bị sai '
                     '(máy đang hiển thị ${DateTime.now().toString().substring(0, 16)}). '
                     'Hãy bật "Ngày giờ tự động" trong Cài đặt rồi bấm Tải lại.';
@@ -109,8 +117,7 @@ class _VnpayCheckoutScreenState extends State<VnpayCheckoutScreen> {
             }
           },
           onHttpError: (error) {
-            debugPrint(
-                '[VNPay] http error ${error.response?.statusCode}');
+            debugPrint('[VNPay] http error ${error.response?.statusCode}');
           },
           onPageFinished: (url) {
             debugPrint('[VNPay] page finished: ${Uri.tryParse(url)?.host}');
@@ -122,6 +129,13 @@ class _VnpayCheckoutScreenState extends State<VnpayCheckoutScreen> {
             }
           },
           onNavigationRequest: (request) {
+            final callback = resolveVnpayReturn(
+                widget.paymentUrl, request.url, ApiEndpoints.baseUrl);
+            if (request.isMainFrame && callback != null) {
+              _pendingReturn = callback;
+              unawaited(_submitReturn());
+              return NavigationDecision.prevent;
+            }
             // Nút "Quay lại ứng dụng" trên trang kết quả dùng scheme storehub://
             if (request.url.startsWith('storehub://')) {
               _checkResult(retries: 6);
@@ -205,11 +219,38 @@ class _VnpayCheckoutScreenState extends State<VnpayCheckoutScreen> {
   }
 
   void _reloadPage() {
+    if (_pendingReturn != null) {
+      unawaited(_submitReturn());
+      return;
+    }
     setState(() {
       _loadError = null;
       _pageLoading = true;
     });
     _controller.loadRequest(Uri.parse(widget.paymentUrl));
+  }
+
+  Future<void> _submitReturn() async {
+    if (_submittingReturn || _finished || !mounted) return;
+    _submittingReturn = true;
+    setState(() {
+      _loadError = null;
+      _pageLoading = true;
+    });
+    try {
+      // The backend still verifies VNPay's signature and amount. A browser
+      // redirect alone must never mark a payment as paid.
+      await HttpClient.instance.get(_pendingReturn.toString(), plainText: true);
+      if (mounted) await _checkResult(retries: 6);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _loadError =
+            'Không gửi được kết quả VNPay về máy chủ. Bấm Tải lại để gửi lại kết quả.');
+      }
+    } finally {
+      _submittingReturn = false;
+      if (mounted) setState(() => _pageLoading = false);
+    }
   }
 
   /// Phương án dự phòng: mở trang VNPay bằng trình duyệt của máy. Màn hình này vẫn tự
@@ -229,7 +270,8 @@ class _VnpayCheckoutScreenState extends State<VnpayCheckoutScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Không mở được trình duyệt. Đã chép liên kết thanh toán.')),
+            content: Text(
+                'Không mở được trình duyệt. Đã chép liên kết thanh toán.')),
       );
     }
   }
@@ -318,7 +360,9 @@ class _VnpayCheckoutScreenState extends State<VnpayCheckoutScreen> {
             Text(
               '${_formatPrice(widget.amount)} • ${widget.transactionId}',
               style: const TextStyle(
-                  fontSize: 11, fontWeight: FontWeight.w400, color: Colors.white70),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.white70),
             ),
           ],
         ),

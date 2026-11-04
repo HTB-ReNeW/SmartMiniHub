@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../models/rental_agreement.dart';
+import '../../../widgets/rental_policy_terms.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../models/unit_type_model.dart';
 import '../../../services/booking_api_service.dart';
@@ -1689,6 +1691,12 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                                   'Hệ thống tính theo thời điểm nhận yêu cầu hủy.',
                                   style: const TextStyle(
                                       fontSize: 13, height: 1.6))),
+                          const SizedBox(height: 16),
+                          RentalPolicyTerms(
+                            policy: RentalPolicy.fromJson(policy),
+                            endDate: DateTime.tryParse(
+                                _quote?['endDate']?.toString() ?? ''),
+                          ),
                           const SizedBox(height: 16),
                           // Prohibited Items Warning Card
                           Container(

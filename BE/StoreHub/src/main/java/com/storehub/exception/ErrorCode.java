@@ -122,6 +122,9 @@ public enum ErrorCode {
     TERMS_CHANGED(737, "Điều khoản đã thay đổi hoặc chưa được xác nhận. Vui lòng mở lại và đồng ý điều khoản hiện hành", HttpStatus.CONFLICT),
     TERMS_VERSION_REQUIRED(738, "Khi sửa nội dung điều khoản hoặc danh mục hàng cấm, hãy sử dụng phiên bản điều khoản mới", HttpStatus.BAD_REQUEST),
 
+    CHECKOUT_SCHEDULE_OUT_OF_RANGE(743, "Ngày trả kho vượt khoảng cho phép. Trong hạn: tối đa ngày hết hạn; quá hạn: hôm nay hoặc ngày mai. Vui lòng liên hệ cơ sở hoặc gia hạn nếu cần trả muộn hơn", HttpStatus.BAD_REQUEST),
+    CHECKOUT_TIME_IN_PAST(744, "Lịch hẹn đã qua. Vui lòng chọn giờ trả kho mới ở tương lai", HttpStatus.BAD_REQUEST),
+
     // ========================= FACILITY_POLICY (1100 - 1199) =========================
     FACILITY_POLICY_NOT_FOUND(1100, "Không tìm thấy chính sách của cơ sở", HttpStatus.NOT_FOUND),
     FACILITY_POLICY_ALREADY_EXISTS(1101, "Cơ sở này đã có chính sách", HttpStatus.BAD_REQUEST),

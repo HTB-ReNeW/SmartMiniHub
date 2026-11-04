@@ -36,5 +36,6 @@ public record FacilityContractResponse(
         Boolean prohibitedItemsAccepted,
         LocalDateTime termsAcceptedAt,
         java.util.List<String> contractPhotos,
-        BigDecimal serviceFee
+        BigDecimal serviceFee,
+        RentalPolicyResponse rentalPolicy
 ) {}

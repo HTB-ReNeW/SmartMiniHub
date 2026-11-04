@@ -273,6 +273,9 @@ public class SeedConfig implements ApplicationRunner {
         booking.setCancellationWithin24hPercent(policy.getCancellationWithin24hPercent());
         booking.setCancellationAfter24hPercent(policy.getCancellationAfter24hPercent());
         booking.setTermsVersion(policy.getTermsVersion());
+        booking.setReturnNoticeDays(policy.getReturnNoticeDays());
+        booking.setRefundSlaDays(policy.getDepositRefundSlaDays());
+        booking.setRefundPolicyLegacy(false);
         booking.setTermsContentSnapshot(policy.getTermsAndConditions());
         booking.setProhibitedItemsSnapshot(policy.getProhibitedItems());
         booking.setTermsHash(hash);

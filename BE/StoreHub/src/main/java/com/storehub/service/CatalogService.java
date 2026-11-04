@@ -9,4 +9,5 @@ import java.util.UUID;
 public interface CatalogService {
     List<FacilityResponse> getAllFacilities();
     List<UnitTypeCatalogResponse> getUnitTypes(UUID facilityId);
+    List<UnitTypeCatalogResponse> getUnitTypes(UUID facilityId, boolean stockedOnly);
 }

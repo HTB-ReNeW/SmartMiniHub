@@ -31,9 +31,12 @@ public class CatalogController {
     @GetMapping("/unit-types")
     @Operation(summary = "Lấy danh sách các loại kích thước kho, giá thuê tháng và số lượng kho trống")
     public ResponseEntity<ApiResponse<List<UnitTypeCatalogResponse>>> getUnitTypes(
-            @RequestParam(required = false) UUID facilityId
+            @RequestParam(required = false) UUID facilityId,
+            @RequestParam(defaultValue = "false") boolean stockedOnly
     ) {
-        List<UnitTypeCatalogResponse> unitTypes = catalogService.getUnitTypes(facilityId);
+        List<UnitTypeCatalogResponse> unitTypes = stockedOnly
+                ? catalogService.getUnitTypes(facilityId, true)
+                : catalogService.getUnitTypes(facilityId);
         return ResponseEntity.ok(ApiResponse.success("Unit types retrieved successfully", unitTypes));
     }
 }

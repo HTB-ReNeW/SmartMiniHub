@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Data
@@ -24,6 +25,11 @@ public class DailyScheduleResponse {
     private String customerName;
 
     private String customerEmail;
+    private String customerPhone;
+    private String dimensions;
+    private LocalDate startDate;
+    private LocalDate endDate;
+    private String notes;
 
     private UUID facilityId;
 

@@ -24,7 +24,8 @@ class MyRentedUnitsScreen extends StatefulWidget {
   State<MyRentedUnitsScreen> createState() => _MyRentedUnitsScreenState();
 }
 
-class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
+class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
+    with WidgetsBindingObserver {
   late final StorageApiService _storageService =
       widget.storageService ?? StorageApiService();
   final BookingApiService _bookingService = BookingApiService();
@@ -44,7 +45,19 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadUnits();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _loadUnits();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   void _loadUnits() {
@@ -1077,7 +1090,12 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                               'Phí trễ hạn cần thanh toán: ${_currency.format(unit.overdueFeeOutstanding)}.',
                             if (unit.accessDisabled)
                               'Khóa thông minh đã bị vô hiệu hóa.',
-                            'Hãy thanh toán phí, sau đó gia hạn hoặc trả kho.',
+                            if (unit.hasLateFeeDue)
+                              'Vui lòng thanh toán phí trễ hạn trước khi hoàn tất trả kho hoặc gia hạn.',
+                            if (unit.scheduledReturnTime == null)
+                              'Vui lòng gia hạn thuê hoặc gửi yêu cầu trả kho.'
+                            else
+                              'Bạn đã gửi yêu cầu trả kho. Vui lòng bàn giao theo lịch hẹn.',
                           ].join(' '),
                           style: const TextStyle(
                               fontSize: 11, fontWeight: FontWeight.w600),
@@ -1086,6 +1104,16 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                     ],
                   ),
                 ),
+                if (unit.isActive && unit.scheduledReturnTime == null)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () =>
+                          _openContractOperation(unit, isExtension: false),
+                      icon: const Icon(Icons.logout, size: 16),
+                      label: const Text('Yêu cầu trả kho'),
+                    ),
+                  ),
               ],
               if (unit.isActive && unit.scheduledReturnTime != null) ...[
                 const SizedBox(height: 10),
@@ -1147,7 +1175,9 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                 Text(
                   'Tổng tiền sẽ hoàn: ${_currency.format(unit.totalRentalFee + (unit.depositPaid ?? 0))}',
                   style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.success),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.success),
                 ),
               ] else if (monthlyRate != null) ...[
                 const SizedBox(height: 12),

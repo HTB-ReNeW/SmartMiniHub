@@ -1076,12 +1076,13 @@ public class PaymentServiceImpl implements PaymentService {
         }
         String requestId = UUID.randomUUID().toString().replace("-", "").toUpperCase();
         LocalDateTime requestedAt = LocalDateTime.now();
-        Integer slaDays = booking.getStorageUnit() != null
-                && booking.getStorageUnit().getFacility() != null
-                ? facilityPolicies.findByFacility_Id(booking.getStorageUnit().getFacility().getId())
-                    .map(policy -> policy.getDepositRefundSlaDays()).orElse(5)
-                : 5;
+        Integer slaDays = booking.getRefundSlaDays();
         if (slaDays == null || slaDays < 0) slaDays = 5;
+        // Only the actual return inspection uses the handover timestamp. Later captured payments
+        // refunded after a completed booking start a new processing deadline at request creation.
+        LocalDateTime deadlineStart = booking.getStatus() == BookingStatus.ACTIVE
+                && booking.getReturnTime() != null && original.getPaymentType() == PaymentType.DEPOSIT
+                && rentalPart.signum() == 0 ? booking.getReturnTime() : requestedAt;
 
         boolean hasBankInfo = booking.getRefundAccountNumber() != null && !booking.getRefundAccountNumber().isBlank();
         RefundStatus initialStatus = hasBankInfo
@@ -1113,7 +1114,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .bankAccountName(booking.getRefundAccountName())
                 .status(initialStatus)
                 .updatedStatusAt(requestedAt)
-                .dueAt(requestedAt.plusDays(slaDays))
+                .dueAt(deadlineStart.plusDays(slaDays))
                 .build());
         return total;
     }

@@ -544,6 +544,8 @@ public class FacilityOperationsServiceImpl
         }
 
         // Nghiệm thu trả kho -> tạo yêu cầu hoàn cọc. Bị chặn nếu còn nợ phí trễ hạn.
+        LocalDateTime now = LocalDateTime.now();
+        booking.setReturnTime(now);
         BigDecimal requestedRefund = (request.getDamageFee() != null || request.getDamageReason() != null)
                 ? paymentService.refundDepositOnReturn(booking, request.getDamageFee(), request.getDamageReason())
                 : paymentService.refundDepositOnReturn(booking);
@@ -551,8 +553,6 @@ public class FacilityOperationsServiceImpl
         if (booking.getAssignedCheckOutStaff() == null) {
             booking.setAssignedCheckOutStaff(staff);
         }
-        LocalDateTime now = LocalDateTime.now();
-
         HandoverRecord record = HandoverRecord.builder()
                 .booking(booking)
                 .staff(staff)
@@ -883,6 +883,11 @@ public class FacilityOperationsServiceImpl
                 .customerId(customerId)
                 .customerName(customerName)
                 .customerEmail(customerEmail)
+                .customerPhone(booking.getCustomer() == null ? null : booking.getCustomer().getPhone())
+                .dimensions(storageUnit == null || storageUnit.getUnitType() == null ? null : storageUnit.getUnitType().getDimensions())
+                .startDate(booking.getStartDate())
+                .endDate(booking.getEndDate())
+                .notes("CHECK_OUT".equals(scheduleType) ? booking.getCheckoutNotes() : null)
                 .facilityId(facilityId)
                 .facilityName(facilityName)
                 .storageUnitId(

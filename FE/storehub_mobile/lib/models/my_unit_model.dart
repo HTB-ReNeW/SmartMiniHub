@@ -1,6 +1,10 @@
 import 'rental_agreement.dart';
 
 class MyUnitModel {
+  final String refundBankCode,
+      refundAccountNumber,
+      refundAccountName,
+      checkoutNotes;
   final bool refundCompleted;
   final RentalAgreement agreement;
   final String customerName;
@@ -29,8 +33,8 @@ class MyUnitModel {
   final DateTime? pendingNewEndDate;
   final double? pendingExtensionFee;
   final DateTime? renewalOpensDate;
-  final bool overdue;
-  final int overdueDays;
+  final bool _reportedOverdue;
+  final int _reportedOverdueDays;
   final double overdueFeeOutstanding;
   final bool accessDisabled;
   final DateTime? scheduledReturnTime;
@@ -38,6 +42,10 @@ class MyUnitModel {
   final String? closeTime;
 
   MyUnitModel({
+    this.refundBankCode = '',
+    this.refundAccountNumber = '',
+    this.refundAccountName = '',
+    this.checkoutNotes = '',
     this.refundCompleted = false,
     this.agreement = const RentalAgreement(),
     this.customerName = '',
@@ -66,14 +74,31 @@ class MyUnitModel {
     this.pendingNewEndDate,
     this.pendingExtensionFee,
     this.renewalOpensDate,
-    this.overdue = false,
-    this.overdueDays = 0,
+    bool overdue = false,
+    int overdueDays = 0,
     this.overdueFeeOutstanding = 0,
     this.accessDisabled = false,
     this.scheduledReturnTime,
     this.openTime,
     this.closeTime,
-  });
+  })  : _reportedOverdue = overdue,
+        _reportedOverdueDays = overdueDays;
+
+  /// Rental dates follow Vietnam calendar days, independently of the device timezone.
+  int overdueDaysAt(DateTime instant) {
+    if (!isActive) return 0;
+    final end = endDate;
+    if (end == null) return _reportedOverdueDays;
+    final vietnam = instant.toUtc().add(const Duration(hours: 7));
+    final today = DateTime.utc(vietnam.year, vietnam.month, vietnam.day);
+    final expiry = DateTime.utc(end.year, end.month, end.day);
+    final days = today.difference(expiry).inDays;
+    return days > 0 ? days : 0;
+  }
+
+  int get overdueDays => overdueDaysAt(DateTime.now());
+  bool get overdue =>
+      isActive && (endDate != null ? overdueDays > 0 : _reportedOverdue);
 
   bool get hasHandoverIssue =>
       handoverIssueStatus == 'OPEN' || handoverIssueStatus == 'ARRANGED';
@@ -97,6 +122,10 @@ class MyUnitModel {
 
   factory MyUnitModel.fromJson(Map<String, dynamic> json) {
     return MyUnitModel(
+      refundBankCode: json['refundBankCode']?.toString() ?? '',
+      refundAccountNumber: json['refundAccountNumber']?.toString() ?? '',
+      refundAccountName: json['refundAccountName']?.toString() ?? '',
+      checkoutNotes: json['checkoutNotes']?.toString() ?? '',
       refundCompleted: json['refundCompleted'] == true,
       customerName: json['customerName']?.toString() ?? '',
       serviceFee: (json['serviceFee'] as num?)?.toDouble(),

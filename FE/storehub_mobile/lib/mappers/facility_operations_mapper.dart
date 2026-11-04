@@ -22,6 +22,11 @@ class FacilityOperationsMapper {
       customerId: _text(json['customerId']),
       customerName: _text(json['customerName']),
       customerEmail: _text(json['customerEmail']),
+      customerPhone: _text(json['customerPhone']),
+      dimensions: _text(json['dimensions']),
+      notes: _text(json['notes']),
+      startDate: _dateTime(json['startDate']),
+      endDate: _dateTime(json['endDate']),
       facilityId: _text(json['facilityId']),
       facilityName: _text(json['facilityName']),
       storageUnitId: _text(json['storageUnitId']),
@@ -94,12 +99,10 @@ class FacilityOperationsMapper {
       'lockCondition': lockCondition.trim(),
       if (normalizedNotes != null && normalizedNotes.isNotEmpty)
         'notes': normalizedNotes,
-      if (damageFee != null && damageFee > 0)
-        'damageFee': damageFee,
+      if (damageFee != null && damageFee > 0) 'damageFee': damageFee,
       if (normalizedReason != null && normalizedReason.isNotEmpty)
         'damageReason': normalizedReason,
-      if (photos != null && photos.isNotEmpty)
-        'photos': photos,
+      if (photos != null && photos.isNotEmpty) 'photos': photos,
     };
   }
 

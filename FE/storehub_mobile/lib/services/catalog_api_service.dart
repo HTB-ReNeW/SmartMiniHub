@@ -32,13 +32,16 @@ class CatalogApiService {
     }
   }
 
-  Future<List<dynamic>> getUnitTypes({String? facilityId}) async {
+  Future<List<dynamic>> getUnitTypes(
+      {String? facilityId, bool stockedOnly = false}) async {
     try {
       final response = await _http.get(
         ApiEndpoints.unitTypes,
-        queryParameters: facilityId != null && facilityId.isNotEmpty
-            ? {'facilityId': facilityId}
-            : null,
+        queryParameters: {
+          if (facilityId != null && facilityId.isNotEmpty)
+            'facilityId': facilityId,
+          if (stockedOnly) 'stockedOnly': true,
+        },
       );
       final data = response.data;
       if (data is List) return data;
@@ -54,7 +57,8 @@ class CatalogApiService {
     final facilities = await getFacilities();
     final enriched = await Future.wait(facilities.map((f) async {
       try {
-        final unitTypes = await getUnitTypes(facilityId: f.id);
+        final unitTypes =
+            await getUnitTypes(facilityId: f.id, stockedOnly: true);
         return f.withUnitTypeStats(unitTypes);
       } catch (_) {
         return f;

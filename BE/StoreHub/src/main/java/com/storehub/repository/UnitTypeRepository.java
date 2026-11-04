@@ -27,8 +27,13 @@ public interface UnitTypeRepository extends JpaRepository<UnitType, UUID> {
                  WHERE f.status = com.storehub.enums.FacilityStatus.ACTIVE
              )
              AND (:facilityId IS NULL OR su.facility.id = :facilityId)
+        WHERE :stockedOnly = false OR :facilityId IS NULL OR EXISTS (
+            SELECT inventory.id FROM StorageUnit inventory
+            WHERE inventory.unitType = ut AND inventory.facility.id = :facilityId
+        )
         GROUP BY ut.id, ut.typeName, ut.dimensions, ut.areaSqm, ut.basePricePerMonth, ut.depositAmount
         ORDER BY ut.basePricePerMonth ASC
     """)
-    List<Object[]> findCatalogUnitTypesWithAvailableCount(@Param("facilityId") UUID facilityId);
+    List<Object[]> findCatalogUnitTypesWithAvailableCount(@Param("facilityId") UUID facilityId,
+                                                         @Param("stockedOnly") boolean stockedOnly);
 }

@@ -67,6 +67,11 @@ public class MyUnitResponse {
 
     // Lịch hẹn trả kho khách đã gửi (null nếu chưa gửi yêu cầu)
     private LocalDateTime scheduledReturnTime;
+    private String checkoutNotes;
+    private String refundBankCode;
+    private String refundAccountNumber;
+    private String refundAccountName;
+    private RentalPolicyResponse rentalPolicy;
 
     // Giờ hoạt động của cơ sở (để hiển thị và ràng buộc giờ hẹn nhận/trả)
     private java.time.LocalTime openTime;

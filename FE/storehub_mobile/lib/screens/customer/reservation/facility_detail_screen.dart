@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../models/rental_agreement.dart';
 import '../../../widgets/rental_policy_terms.dart';
+import '../../../widgets/facility_contact_card.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../models/unit_type_model.dart';
 import '../../../services/booking_api_service.dart';
@@ -42,6 +43,7 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
   int _rentalMonths = 1;
   int _maxAdvanceReservationDays = 14;
   Map<String, dynamic>? _facilityPolicy;
+  String _managerName = '', _contactPhone = '', _contactEmail = '';
 
   Map<String, dynamic>? _quote;
   bool _isQuoting = false;
@@ -113,6 +115,9 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
       final close = _parseHour(facility['closeTime']);
       if (!mounted) return;
       setState(() {
+        _managerName = facility['managerName']?.toString() ?? '';
+        _contactPhone = facility['contactPhone']?.toString() ?? '';
+        _contactEmail = facility['email']?.toString() ?? '';
         if (facility['images'] is List) {
           final loaded = (facility['images'] as List)
               .map((e) => e?.toString() ?? '')
@@ -600,6 +605,11 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
           const SizedBox(height: 18),
         ],
         // ── Unit type selection ─────────────────────────────────────
+        FacilityContactCard(
+            managerName: _managerName,
+            phone: _contactPhone,
+            email: _contactEmail),
+        const SizedBox(height: 18),
         _sectionHeader('📦 Chọn loại kho', subtitle: 'Chọn kích thước phù hợp'),
         const SizedBox(height: 10),
         if (snapshot.hasError)

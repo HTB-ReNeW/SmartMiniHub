@@ -51,7 +51,11 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             AND (b.status = com.storehub.enums.BookingStatus.CONFIRMED
                  OR (b.status = com.storehub.enums.BookingStatus.CANCELLED
                      AND (b.depositPaid > 0 OR EXISTS
-                         (SELECT r.id FROM RefundRequest r WHERE r.booking = b))))
+                         (SELECT r.id FROM RefundRequest r WHERE r.booking = b))
+                     AND NOT (EXISTS (SELECT done.id FROM RefundRequest done
+                                      WHERE done.booking = b AND done.status = com.storehub.enums.RefundStatus.COMPLETED)
+                              AND NOT EXISTS (SELECT pending.id FROM RefundRequest pending
+                                      WHERE pending.booking = b AND pending.status <> com.storehub.enums.RefundStatus.COMPLETED))))
             ORDER BY b.createdAt DESC
             """)
     List<Booking> findAwaitingOrCancelledPaidBookingsByCustomerId(@Param("customerId") UUID customerId);

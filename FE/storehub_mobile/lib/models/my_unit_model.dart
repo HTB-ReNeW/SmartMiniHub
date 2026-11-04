@@ -18,6 +18,7 @@ class MyUnitModel {
   final bool unitAssignmentConfirmed;
   final String facilityName;
   final String facilityAddress;
+  final String facilityManagerName, facilityContactPhone, facilityContactEmail;
   final String typeName;
   final String status;
   final double totalRentalFee;
@@ -59,6 +60,9 @@ class MyUnitModel {
     this.unitAssignmentConfirmed = false,
     required this.facilityName,
     required this.facilityAddress,
+    this.facilityManagerName = '',
+    this.facilityContactPhone = '',
+    this.facilityContactEmail = '',
     required this.typeName,
     required this.status,
     required this.totalRentalFee,
@@ -138,6 +142,9 @@ class MyUnitModel {
       unitCode: json['unitCode']?.toString() ?? '',
       unitAssignmentConfirmed: json['unitAssignmentConfirmed'] == true,
       facilityName: json['facilityName']?.toString() ?? '',
+      facilityManagerName: json['facilityManagerName']?.toString() ?? '',
+      facilityContactPhone: json['facilityContactPhone']?.toString() ?? '',
+      facilityContactEmail: json['facilityContactEmail']?.toString() ?? '',
       facilityAddress: json['facilityAddress']?.toString() ??
           json['address']?.toString() ??
           '',

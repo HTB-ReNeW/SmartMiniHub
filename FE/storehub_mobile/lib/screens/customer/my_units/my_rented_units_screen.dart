@@ -15,6 +15,7 @@ import 'contract_operation_dialog.dart';
 import 'smart_key_screen.dart';
 import '../../../models/facility_operations_models.dart';
 import '../../../widgets/photo_preview_dialog.dart';
+import '../../../widgets/facility_contact_card.dart';
 
 class MyRentedUnitsScreen extends StatefulWidget {
   final StorageApiService? storageService;
@@ -76,7 +77,10 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
         .map((item) =>
             MyUnitModel.fromJson(Map<String, dynamic>.from(item as Map)))
         .toList();
-    return (active: parse(results[0]), awaiting: parse(results[1]));
+    return (
+      active: parse(results[0]),
+      awaiting: parse(results[1]).where((unit) => !unit.isRefunded).toList()
+    );
   }
 
   void _showRentalContract(MyUnitModel unit) {
@@ -1039,6 +1043,11 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
                   ),
                 ],
               ),
+              const SizedBox(height: 10),
+              FacilityContactCard(
+                  managerName: unit.facilityManagerName,
+                  phone: unit.facilityContactPhone,
+                  email: unit.facilityContactEmail),
               if (unit.isRefunded) ...[
                 const SizedBox(height: 10),
                 const Text('Cơ sở đã hoàn tất hoàn tiền cho đơn này.',

@@ -27,6 +27,19 @@ import static org.mockito.ArgumentMatchers.any;
 
 @ExtendWith(MockitoExtension.class)
 class MyRentedUnitsStatusTest {
+    @Test
+    void exposesOfficialFacilityContactAndAssignedManagerName() {
+        User manager = new User(); manager.setFullName("Nguyễn Văn Quản Lý");
+        var facility = com.storehub.entity.Facility.builder().name("StoreHub")
+                .manager(manager).contactPhone("0901234567").email("facility@storehub.test").build();
+        Booking booking = Booking.builder().storageUnit(com.storehub.entity.StorageUnit.builder()
+                .facility(facility).build()).build();
+        var realMapper = org.mapstruct.factory.Mappers.getMapper(CustomerStorageMapper.class);
+        var response = realMapper.toMyUnitResponse(booking);
+        assertEquals("Nguyễn Văn Quản Lý", response.getFacilityManagerName());
+        assertEquals("0901234567", response.getFacilityContactPhone());
+        assertEquals("facility@storehub.test", response.getFacilityContactEmail());
+    }
     @Mock com.storehub.repository.RefundRequestRepository refunds;
     @Mock BookingRepository bookings;
     @Mock UserRepository users;
@@ -84,7 +97,7 @@ class MyRentedUnitsStatusTest {
         when(refunds.existsByBooking_IdAndStatus(bookingId, com.storehub.enums.RefundStatus.COMPLETED)).thenReturn(true);
         when(refunds.existsByBooking_IdAndStatusNot(bookingId, com.storehub.enums.RefundStatus.COMPLETED)).thenReturn(true, false);
         org.junit.jupiter.api.Assertions.assertFalse(storage.getAwaitingHandover("customer@test.com").get(0).isRefundCompleted());
-        org.junit.jupiter.api.Assertions.assertTrue(storage.getAwaitingHandover("customer@test.com").get(0).isRefundCompleted());
+        org.junit.jupiter.api.Assertions.assertTrue(storage.getAwaitingHandover("customer@test.com").isEmpty());
     }
 
 }

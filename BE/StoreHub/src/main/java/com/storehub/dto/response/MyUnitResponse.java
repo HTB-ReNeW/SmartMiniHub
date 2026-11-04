@@ -38,6 +38,9 @@ public class MyUnitResponse {
     private BigDecimal serviceFee;
     private String facilityName;
     private String facilityAddress;
+    private String facilityManagerName;
+    private String facilityContactPhone;
+    private String facilityContactEmail;
     private String unitCode;
     private boolean unitAssignmentConfirmed;
     private String unitTypeName;

@@ -83,7 +83,8 @@ public class CustomerStorageServiceImpl implements CustomerStorageService {
     public List<MyUnitResponse> getAwaitingHandover(String customerEmail) {
         UUID customerId = resolveCustomerId(customerEmail);
         return bookingRepository.findAwaitingOrCancelledPaidBookingsByCustomerId(customerId)
-                .stream().map(this::mapToResponse).collect(Collectors.toList());
+                .stream().map(this::mapToResponse).filter(response -> !response.isRefundCompleted())
+                .collect(Collectors.toList());
     }
 
     // ===================== SMART ACCESS (mở/đóng khóa bằng PIN) =====================

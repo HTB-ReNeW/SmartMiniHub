@@ -69,6 +69,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final OverdueScheduler overdueScheduler;
     private final com.storehub.repository.DepositDeductionRepository depositDeductions;
     private final com.storehub.service.NotificationService notificationService;
+    private final com.storehub.repository.HandoverRecordRepository handoverRecords;
 
     // Dòng RENTAL_FEE đi kèm khoản cọc dùng mã giao dịch = mã của dòng DEPOSIT + hậu tố này.
     private static final String RENTAL_SUFFIX = "-R";
@@ -691,6 +692,10 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         bookingRepository.save(booking);
+        if (payment.getPaymentType() == PaymentType.EXTRA_CHARGE && OVERDUE_LATE_FEE.equals(payment.getNote())
+                && booking.getStatus() == BookingStatus.COMPLETED && booking.getReturnTime() != null) {
+            finishReturnRefundAfterSettlement(booking);
+        }
 
         if (payment.getPaymentType() == PaymentType.DEPOSIT
                 && booking.getStatus() == BookingStatus.CONFIRMED) {
@@ -833,6 +838,11 @@ public class PaymentServiceImpl implements PaymentService {
                         new AppException(ErrorCode.BOOKING_NOT_FOUND)
                 );
 
+        if (booking.getStatus() != BookingStatus.ACTIVE && booking.getStatus() != BookingStatus.COMPLETED) {
+            throw new AppException(ErrorCode.INVALID_REQUEST);
+        }
+        overdueScheduler.accrueOutstandingForCheckout(booking,
+                LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")));
         // Repair FAILED charges from before automatic retries, while holding the booking lock.
         paymentRepository.findByBooking_IdAndPaymentTypeAndNoteAndStatusIn(
                         bookingId, PaymentType.EXTRA_CHARGE, OVERDUE_LATE_FEE,
@@ -844,7 +854,7 @@ public class PaymentServiceImpl implements PaymentService {
         List<Payment> pending = paymentRepository
                 .findByBooking_IdAndPaymentTypeAndStatusAndNoteOrderByPaymentTimeAsc(
                         bookingId, PaymentType.EXTRA_CHARGE, PaymentStatus.PENDING, OVERDUE_LATE_FEE)
-                .stream().filter(p -> p.getAmount() != null && p.getAmount().signum() > 0).toList();
+                .stream().filter(p -> p.getVoidedAt() == null && p.getAmount() != null && p.getAmount().signum() > 0).toList();
         if (pending.isEmpty()) throw new AppException(ErrorCode.PAYMENT_NOT_FOUND);
         PaymentResponse resolved = null;
         for (Payment payment : pending) {
@@ -852,6 +862,29 @@ public class PaymentServiceImpl implements PaymentService {
             if (resolved.getStatus() != PaymentStatus.PAID) return resolved;
         }
         return resolved;
+    }
+
+    private void finishReturnRefundAfterSettlement(Booking booking) {
+        boolean unpaid = paymentRepository.findByBooking_IdAndPaymentTypeAndNoteAndStatusIn(
+                booking.getId(), PaymentType.EXTRA_CHARGE, OVERDUE_LATE_FEE,
+                List.of(PaymentStatus.PENDING, PaymentStatus.FAILED)).stream()
+                .anyMatch(p -> p.getVoidedAt() == null && p.getAmount() != null && p.getAmount().signum() > 0);
+        if (unpaid || booking.getDepositPaid() == null || booking.getDepositPaid().signum() <= 0) return;
+        var deposit = paymentRepository.findFirstByBooking_IdAndPaymentTypeAndStatusOrderByPaymentTimeDesc(
+                booking.getId(), PaymentType.DEPOSIT, PaymentStatus.PAID).orElse(null);
+        if (deposit == null || refundRequests.existsByOriginalPayment_Id(deposit.getId())) return;
+        var record = handoverRecords.findByBookingIdOrderByRecordedAtDesc(booking.getId()).stream()
+                .filter(r -> "RETURN".equals(r.getRecordType())).findFirst().orElse(null);
+        if (record == null) return;
+        BigDecimal refund = refundDepositOnReturn(booking, record.getDamageFee(), record.getDamageReason());
+        notificationService.notifyUser(booking.getCustomer(), "Đã đối soát trả kho",
+                "Đơn " + booking.getBookingCode() + " đã thanh toán phí trả kho. Tiền cọc được xử lý hoàn: "
+                        + refund.toPlainString() + " đ theo hợp đồng.",
+                com.storehub.enums.NotificationType.SYSTEM, booking.getId(), "BOOKING", booking.getStorageUnit().getFacility());
+        notificationService.notifyFacilityManager(booking.getStorageUnit().getFacility(), "Trả kho đã đối soát phí",
+                "Đơn " + booking.getBookingCode() + " đã thanh toán phí trả kho. Vui lòng kiểm tra khoản hoàn cọc "
+                        + refund.toPlainString() + " đ.", com.storehub.enums.NotificationType.CHECKOUT_INSPECTED,
+                booking.getId(), "BOOKING");
     }
 
     private PaymentResponse resolveExtraAttempt(Booking booking, Payment payment) {
@@ -1080,7 +1113,7 @@ public class PaymentServiceImpl implements PaymentService {
         if (slaDays == null || slaDays < 0) slaDays = 5;
         // Only the actual return inspection uses the handover timestamp. Later captured payments
         // refunded after a completed booking start a new processing deadline at request creation.
-        LocalDateTime deadlineStart = booking.getStatus() == BookingStatus.ACTIVE
+        LocalDateTime deadlineStart = (booking.getStatus() == BookingStatus.ACTIVE || booking.getStatus() == BookingStatus.COMPLETED)
                 && booking.getReturnTime() != null && original.getPaymentType() == PaymentType.DEPOSIT
                 && rentalPart.signum() == 0 ? booking.getReturnTime() : requestedAt;
 

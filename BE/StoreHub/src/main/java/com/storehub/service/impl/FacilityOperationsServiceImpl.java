@@ -537,16 +537,11 @@ public class FacilityOperationsServiceImpl
             }
         }
 
-        // Reconcile a missed nightly accrual under the booking lock. Commit the
-        // new debt even when the return is rejected, so the customer can pay it.
-        if (overdueScheduler.accrueOutstandingForCheckout(booking, LocalDateTime.now())) {
-            throw new OutstandingOverdueFeeException();
-        }
-
-        // Nghiệm thu trả kho -> tạo yêu cầu hoàn cọc. Bị chặn nếu còn nợ phí trễ hạn.
-        LocalDateTime now = LocalDateTime.now();
+        // Physical return stops accrual even when the customer still needs to settle fees.
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+        boolean unpaidLateFee = overdueScheduler.accrueOutstandingForCheckout(booking, now);
         booking.setReturnTime(now);
-        BigDecimal requestedRefund = (request.getDamageFee() != null || request.getDamageReason() != null)
+        BigDecimal requestedRefund = unpaidLateFee ? BigDecimal.ZERO : (request.getDamageFee() != null || request.getDamageReason() != null)
                 ? paymentService.refundDepositOnReturn(booking, request.getDamageFee(), request.getDamageReason())
                 : paymentService.refundDepositOnReturn(booking);
 
@@ -576,7 +571,9 @@ public class FacilityOperationsServiceImpl
         storageUnitRepository.save(storageUnit);
 
         String message;
-        if (requestedRefund.signum() > 0) {
+        if (unpaidLateFee) {
+            message = "Đã nhận lại kho và chốt phí tại thời điểm bàn giao. Khách vui lòng mở Trả kho để thanh toán khoản còn lại; tiền cọc được xử lý sau đối soát.";
+        } else if (requestedRefund.signum() > 0) {
             message = "Check-out completed. Deposit refund requested: " + requestedRefund.toPlainString()
                     + (request.getDamageFee() != null && request.getDamageFee().signum() > 0
                         ? " (Damage fee deducted: " + request.getDamageFee().toPlainString() + ")" : "");
@@ -595,7 +592,7 @@ public class FacilityOperationsServiceImpl
                 : "";
         String noteInfo = (request.getNotes() != null && !request.getNotes().isBlank())
                 ? " | Ghi chú: " + request.getNotes().trim() : "";
-        String refundInfo = requestedRefund.signum() > 0
+        String refundInfo = unpaidLateFee ? " Phí đã chốt tại thời điểm nhận lại kho. Khách cần thanh toán trong mục Trả kho trước khi xử lý hoàn cọc." : requestedRefund.signum() > 0
                 ? " Khoản hoàn cọc: " + requestedRefund.toPlainString() + " ₫ đang chờ duyệt."
                 : " Không phát sinh hoàn cọc.";
 

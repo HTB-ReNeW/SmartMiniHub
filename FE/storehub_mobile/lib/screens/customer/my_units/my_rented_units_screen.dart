@@ -40,8 +40,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
 
   // Chỉ gia hạn khi đã nhận kho; nếu đang treo yêu cầu gia hạn thì vẫn cho mở lại
   // để thanh toán/hủy; nợ phí trễ hạn thì phải trả trước. Khách hàng có thể gia hạn bất kỳ lúc nào.
-  bool _canExtend(MyUnitModel unit) =>
-      unit.isActive && (unit.hasPendingExtension || !unit.hasLateFeeDue);
+  bool _canExtend(MyUnitModel unit) => unit.isActive;
 
   @override
   void initState() {
@@ -234,29 +233,6 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
                       }
                     : null,
               ),
-              if (unit.hasLateFeeDue)
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.errorContainer,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.payments_outlined,
-                        color: AppColors.error),
-                  ),
-                  title: const Text('Thanh toán phí trễ hạn',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                  subtitle: Text(
-                      'còn nợ ${_currency.format(unit.overdueFeeOutstanding)}',
-                      style: const TextStyle(fontSize: 12)),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _openContractOperation(unit,
-                        isExtension: false, payOverdue: true);
-                  },
-                ),
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(8),
@@ -281,7 +257,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
                                 fontSize: 12, color: AppColors.primary))
                         : unit.hasLateFeeDue
                             ? const Text(
-                                'Vui lòng thanh toán phí trễ hạn trước',
+                                'Đối soát phí phát sinh trong luồng gia hạn',
                                 style: TextStyle(
                                     fontSize: 12, color: AppColors.error))
                             : const Text(
@@ -295,6 +271,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
                         _openContractOperation(
                           unit,
                           isExtension: true,
+                          payOverdue: unit.hasLateFeeDue,
                           resumePending: unit.hasPendingExtension,
                         );
                       }
@@ -689,7 +666,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
         unit: unit,
         isExtension: isExtension,
         resumePending: resumePending,
-        payOverdue: payOverdue,
+        payOverdue: payOverdue || unit.isReturnSettlement,
       ),
     );
     if (result == true) {
@@ -728,6 +705,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
   }
 
   String _unitBadgeLabel(MyUnitModel unit) {
+    if (unit.isReturnSettlement) return 'Chờ đối soát trả kho';
     if (unit.isRefunded) return 'Đã hoàn tiền';
     if (unit.status == 'CANCELLED') return 'Đã gửi yêu cầu hủy';
     if (unit.overdue) return 'Quá hạn';
@@ -828,7 +806,8 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
                               crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
                                 Text(
-                                  '${active.length} đang thuê',
+                                  '${active.where((unit) => unit.isActive).length} đang thuê'
+                                  '${active.any((unit) => unit.isReturnSettlement) ? ' • ${active.where((unit) => unit.isReturnSettlement).length} chờ đối soát' : ''}',
                                   style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
@@ -893,7 +872,9 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
                                 const SizedBox(width: 6),
                                 Flexible(
                                     child: Text(
-                                  'Đang thuê (${active.length})',
+                                  active.any((unit) => unit.isReturnSettlement)
+                                      ? 'Thuê / Trả kho (${active.length})'
+                                      : 'Đang thuê (${active.length})',
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: !_showAwaiting
@@ -980,7 +961,11 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: unit.isRefunded ? null : () => _showUnitActions(unit),
+        onTap: unit.isRefunded
+            ? null
+            : unit.isReturnSettlement
+                ? () => _openContractOperation(unit, isExtension: false)
+                : () => _showUnitActions(unit),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -1075,7 +1060,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
                     'Bạn không bị áp phí hủy do lỗi cơ sở. Nếu hủy trước khi nhận kho, hệ thống tạo yêu cầu hoàn toàn bộ tiền đã thu.',
                     style: TextStyle(fontSize: 12)),
               ],
-              if (unit.overdue || unit.accessDisabled) ...[
+              if (unit.overdue) ...[
                 const SizedBox(height: 10),
                 Container(
                   width: double.infinity,
@@ -1096,11 +1081,11 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
                           [
                             'Hợp đồng đã quá hạn${unit.overdueDays > 0 ? ' ${unit.overdueDays} ngày' : ''}.',
                             if (unit.hasLateFeeDue)
-                              'Phí trễ hạn cần thanh toán: ${_currency.format(unit.overdueFeeOutstanding)}.',
+                              'Phí trễ hạn dự kiến: ${_currency.format(unit.overdueFeeOutstanding)}.',
                             if (unit.accessDisabled)
                               'Khóa thông minh đã bị vô hiệu hóa.',
                             if (unit.hasLateFeeDue)
-                              'Vui lòng thanh toán phí trễ hạn trước khi hoàn tất trả kho hoặc gia hạn.',
+                              'Phí được chốt khi nhân viên nhận lại kho, theo chính sách hợp đồng.',
                             if (unit.scheduledReturnTime == null)
                               'Vui lòng gia hạn thuê hoặc gửi yêu cầu trả kho.'
                             else
@@ -1113,16 +1098,6 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
                     ],
                   ),
                 ),
-                if (unit.isActive && unit.scheduledReturnTime == null)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      onPressed: () =>
-                          _openContractOperation(unit, isExtension: false),
-                      icon: const Icon(Icons.logout, size: 16),
-                      label: const Text('Yêu cầu trả kho'),
-                    ),
-                  ),
               ],
               if (unit.isActive && unit.scheduledReturnTime != null) ...[
                 const SizedBox(height: 10),
@@ -1256,7 +1231,25 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
                   label: const Text('Hợp đồng & Cam kết'),
                 ),
               ),
-              if (!unit.isRefunded) ...[
+              if (unit.returnIsDue || unit.isReturnSettlement) ...[
+                const SizedBox(height: 10),
+                if (unit.isReturnSettlement)
+                  Text(
+                      'Kho đã được nhân viên nhận lại. Phí đã chốt: ${_currency.format(unit.overdueFeeOutstanding)}. Thanh toán để xử lý hoàn cọc; không tính thêm phí sau thời điểm bàn giao.',
+                      style: const TextStyle(fontSize: 12)),
+                const SizedBox(height: 6),
+                SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: () =>
+                          _openContractOperation(unit, isExtension: false),
+                      icon: const Icon(Icons.logout, size: 18),
+                      label: Text(unit.isReturnSettlement
+                          ? 'Trả kho • Đối soát thanh toán'
+                          : 'Trả kho'),
+                    )),
+              ],
+              if (!unit.isRefunded && !unit.isReturnSettlement) ...[
                 const SizedBox(height: 12),
                 Row(
                   children: [

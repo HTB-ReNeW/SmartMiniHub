@@ -48,6 +48,7 @@ public class MyUnitResponse {
     private Double areaSqm;
     private LocalDate startDate;
     private LocalDate endDate;
+    private LocalDateTime returnTime;
     private Integer rentalMonths;
     private BookingStatus status;
     private BigDecimal totalRentalFee;

@@ -80,15 +80,13 @@ void main() {
       if (scheduled) {
         expect(
             find.textContaining('Bạn đã gửi yêu cầu trả kho.'), findsOneWidget);
-        expect(
-            find.widgetWithText(TextButton, 'Yêu cầu trả kho'), findsNothing);
+        expect(find.widgetWithText(FilledButton, 'Trả kho'), findsOneWidget);
       } else {
         expect(
             find.textContaining(
                 'Vui lòng gia hạn thuê hoặc gửi yêu cầu trả kho.'),
             findsOneWidget);
-        expect(
-            find.widgetWithText(TextButton, 'Yêu cầu trả kho'), findsOneWidget);
+        expect(find.widgetWithText(FilledButton, 'Trả kho'), findsOneWidget);
       }
       expect(find.textContaining('Vui lòng thanh toán phí trễ hạn trước'),
           findsNothing);

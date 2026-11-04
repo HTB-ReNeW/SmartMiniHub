@@ -838,6 +838,14 @@ class _ContractOperationDialogState extends State<ContractOperationDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 1. Thẻ thông tin ngăn kho & cơ sở
+        Text(
+            'Tiền cọc đang giữ: ${_currency.format(unit.depositPaid ?? 0)}. '
+            'Trả đúng hạn hoặc trong thời gian ân hạn không bị tính phí trễ. '
+            'Phí trễ tính theo ngày, sau ${unit.agreement.policy.graceDays ?? 0} ngày ân hạn'
+            '${unit.agreement.policy.dailyLateFee == null ? ', theo hợp đồng.' : ': ${_currency.format(unit.agreement.policy.dailyLateFee)} / ngày.'} '
+            'Ngày hết hạn vẫn được sử dụng hết ngày. Staff chốt phí khi nhận lại kho; tiền cọc được hoàn sau đối soát và khấu trừ hợp lệ.',
+            style: const TextStyle(fontSize: 12, height: 1.5)),
+        const SizedBox(height: 12),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(12),
@@ -1546,7 +1554,9 @@ class _ContractOperationDialogState extends State<ContractOperationDialog> {
                     children: [
                       Text(
                         widget.payOverdue
-                            ? 'Thanh toán phí trễ hạn'
+                            ? (widget.isExtension
+                                ? 'Đối soát gia hạn'
+                                : 'Đối soát trả kho')
                             : 'Thanh toán phí gia hạn',
                         style: const TextStyle(
                           fontSize: 16.5,
@@ -1860,7 +1870,9 @@ class _ContractOperationDialogState extends State<ContractOperationDialog> {
     }
 
     final message = widget.payOverdue
-        ? 'Đã thanh toán phí trễ hạn. Hãy gia hạn hoặc hẹn trả kho để khôi phục quyền truy cập.'
+        ? (widget.unit.isReturnSettlement
+            ? 'Đã thanh toán khoản phí trả kho. Tiền cọc được đối soát và xử lý hoàn theo hợp đồng; không phát sinh thêm phí sau khi nhân viên nhận lại kho.'
+            : 'Đã đối soát phí phát sinh. Bạn có thể tiếp tục gia hạn thuê.')
         : (widget.isExtension && _paymentConfirmed != null)
             ? 'Đã xác nhận thanh toán. Hợp đồng của bạn đã được gia hạn.'
             : result['message']?.toString();

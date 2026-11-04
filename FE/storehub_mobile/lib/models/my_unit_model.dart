@@ -24,6 +24,7 @@ class MyUnitModel {
   final double totalRentalFee;
   final DateTime? startDate;
   final DateTime? endDate;
+  final DateTime? returnTime;
   final bool hasActiveAccess;
   final String dimensions;
   final double? areaSqm;
@@ -68,6 +69,7 @@ class MyUnitModel {
     required this.totalRentalFee,
     this.startDate,
     this.endDate,
+    this.returnTime,
     this.hasActiveAccess = false,
     this.dimensions = '',
     this.areaSqm,
@@ -109,10 +111,22 @@ class MyUnitModel {
 
   bool get isRefunded => status == 'CANCELLED' && refundCompleted;
   bool get isActive => status == 'ACTIVE';
-  String get displayUnit => (isActive || unitAssignmentConfirmed)
-      ? 'Ngăn $unitCode'
-      : 'Đang chờ quản lý xác nhận ngăn kho';
-  bool get hasLateFeeDue => overdueFeeOutstanding > 0;
+  bool get isReturnSettlement =>
+      status == 'COMPLETED' && returnTime != null && hasLateFeeDue;
+  bool get returnIsDue {
+    if (!isActive || endDate == null) return false;
+    final now = DateTime.now().toUtc().add(const Duration(hours: 7));
+    return !DateTime(now.year, now.month, now.day)
+        .isBefore(DateTime(endDate!.year, endDate!.month, endDate!.day));
+  }
+
+  String get displayUnit =>
+      (isActive || status == 'COMPLETED' || unitAssignmentConfirmed)
+          ? 'Ngăn $unitCode'
+          : 'Đang chờ quản lý xác nhận ngăn kho';
+  bool get hasLateFeeDue =>
+      overdueFeeOutstanding > 0 &&
+      (overdue || (status == 'COMPLETED' && returnTime != null));
 
   /// Khách hàng có thể gia hạn thuê bất cứ lúc nào khi hợp đồng đang hoạt động
   bool get renewalNotYetOpen => false;
@@ -161,6 +175,7 @@ class MyUnitModel {
       endDate: json['endDate'] != null
           ? DateTime.tryParse(json['endDate'].toString())
           : null,
+      returnTime: DateTime.tryParse(json['returnTime']?.toString() ?? ''),
       hasActiveAccess:
           json['activeAccess'] == true || json['hasActiveAccess'] == true,
       dimensions: json['dimensions']?.toString() ?? '',

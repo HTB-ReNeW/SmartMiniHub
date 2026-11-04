@@ -66,7 +66,7 @@ class FacilityOperationsReturnScheduleTest {
     }
 
     @Test
-    void missedOverdueChargeBlocksHandoverBeforeRefundOrCompletion() {
+    void missedOverdueChargeDoesNotBlockPhysicalReturnButDefersRefund() {
         UUID facilityId = UUID.randomUUID(), bookingId = UUID.randomUUID(), unitId = UUID.randomUUID();
         Facility facility = new Facility(); facility.setId(facilityId);
         StorageUnit unit = StorageUnit.builder().facility(facility)
@@ -81,15 +81,14 @@ class FacilityOperationsReturnScheduleTest {
         when(overdueScheduler.accrueOutstandingForCheckout(org.mockito.ArgumentMatchers.eq(booking), any()))
                 .thenReturn(true);
 
-        AppException error = assertThrows(AppException.class,
-                () -> operations.checkOut(bookingId, facilityId, "staff@test.com",
+        operations.checkOut(bookingId, facilityId, "staff@test.com",
                         HandoverRequest.builder().unitCondition(com.storehub.enums.HandoverUnitCondition.GOOD)
-                                .lockCondition(com.storehub.enums.HandoverLockCondition.LOCKED_WORKING).build()));
-        assertEquals(ErrorCode.OVERDUE_FEE_UNPAID_ON_RETURN, error.getErrorCode());
-        assertEquals(BookingStatus.ACTIVE, booking.getStatus());
-        assertEquals(UnitStatus.OCCUPIED, unit.getStatus());
+                                .lockCondition(com.storehub.enums.HandoverLockCondition.LOCKED_WORKING).build());
+        assertEquals(BookingStatus.COMPLETED, booking.getStatus());
+        assertEquals(UnitStatus.UNDER_MAINTENANCE, unit.getStatus());
+        assertNotNull(booking.getReturnTime());
         verify(payments, never()).refundDepositOnReturn(booking);
-        verify(records, never()).save(any());
+        verify(records).save(any());
     }
 
     @Test

@@ -14,7 +14,7 @@ public final class OverdueRecovery {
 
     public static boolean restore(Booking booking, ActivityLogService logs) {
         if (booking.getStatus() != BookingStatus.ACTIVE || booking.getEndDate() == null
-                || booking.getEndDate().isBefore(LocalDate.now())
+                || booking.getEndDate().isBefore(LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")))
                 || (booking.getOverdueDetectedAt() == null && booking.getSealingPendingAt() == null
                     && booking.getSealingApprovedAt() == null && booking.getAccessDisabledAt() == null)) {
             return false;

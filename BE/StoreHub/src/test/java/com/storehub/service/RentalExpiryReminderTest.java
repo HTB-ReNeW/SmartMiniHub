@@ -90,9 +90,11 @@ class RentalExpiryReminderTest {
     }
 
     @Test
-    void expiryTodayOrInFutureDoesNotNotify() {
+    void expiryTodayNotifiesWithoutChargingAndFutureDoesNotNotify() {
         booking.setEndDate(today);
         process(today);
+        verify(notifications).notifyUser(any(), anyString(), anyString(), any(), any(), anyString(), any());
+        clearInvocations(notifications, notificationRepository);
         booking.setEndDate(today.plusDays(30));
         process(today);
         verifyNoInteractions(notifications, notificationRepository, payments);

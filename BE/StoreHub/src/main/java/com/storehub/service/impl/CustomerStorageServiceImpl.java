@@ -535,10 +535,13 @@ public class CustomerStorageServiceImpl implements CustomerStorageService {
     // started closing overdue episodes immediately. Never clear unpaid late fees.
     private void reconcileOverdueState(Booking booking) {
         if (booking.getEndDate() == null
-                || booking.getEndDate().isBefore(LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")))
-                || findPendingLateFee(booking.getId()) != null) {
+                || booking.getEndDate().isBefore(LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")))) {
             return;
         }
+        if (booking.getId() != null) booking = bookingRepository.lockById(booking.getId()).orElse(booking);
+        overdueScheduler.clearUnpaidFeesBeforeExpiry(booking,
+                LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")));
+        if (findPendingLateFee(booking.getId()) != null) return;
 
         boolean accessWasDisabled = booking.getAccessDisabledAt() != null;
         if (!com.storehub.common.OverdueRecovery.restore(booking, activityLogService)) return;
@@ -606,7 +609,7 @@ public class CustomerStorageServiceImpl implements CustomerStorageService {
         response.setOverdue(overdueDays > 0);
         response.setOverdueDays(overdueDays);
 
-        BigDecimal lateFees = overdueDays > 0 || b.getOverdueDetectedAt() != null
+        BigDecimal lateFees = overdueDays > 0 || (b.getStatus() == BookingStatus.COMPLETED && b.getReturnTime() != null)
                 ? paymentRepository.findByBooking_IdAndPaymentTypeAndNoteAndStatusIn(
                         b.getId(), PaymentType.EXTRA_CHARGE, OVERDUE_LATE_FEE,
                         List.of(PaymentStatus.PENDING, PaymentStatus.FAILED))

@@ -1,4 +1,16 @@
+import 'rental_agreement.dart';
+import 'return_settlement.dart';
+
 class MyUnitModel {
+  final ReturnSettlement? returnSettlement;
+  final String refundBankCode,
+      refundAccountNumber,
+      refundAccountName,
+      checkoutNotes;
+  final bool refundCompleted;
+  final RentalAgreement agreement;
+  final String customerName;
+  final double? serviceFee;
   final String bookingId;
   final String handoverIssueStatus;
   final String handoverIssueReason;
@@ -8,11 +20,13 @@ class MyUnitModel {
   final bool unitAssignmentConfirmed;
   final String facilityName;
   final String facilityAddress;
+  final String facilityManagerName, facilityContactPhone, facilityContactEmail;
   final String typeName;
   final String status;
   final double totalRentalFee;
   final DateTime? startDate;
   final DateTime? endDate;
+  final DateTime? returnTime;
   final bool hasActiveAccess;
   final String dimensions;
   final double? areaSqm;
@@ -23,8 +37,8 @@ class MyUnitModel {
   final DateTime? pendingNewEndDate;
   final double? pendingExtensionFee;
   final DateTime? renewalOpensDate;
-  final bool overdue;
-  final int overdueDays;
+  final bool _reportedOverdue;
+  final int _reportedOverdueDays;
   final double overdueFeeOutstanding;
   final bool accessDisabled;
   final DateTime? scheduledReturnTime;
@@ -32,6 +46,15 @@ class MyUnitModel {
   final String? closeTime;
 
   MyUnitModel({
+    this.returnSettlement,
+    this.refundBankCode = '',
+    this.refundAccountNumber = '',
+    this.refundAccountName = '',
+    this.checkoutNotes = '',
+    this.refundCompleted = false,
+    this.agreement = const RentalAgreement(),
+    this.customerName = '',
+    this.serviceFee,
     required this.bookingId,
     this.handoverIssueStatus = '',
     this.handoverIssueReason = '',
@@ -41,11 +64,15 @@ class MyUnitModel {
     this.unitAssignmentConfirmed = false,
     required this.facilityName,
     required this.facilityAddress,
+    this.facilityManagerName = '',
+    this.facilityContactPhone = '',
+    this.facilityContactEmail = '',
     required this.typeName,
     required this.status,
     required this.totalRentalFee,
     this.startDate,
     this.endDate,
+    this.returnTime,
     this.hasActiveAccess = false,
     this.dimensions = '',
     this.areaSqm,
@@ -56,32 +83,57 @@ class MyUnitModel {
     this.pendingNewEndDate,
     this.pendingExtensionFee,
     this.renewalOpensDate,
-    this.overdue = false,
-    this.overdueDays = 0,
+    bool overdue = false,
+    int overdueDays = 0,
     this.overdueFeeOutstanding = 0,
     this.accessDisabled = false,
     this.scheduledReturnTime,
     this.openTime,
     this.closeTime,
-  });
+  })  : _reportedOverdue = overdue,
+        _reportedOverdueDays = overdueDays;
+
+  /// Rental dates follow Vietnam calendar days, independently of the device timezone.
+  int overdueDaysAt(DateTime instant) {
+    if (!isActive) return 0;
+    final end = endDate;
+    if (end == null) return _reportedOverdueDays;
+    final vietnam = instant.toUtc().add(const Duration(hours: 7));
+    final today = DateTime.utc(vietnam.year, vietnam.month, vietnam.day);
+    final expiry = DateTime.utc(end.year, end.month, end.day);
+    final days = today.difference(expiry).inDays;
+    return days > 0 ? days : 0;
+  }
+
+  int get overdueDays => overdueDaysAt(DateTime.now());
+  bool get overdue =>
+      isActive && (endDate != null ? overdueDays > 0 : _reportedOverdue);
 
   bool get hasHandoverIssue =>
       handoverIssueStatus == 'OPEN' || handoverIssueStatus == 'ARRANGED';
 
+  bool get isRefunded => status == 'CANCELLED' && refundCompleted;
   bool get isActive => status == 'ACTIVE';
-  String get displayUnit => (isActive || unitAssignmentConfirmed)
-      ? 'Ngăn $unitCode'
-      : 'Đang chờ quản lý xác nhận ngăn kho';
-  bool get hasLateFeeDue => overdueFeeOutstanding > 0;
-
-  /// Chưa tới ngày được gia hạn theo chính sách của cơ sở (chỉ gia hạn trong N ngày cuối).
-  bool get renewalNotYetOpen {
-    final opens = renewalOpensDate;
-    if (opens == null) return false;
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    return today.isBefore(DateTime(opens.year, opens.month, opens.day));
+  bool get hasReturned => status == 'COMPLETED' && returnTime != null;
+  bool get isReturnSettlement =>
+      status == 'COMPLETED' && returnTime != null && hasLateFeeDue;
+  bool get returnIsDue {
+    if (!isActive || endDate == null) return false;
+    final now = DateTime.now().toUtc().add(const Duration(hours: 7));
+    return !DateTime(now.year, now.month, now.day)
+        .isBefore(DateTime(endDate!.year, endDate!.month, endDate!.day));
   }
+
+  String get displayUnit =>
+      (isActive || status == 'COMPLETED' || unitAssignmentConfirmed)
+          ? 'Ngăn $unitCode'
+          : 'Đang chờ quản lý xác nhận ngăn kho';
+  bool get hasLateFeeDue =>
+      overdueFeeOutstanding > 0 &&
+      (overdue || (status == 'COMPLETED' && returnTime != null));
+
+  /// Khách hàng có thể gia hạn thuê bất cứ lúc nào khi hợp đồng đang hoạt động
+  bool get renewalNotYetOpen => false;
 
   double? get monthlyRate {
     if (rentalMonths == null || rentalMonths == 0) return null;
@@ -92,6 +144,18 @@ class MyUnitModel {
 
   factory MyUnitModel.fromJson(Map<String, dynamic> json) {
     return MyUnitModel(
+      returnSettlement: json['returnSettlement'] is Map
+          ? ReturnSettlement.fromJson(
+              Map<String, dynamic>.from(json['returnSettlement'] as Map))
+          : null,
+      refundBankCode: json['refundBankCode']?.toString() ?? '',
+      refundAccountNumber: json['refundAccountNumber']?.toString() ?? '',
+      refundAccountName: json['refundAccountName']?.toString() ?? '',
+      checkoutNotes: json['checkoutNotes']?.toString() ?? '',
+      refundCompleted: json['refundCompleted'] == true,
+      customerName: json['customerName']?.toString() ?? '',
+      serviceFee: (json['serviceFee'] as num?)?.toDouble(),
+      agreement: RentalAgreement.fromJson(json),
       bookingId: json['bookingId']?.toString() ?? json['id']?.toString() ?? '',
       bookingCode: json['bookingCode']?.toString() ?? '',
       handoverIssueStatus: json['handoverIssueStatus']?.toString() ?? '',
@@ -100,6 +164,9 @@ class MyUnitModel {
       unitCode: json['unitCode']?.toString() ?? '',
       unitAssignmentConfirmed: json['unitAssignmentConfirmed'] == true,
       facilityName: json['facilityName']?.toString() ?? '',
+      facilityManagerName: json['facilityManagerName']?.toString() ?? '',
+      facilityContactPhone: json['facilityContactPhone']?.toString() ?? '',
+      facilityContactEmail: json['facilityContactEmail']?.toString() ?? '',
       facilityAddress: json['facilityAddress']?.toString() ??
           json['address']?.toString() ??
           '',
@@ -116,6 +183,7 @@ class MyUnitModel {
       endDate: json['endDate'] != null
           ? DateTime.tryParse(json['endDate'].toString())
           : null,
+      returnTime: DateTime.tryParse(json['returnTime']?.toString() ?? ''),
       hasActiveAccess:
           json['activeAccess'] == true || json['hasActiveAccess'] == true,
       dimensions: json['dimensions']?.toString() ?? '',

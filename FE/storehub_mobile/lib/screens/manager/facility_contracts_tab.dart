@@ -1,3 +1,4 @@
+import '../../widgets/rental_agreement_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -55,8 +56,7 @@ class _FacilityContractsTabState extends State<FacilityContractsTab> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Duyệt niêm phong?'),
-        content: Text(
-            'Duyệt niêm phong ngăn ${item.unitCode} của đơn $code. '
+        content: Text('Duyệt niêm phong ngăn ${item.unitCode} của đơn $code. '
             'Khách đã quá hạn và quyền truy cập đã bị khóa.'),
         actions: [
           TextButton(
@@ -208,6 +208,13 @@ class _FacilityContractsTabState extends State<FacilityContractsTab> {
     );
   }
 
+  String _formatDate(String value) {
+    final date = DateTime.tryParse(value);
+    return date == null
+        ? 'Chưa có thông tin'
+        : DateFormat('dd/MM/yyyy').format(date);
+  }
+
   Widget _buildCard(FacilityContractModel item) {
     final status = item.status;
     final overdue = item.overdue;
@@ -259,7 +266,7 @@ class _FacilityContractsTabState extends State<FacilityContractsTab> {
             ),
             const SizedBox(height: 4),
             Text(
-              '${item.startDate} → ${item.endDate}'
+              '${_formatDate(item.startDate)} → ${_formatDate(item.endDate)}'
               '${item.rentalMonths > 0 ? ' (${item.rentalMonths} tháng)' : ''}',
               style: const TextStyle(
                 fontSize: 12,
@@ -272,6 +279,55 @@ class _FacilityContractsTabState extends State<FacilityContractsTab> {
               ' • Tổng tiền thuê ${_currency.format(item.totalRentalFee)}',
               style: const TextStyle(fontSize: 12),
             ),
+            const SizedBox(height: 10),
+            const Divider(height: 1),
+            SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  icon: const Icon(Icons.description_outlined, size: 18),
+                  style: TextButton.styleFrom(
+                      alignment: Alignment.centerLeft,
+                      minimumSize: const Size(0, 44),
+                      padding: EdgeInsets.zero),
+                  label: const Text('Xem hợp đồng & cam kết',
+                      style:
+                          TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                          builder: (_) => RentalAgreementScreen(
+                                  agreement: item.agreement,
+                                  fields: [
+                                    ('Mã đơn thuê', item.bookingCode),
+                                    ('Khách hàng', item.customerName),
+                                    ('Email', item.customerEmail),
+                                    ('Ngăn kho', item.unitCode),
+                                    ('Loại kho', item.unitType),
+                                    (
+                                      'Ngày bắt đầu thuê',
+                                      _formatDate(item.startDate)
+                                    ),
+                                    ('Ngày hết hạn', _formatDate(item.endDate)),
+                                    (
+                                      'Thời hạn thuê',
+                                      '${item.rentalMonths} tháng'
+                                    ),
+                                    (
+                                      'Tổng tiền thuê',
+                                      _currency.format(item.totalRentalFee)
+                                    ),
+                                    (
+                                      'Tiền cọc đã thanh toán',
+                                      _currency.format(item.depositPaid)
+                                    ),
+                                    (
+                                      'Phí dịch vụ',
+                                      item.serviceFee == null
+                                          ? 'Chưa có thông tin'
+                                          : _currency.format(item.serviceFee)
+                                    ),
+                                  ]))),
+                )),
             if (status == 'CONFIRMED') ...[
               const SizedBox(height: 8),
               Container(

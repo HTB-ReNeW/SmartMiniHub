@@ -4,8 +4,7 @@ import 'package:storehub_mobile/models/my_unit_model.dart';
 import 'package:storehub_mobile/screens/customer/my_units/contract_operation_dialog.dart';
 
 void main() {
-  testWidgets(
-      'Checkout dialog requires bank account info to submit',
+  testWidgets('Checkout dialog requires bank account info to submit',
       (WidgetTester tester) async {
     final unit = MyUnitModel(
       bookingId: 'b-1',
@@ -34,8 +33,8 @@ void main() {
 
     // Verify title, refund policy card, and return appointment section
     expect(find.text('Yêu cầu trả kho'), findsOneWidget);
-    expect(find.text('Dự tính hoàn tiền & Chính sách trả kho'), findsOneWidget);
-    expect(find.text('Hoàn 100% cọc'), findsOneWidget);
+    expect(find.text('Dự tính hoàn cọc nếu trả hôm nay'), findsOneWidget);
+    expect(find.text('Hoàn 100% cọc'), findsNothing);
     expect(find.text('2. Tài khoản nhận hoàn cọc (Bắt buộc)'), findsOneWidget);
 
     // Bank fields should be visible immediately
@@ -53,7 +52,9 @@ void main() {
     );
   });
 
-  test('MyUnitModel with scheduled return is distinguished from active without appointment', () {
+  test(
+      'MyUnitModel with scheduled return is distinguished from active without appointment',
+      () {
     final activeUnit = MyUnitModel(
       bookingId: 'b-1',
       bookingCode: 'BK001',
@@ -83,4 +84,3 @@ void main() {
     expect(returnScheduledUnit.scheduledReturnTime, isNotNull);
   });
 }
-

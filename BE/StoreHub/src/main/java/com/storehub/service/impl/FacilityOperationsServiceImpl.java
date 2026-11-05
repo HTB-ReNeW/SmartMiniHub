@@ -383,6 +383,12 @@ public class FacilityOperationsServiceImpl
             throw new AppException(ErrorCode.UNIT_ASSIGNMENT_REQUIRED);
         }
 
+        if (request.getUnitCondition() == com.storehub.enums.HandoverUnitCondition.GOOD
+                && request.getLockCondition() == com.storehub.enums.HandoverLockCondition.LOCKED_WORKING
+                && (request.getContractPhotos() == null || request.getContractPhotos().isEmpty()
+                    || request.getContractPhotos().stream().anyMatch(url -> url == null || url.isBlank()))) {
+            throw new AppException(ErrorCode.INVALID_REQUEST);
+        }
         StorageUnit storageUnit = storageUnitRepository
                 .lockById(booking.getStorageUnit().getId())
                 .orElseThrow(() -> new AppException(
@@ -418,6 +424,7 @@ public class FacilityOperationsServiceImpl
 
         handoverRecordRepository.save(record);
 
+        booking.setContractPhotos(request.getContractPhotos());
         booking.setStatus(BookingStatus.ACTIVE);
         booking.setHandedOverByStaffId(staff.getId());
         if (booking.getAssignedCheckInStaff() == null) {
@@ -530,22 +537,20 @@ public class FacilityOperationsServiceImpl
             }
         }
 
-        // Reconcile a missed nightly accrual under the booking lock. Commit the
-        // new debt even when the return is rejected, so the customer can pay it.
-        if (overdueScheduler.accrueOutstandingForCheckout(booking, LocalDateTime.now())) {
-            throw new OutstandingOverdueFeeException();
-        }
-
-        // Nghiệm thu trả kho -> tạo yêu cầu hoàn cọc. Bị chặn nếu còn nợ phí trễ hạn.
-        BigDecimal requestedRefund = (request.getDamageFee() != null || request.getDamageReason() != null)
+        // Physical return stops accrual even when the customer still needs to settle fees.
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+        overdueScheduler.accrueOutstandingForCheckout(booking, now);
+        BigDecimal depositBefore = booking.getDepositPaid() == null ? BigDecimal.ZERO : booking.getDepositPaid();
+        booking.setReturnTime(now);
+        BigDecimal additionalPayment = paymentService.deductReturnLateFeeFromDeposit(booking, request.getDamageFee());
+        boolean unpaidLateFee = additionalPayment != null && additionalPayment.signum() > 0;
+        BigDecimal requestedRefund = unpaidLateFee ? BigDecimal.ZERO : (request.getDamageFee() != null || request.getDamageReason() != null)
                 ? paymentService.refundDepositOnReturn(booking, request.getDamageFee(), request.getDamageReason())
                 : paymentService.refundDepositOnReturn(booking);
 
         if (booking.getAssignedCheckOutStaff() == null) {
             booking.setAssignedCheckOutStaff(staff);
         }
-        LocalDateTime now = LocalDateTime.now();
-
         HandoverRecord record = HandoverRecord.builder()
                 .booking(booking)
                 .staff(staff)
@@ -553,6 +558,11 @@ public class FacilityOperationsServiceImpl
                 .unitCondition(buildUnitCondition(request))
                 .notes(request.getNotes())
                 .damageFee(request.getDamageFee())
+                .depositBeforeReturn(depositBefore)
+                .lateFeeDeduction(booking.getReturnLateFeeDeduction())
+                .depositRefundAmount(depositBefore.subtract(booking.getReturnLateFeeDeduction() == null ? BigDecimal.ZERO : booking.getReturnLateFeeDeduction())
+                        .subtract(request.getDamageFee() == null ? BigDecimal.ZERO : request.getDamageFee()).max(BigDecimal.ZERO))
+                .additionalPaymentAmount(additionalPayment == null ? BigDecimal.ZERO : additionalPayment)
                 .damageReason(request.getDamageReason())
                 .photos(request.getPhotos())
                 .recordedAt(now)
@@ -569,7 +579,9 @@ public class FacilityOperationsServiceImpl
         storageUnitRepository.save(storageUnit);
 
         String message;
-        if (requestedRefund.signum() > 0) {
+        if (unpaidLateFee) {
+            message = "Đã nhận lại kho và chốt phí tại thời điểm bàn giao. Khách vui lòng mở Trả kho để thanh toán khoản còn lại; tiền cọc được xử lý sau đối soát.";
+        } else if (requestedRefund.signum() > 0) {
             message = "Check-out completed. Deposit refund requested: " + requestedRefund.toPlainString()
                     + (request.getDamageFee() != null && request.getDamageFee().signum() > 0
                         ? " (Damage fee deducted: " + request.getDamageFee().toPlainString() + ")" : "");
@@ -588,9 +600,13 @@ public class FacilityOperationsServiceImpl
                 : "";
         String noteInfo = (request.getNotes() != null && !request.getNotes().isBlank())
                 ? " | Ghi chú: " + request.getNotes().trim() : "";
-        String refundInfo = requestedRefund.signum() > 0
+        String refundInfo = unpaidLateFee ? " Phí đã chốt tại thời điểm nhận lại kho. Khách cần thanh toán trong mục Trả kho trước khi xử lý hoàn cọc." : requestedRefund.signum() > 0
                 ? " Khoản hoàn cọc: " + requestedRefund.toPlainString() + " ₫ đang chờ duyệt."
                 : " Không phát sinh hoàn cọc.";
+        refundInfo += " Cọc trước đối soát: " + depositBefore.toPlainString()
+                + " đ; trừ phí trễ vào cọc: " + (record.getLateFeeDeduction() == null ? "0" : record.getLateFeeDeduction().toPlainString())
+                + " đ; cọc được hoàn: " + record.getDepositRefundAmount().toPlainString()
+                + " đ; còn phải thanh toán thêm: " + record.getAdditionalPaymentAmount().toPlainString() + " đ.";
 
         notificationService.notifyFacilityManager(
                 facility,
@@ -605,7 +621,9 @@ public class FacilityOperationsServiceImpl
         if (booking.getCustomer() != null) {
             String custRefundMsg = requestedRefund.signum() > 0
                     ? " Tiền cọc hoàn lại: " + requestedRefund.toPlainString() + " ₫" + damageInfo + ". Quản lý cơ sở sẽ tiến hành chuyển khoản hoàn tiền cho bạn."
-                    : " Tiền cọc đã được khấu trừ toàn bộ cho chi phí hư hại/vệ sinh.";
+                    : (unpaidLateFee ? " Kho đã nhận lại, chờ thanh toán phần phí vượt tiền cọc."
+                        : " Không còn cọc được hoàn sau khấu trừ.");
+            custRefundMsg += refundInfo;
             notificationService.notifyUser(
                     booking.getCustomer(),
                     "Nghiệm thu trả kho hoàn tất",
@@ -876,6 +894,11 @@ public class FacilityOperationsServiceImpl
                 .customerId(customerId)
                 .customerName(customerName)
                 .customerEmail(customerEmail)
+                .customerPhone(booking.getCustomer() == null ? null : booking.getCustomer().getPhone())
+                .dimensions(storageUnit == null || storageUnit.getUnitType() == null ? null : storageUnit.getUnitType().getDimensions())
+                .startDate(booking.getStartDate())
+                .endDate(booking.getEndDate())
+                .notes("CHECK_OUT".equals(scheduleType) ? booking.getCheckoutNotes() : null)
                 .facilityId(facilityId)
                 .facilityName(facilityName)
                 .storageUnitId(

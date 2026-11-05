@@ -17,6 +17,17 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class Booking extends BaseEntity {
+    @Column(name = "return_late_fee_deduction", nullable = false, precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal returnLateFeeDeduction = BigDecimal.ZERO;
+    @Builder.Default
+    private Boolean paymentDeferred = false;
+    private Double cancellationWithin24hPercent;
+    private Double cancellationAfter24hPercent;
+    @jakarta.persistence.Convert(converter = com.storehub.util.StringListAttributeConverter.class)
+    @jakarta.persistence.Column(columnDefinition = "TEXT")
+    @Builder.Default
+    private java.util.List<String> contractPhotos = new java.util.ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
@@ -131,6 +142,21 @@ public class Booking extends BaseEntity {
 
     @Column(name = "scheduled_return_time")
     private LocalDateTime scheduledReturnTime;
+
+    @Column(columnDefinition = "TEXT")
+    private String checkoutNotes;
+
+    @Column(nullable = false, updatable = false)
+    @Builder.Default
+    private Integer returnNoticeDays = 0;
+
+    @Column(nullable = false, updatable = false)
+    @Builder.Default
+    private Integer refundSlaDays = 5;
+
+    @Column(nullable = false, updatable = false)
+    @Builder.Default
+    private Boolean refundPolicyLegacy = false;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_check_in_staff_id")

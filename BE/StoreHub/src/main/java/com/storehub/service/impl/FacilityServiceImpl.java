@@ -163,16 +163,6 @@ public class FacilityServiceImpl implements FacilityService {
                 throw new AppException(ErrorCode.INVALID_MANAGER_TO_ASSIGN);
             }
 
-            User previousManager = facility.getManager();
-
-            if (previousManager != null
-                    && !previousManager.getId().equals(manager.getId())
-                    && previousManager.getFacility() != null
-                    && facility.getId().equals(
-                    previousManager.getFacility().getId()
-            )) {
-                previousManager.setFacility(null);
-            }
 
             Facility previousFacility = manager.getFacility();
 

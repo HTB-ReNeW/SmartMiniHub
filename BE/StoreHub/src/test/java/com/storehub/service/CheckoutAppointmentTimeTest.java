@@ -31,6 +31,7 @@ class CheckoutAppointmentTimeTest {
     @Mock UserRepository userRepository;
     @Mock FacilityPolicyService facilityPolicyService;
     @Mock ActivityLogService activityLogService;
+    @Mock NotificationService notificationService;
     @InjectMocks CustomerStorageServiceImpl service;
 
     @Test
@@ -99,7 +100,6 @@ class CheckoutAppointmentTimeTest {
 
         when(userRepository.findByEmail(customerEmail)).thenReturn(Optional.of(user));
         when(bookingRepository.lockByIdAndCustomerId(bookingId, customerId)).thenReturn(Optional.of(booking));
-        when(facilityPolicyService.isReturnNoticeSatisfied(any(), any())).thenReturn(true);
 
         CheckoutRequest request = new CheckoutRequest();
         LocalDateTime validTime = LocalDateTime.now().plusDays(1).withHour(9).withMinute(0);
@@ -141,7 +141,6 @@ class CheckoutAppointmentTimeTest {
 
         when(userRepository.findByEmail(customerEmail)).thenReturn(Optional.of(user));
         when(bookingRepository.lockByIdAndCustomerId(bookingId, customerId)).thenReturn(Optional.of(booking));
-        when(facilityPolicyService.isReturnNoticeSatisfied(any(), any())).thenReturn(true);
 
         CheckoutRequest request = new CheckoutRequest();
         LocalDateTime validTime = LocalDateTime.now().plusDays(1).withHour(9).withMinute(0);
@@ -150,6 +149,7 @@ class CheckoutAppointmentTimeTest {
         request.setBankAccountNumber("9704198526191432198");
         request.setBankAccountName("NGUYEN VAN A");
 
+        booking.setEndDate(java.time.LocalDate.now().plusDays(30));
         ContractOperationResponse response = service.requestCheckout(bookingId, customerEmail, request);
 
         assertNotNull(response);

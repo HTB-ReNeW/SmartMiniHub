@@ -42,6 +42,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class FacilityOperationsReturnScheduleTest {
+    @Mock NotificationService notificationService;
     @Mock BookingRepository bookings;
     @Mock HandoverRecordRepository records;
     @Mock StorageUnitRepository units;
@@ -65,7 +66,7 @@ class FacilityOperationsReturnScheduleTest {
     }
 
     @Test
-    void missedOverdueChargeBlocksHandoverBeforeRefundOrCompletion() {
+    void missedOverdueChargeDoesNotBlockPhysicalReturnButDefersRefund() {
         UUID facilityId = UUID.randomUUID(), bookingId = UUID.randomUUID(), unitId = UUID.randomUUID();
         Facility facility = new Facility(); facility.setId(facilityId);
         StorageUnit unit = StorageUnit.builder().facility(facility)
@@ -79,16 +80,16 @@ class FacilityOperationsReturnScheduleTest {
         when(units.lockById(unitId)).thenReturn(Optional.of(unit));
         when(overdueScheduler.accrueOutstandingForCheckout(org.mockito.ArgumentMatchers.eq(booking), any()))
                 .thenReturn(true);
+        when(payments.deductReturnLateFeeFromDeposit(booking, null)).thenReturn(new BigDecimal("150"));
 
-        AppException error = assertThrows(AppException.class,
-                () -> operations.checkOut(bookingId, facilityId, "staff@test.com",
+        operations.checkOut(bookingId, facilityId, "staff@test.com",
                         HandoverRequest.builder().unitCondition(com.storehub.enums.HandoverUnitCondition.GOOD)
-                                .lockCondition(com.storehub.enums.HandoverLockCondition.LOCKED_WORKING).build()));
-        assertEquals(ErrorCode.OVERDUE_FEE_UNPAID_ON_RETURN, error.getErrorCode());
-        assertEquals(BookingStatus.ACTIVE, booking.getStatus());
-        assertEquals(UnitStatus.OCCUPIED, unit.getStatus());
+                                .lockCondition(com.storehub.enums.HandoverLockCondition.LOCKED_WORKING).build());
+        assertEquals(BookingStatus.COMPLETED, booking.getStatus());
+        assertEquals(UnitStatus.UNDER_MAINTENANCE, unit.getStatus());
+        assertNotNull(booking.getReturnTime());
         verify(payments, never()).refundDepositOnReturn(booking);
-        verify(records, never()).save(any());
+        verify(records).save(any());
     }
 
     @Test
@@ -188,7 +189,8 @@ class FacilityOperationsReturnScheduleTest {
 
         var result = operations.checkIn(bookingId, facilityId, "staff@test.com",
                 HandoverRequest.builder().unitCondition(condition)
-                        .lockCondition(lock).notes("Biên bản kiểm tra ngăn và khóa").build());
+                        .lockCondition(lock).notes("Biên bản kiểm tra ngăn và khóa")
+                        .contractPhotos(java.util.List.of("https://example.invalid/contract.jpg")).build());
 
         boolean ready = condition == com.storehub.enums.HandoverUnitCondition.GOOD
                 && lock == com.storehub.enums.HandoverLockCondition.LOCKED_WORKING;
@@ -196,7 +198,10 @@ class FacilityOperationsReturnScheduleTest {
         assertEquals(ready ? BookingStatus.ACTIVE : BookingStatus.CONFIRMED, booking.getStatus());
         assertEquals(ready ? UnitStatus.OCCUPIED : UnitStatus.UNDER_MAINTENANCE, unit.getStatus());
         assertEquals(ready, Boolean.TRUE.equals(booking.getUnitAssignmentConfirmed()));
-        if (ready) assertNotNull(booking.getHandoverTime());
+        if (ready) {
+            assertNotNull(booking.getHandoverTime());
+            assertEquals(java.util.List.of("https://example.invalid/contract.jpg"), booking.getContractPhotos());
+        }
         else {
             assertNull(booking.getHandoverTime());
             assertEquals(com.storehub.enums.HandoverIssueStatus.OPEN, booking.getHandoverIssueStatus());
@@ -206,4 +211,23 @@ class FacilityOperationsReturnScheduleTest {
         }
         assertTrue(result.getUnitCondition().contains(condition.getLabel()));
     }
+    @Test
+    void missingContractCannotActivateBookingOrPin() {
+        UUID facilityId = UUID.randomUUID(), bookingId = UUID.randomUUID();
+        Facility facility = new Facility(); facility.setId(facilityId);
+        StorageUnit unit = StorageUnit.builder().facility(facility).status(UnitStatus.RESERVED).build();
+        Booking booking = Booking.builder().storageUnit(unit).unitAssignmentConfirmed(true)
+                .status(BookingStatus.CONFIRMED).startDate(LocalDate.now()).endDate(LocalDate.now().plusMonths(1)).build();
+        booking.setId(bookingId);
+        when(access.require("staff@test.com", facilityId)).thenReturn(new User());
+        when(bookings.lockById(bookingId)).thenReturn(Optional.of(booking));
+        assertThrows(AppException.class, () -> operations.checkIn(bookingId, facilityId, "staff@test.com",
+                HandoverRequest.builder().unitCondition(com.storehub.enums.HandoverUnitCondition.GOOD)
+                    .lockCondition(com.storehub.enums.HandoverLockCondition.LOCKED_WORKING).build()));
+        assertEquals(BookingStatus.CONFIRMED, booking.getStatus());
+        assertNull(booking.getHandoverTime());
+        verify(records, never()).save(any());
+        verify(units, never()).lockById(any());
+    }
+
 }

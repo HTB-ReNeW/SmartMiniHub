@@ -42,6 +42,7 @@ public class SeedConfig implements ApplicationRunner {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final FacilityRepository facilityRepository;
+    private final FacilityPolicyRepository facilityPolicyRepository;
     private final PasswordEncoder passwordEncoder;
     private final StorageUnitRepository storageUnitRepository;
     private final BookingRepository bookingRepository;
@@ -259,6 +260,33 @@ public class SeedConfig implements ApplicationRunner {
         log.info("Created user: {} ({})", username, email);
     }
 
+    // Capture agreement text before INSERT; snapshot columns are immutable afterwards.
+    private Booking withSeedAgreement(Booking booking) {
+        FacilityPolicy policy = facilityPolicyRepository.findByFacility_Id(
+                booking.getStorageUnit().getFacility().getId())
+                .orElseThrow(() -> new IllegalStateException("Seed facility policy is missing"));
+        String hash = com.storehub.common.TermsSnapshot.hash(policy.getTermsVersion(),
+                policy.getTermsAndConditions(), policy.getProhibitedItems());
+        if (hash == null) {
+            throw new IllegalStateException("Seed facility agreement is incomplete");
+        }
+        booking.setCancellationWithin24hPercent(policy.getCancellationWithin24hPercent());
+        booking.setCancellationAfter24hPercent(policy.getCancellationAfter24hPercent());
+        booking.setTermsVersion(policy.getTermsVersion());
+        booking.setReturnNoticeDays(policy.getReturnNoticeDays());
+        booking.setRefundSlaDays(policy.getDepositRefundSlaDays());
+        booking.setRefundPolicyLegacy(false);
+        booking.setTermsContentSnapshot(policy.getTermsAndConditions());
+        booking.setProhibitedItemsSnapshot(policy.getProhibitedItems());
+        booking.setTermsHash(hash);
+        booking.setTermsAccepted(true);
+        booking.setProhibitedItemsAccepted(true);
+        if (booking.getTermsAcceptedAt() == null) {
+            booking.setTermsAcceptedAt(booking.getStartDate().atStartOfDay());
+        }
+        return booking;
+    }
+
     private void seedOperationalData() {
         if (bookingRepository.existsByBookingCode("BK-TEST-ACTIVE-01")) {
             log.info("Operational test data already seeded — skipping");
@@ -315,7 +343,7 @@ public class SeedConfig implements ApplicationRunner {
                     .overdueDailyLateFee(new BigDecimal("50000.00"))
                     .overdueGraceDays(1).overdueAccessDisableDays(3).overdueSealingDays(7)
                     .overduePolicyCapturedAt(now).overduePolicyLegacy(false)
-                    .cancellationFullRefundHours(48)
+                    .cancellationFullRefundHours(24)
                     .cancellationPartialRefundHours(24)
                     .cancellationPartialRefundPercent(50.0)
                     .cancellationPolicyEffectiveAt(now.minusDays(30))
@@ -345,7 +373,7 @@ public class SeedConfig implements ApplicationRunner {
                     .termsAcceptedAt(now.minusDays(10))
                     .termsVersion("v2026.1")
                     .build();
-            bkActive01 = bookingRepository.save(bkActive01);
+            bkActive01 = bookingRepository.save(withSeedAgreement(bkActive01));
 
             if (staff1 != null) {
                 handoverRecordRepository.save(HandoverRecord.builder()
@@ -391,7 +419,7 @@ public class SeedConfig implements ApplicationRunner {
                     .overdueDailyLateFee(new BigDecimal("50000.00"))
                     .overdueGraceDays(1).overdueAccessDisableDays(3).overdueSealingDays(7)
                     .overduePolicyCapturedAt(now).overduePolicyLegacy(false)
-                    .cancellationFullRefundHours(48)
+                    .cancellationFullRefundHours(24)
                     .cancellationPartialRefundHours(24)
                     .cancellationPartialRefundPercent(50.0)
                     .cancellationPolicyEffectiveAt(now.minusDays(30))
@@ -421,7 +449,7 @@ public class SeedConfig implements ApplicationRunner {
                     .termsAcceptedAt(now.minusDays(28))
                     .termsVersion("v2026.1")
                     .build();
-            bkActive02 = bookingRepository.save(bkActive02);
+            bkActive02 = bookingRepository.save(withSeedAgreement(bkActive02));
 
             if (staff1 != null) {
                 handoverRecordRepository.save(HandoverRecord.builder()
@@ -466,7 +494,7 @@ public class SeedConfig implements ApplicationRunner {
                     .overdueDailyLateFee(new BigDecimal("50000.00"))
                     .overdueGraceDays(1).overdueAccessDisableDays(3).overdueSealingDays(7)
                     .overduePolicyCapturedAt(now).overduePolicyLegacy(false)
-                    .cancellationFullRefundHours(48)
+                    .cancellationFullRefundHours(24)
                     .cancellationPartialRefundHours(24)
                     .cancellationPartialRefundPercent(50.0)
                     .cancellationPolicyEffectiveAt(now.minusDays(30))
@@ -490,7 +518,7 @@ public class SeedConfig implements ApplicationRunner {
                     .termsAcceptedAt(now.minusHours(2))
                     .termsVersion("v2026.1")
                     .build();
-            bkConfirmed01 = bookingRepository.save(bkConfirmed01);
+            bkConfirmed01 = bookingRepository.save(withSeedAgreement(bkConfirmed01));
 
             paymentRepository.save(Payment.builder()
                     .transactionId("TXN-TEST-BK03-RENTAL")
@@ -525,7 +553,7 @@ public class SeedConfig implements ApplicationRunner {
                     .overdueDailyLateFee(new BigDecimal("50000.00"))
                     .overdueGraceDays(1).overdueAccessDisableDays(3).overdueSealingDays(7)
                     .overduePolicyCapturedAt(now).overduePolicyLegacy(false)
-                    .cancellationFullRefundHours(48)
+                    .cancellationFullRefundHours(24)
                     .cancellationPartialRefundHours(24)
                     .cancellationPartialRefundPercent(50.0)
                     .cancellationPolicyEffectiveAt(now.minusDays(60))
@@ -550,7 +578,7 @@ public class SeedConfig implements ApplicationRunner {
                     .termsAccepted(true)
                     .prohibitedItemsAccepted(true)
                     .build();
-            bkCompleted01 = bookingRepository.save(bkCompleted01);
+            bkCompleted01 = bookingRepository.save(withSeedAgreement(bkCompleted01));
 
             if (staff1 != null) {
                 handoverRecordRepository.save(HandoverRecord.builder()
@@ -614,7 +642,7 @@ public class SeedConfig implements ApplicationRunner {
                     .overdueDailyLateFee(new BigDecimal("50000.00"))
                     .overdueGraceDays(1).overdueAccessDisableDays(3).overdueSealingDays(7)
                     .overduePolicyCapturedAt(now).overduePolicyLegacy(false)
-                    .cancellationFullRefundHours(48)
+                    .cancellationFullRefundHours(24)
                     .cancellationPartialRefundHours(24)
                     .cancellationPartialRefundPercent(50.0)
                     .cancellationPolicyEffectiveAt(now.minusDays(30))
@@ -638,7 +666,7 @@ public class SeedConfig implements ApplicationRunner {
                     .termsAcceptedAt(now.minusMinutes(5))
                     .termsVersion("v2026.1")
                     .build();
-            bookingRepository.save(bkPending01);
+            bookingRepository.save(withSeedAgreement(bkPending01));
         }
 
         // 3. Dữ liệu kho tại Quận 7 (HCM-D7) & Thủ Đức (HCM-TD) để báo cáo doanh thu & tỷ lệ lấp đầy phong phú
@@ -654,7 +682,7 @@ public class SeedConfig implements ApplicationRunner {
                     .overdueDailyLateFee(new BigDecimal("50000.00"))
                     .overdueGraceDays(1).overdueAccessDisableDays(3).overdueSealingDays(7)
                     .overduePolicyCapturedAt(now).overduePolicyLegacy(false)
-                        .cancellationFullRefundHours(48)
+                        .cancellationFullRefundHours(24)
                         .cancellationPartialRefundHours(24)
                         .cancellationPartialRefundPercent(50.0)
                         .cancellationPolicyEffectiveAt(now.minusDays(30))
@@ -676,7 +704,7 @@ public class SeedConfig implements ApplicationRunner {
                         .termsAccepted(true)
                         .prohibitedItemsAccepted(true)
                         .build();
-                bkD7 = bookingRepository.save(bkD7);
+                bkD7 = bookingRepository.save(withSeedAgreement(bkD7));
 
                 paymentRepository.save(Payment.builder()
                         .transactionId("TXN-D7-BK01-RENTAL")
@@ -711,7 +739,7 @@ public class SeedConfig implements ApplicationRunner {
                     .overdueDailyLateFee(new BigDecimal("50000.00"))
                     .overdueGraceDays(1).overdueAccessDisableDays(3).overdueSealingDays(7)
                     .overduePolicyCapturedAt(now).overduePolicyLegacy(false)
-                        .cancellationFullRefundHours(48)
+                        .cancellationFullRefundHours(24)
                         .cancellationPartialRefundHours(24)
                         .cancellationPartialRefundPercent(50.0)
                         .cancellationPolicyEffectiveAt(now.minusDays(30))
@@ -733,7 +761,7 @@ public class SeedConfig implements ApplicationRunner {
                         .termsAccepted(true)
                         .prohibitedItemsAccepted(true)
                         .build();
-                bkTd = bookingRepository.save(bkTd);
+                bkTd = bookingRepository.save(withSeedAgreement(bkTd));
 
                 paymentRepository.save(Payment.builder()
                         .transactionId("TXN-TD-BK01-RENTAL")

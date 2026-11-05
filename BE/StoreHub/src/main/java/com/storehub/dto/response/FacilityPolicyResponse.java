@@ -9,6 +9,8 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class FacilityPolicyResponse {
+    private Double cancellationWithin24hPercent;
+    private Double cancellationAfter24hPercent;
     private java.time.LocalDateTime cancellationPolicyEffectiveAt;
     private UUID id;
     private UUID facilityId;

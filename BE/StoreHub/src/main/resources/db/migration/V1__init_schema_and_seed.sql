@@ -263,7 +263,7 @@ CREATE TABLE IF NOT EXISTS facility_policies
     facility_id                          UUID             NOT NULL,
     deposit_percentage                   DOUBLE PRECISION NOT NULL,
     renewal_window_days                  INTEGER          NOT NULL DEFAULT 3,
-    cancellation_full_refund_hours       INTEGER          NOT NULL DEFAULT 48,
+    cancellation_full_refund_hours       INTEGER          NOT NULL DEFAULT 24,
     cancellation_partial_refund_hours    INTEGER          NOT NULL DEFAULT 24,
     cancellation_partial_refund_percent  DOUBLE PRECISION NOT NULL DEFAULT 50.0,
     return_notice_days                   INTEGER          NOT NULL DEFAULT 0,
@@ -843,7 +843,7 @@ INSERT INTO facility_policies (
 SELECT
     gen_random_uuid(), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, id, 20.0,
     3,
-    48, 24, 50.0,
+    24, 24, 50.0,
     0, 5,
     50000.00, 1, 3, 7,
     1, 14,

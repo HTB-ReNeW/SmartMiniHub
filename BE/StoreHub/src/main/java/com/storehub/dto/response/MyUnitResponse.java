@@ -17,13 +17,30 @@ import java.util.UUID;
 @AllArgsConstructor
 public class MyUnitResponse {
     private UUID bookingId;
+    private boolean refundCompleted;
+    private java.util.List<String> contractPhotos;
+    private LocalDateTime createdAt;
+    private Double cancellationWithin24hPercent;
+    private Double cancellationAfter24hPercent;
+    private String termsVersion;
+    private String termsContentSnapshot;
+    private String prohibitedItemsSnapshot;
+    private Boolean termsAccepted;
+    private Boolean prohibitedItemsAccepted;
+    private LocalDateTime termsAcceptedAt;
+
     private com.storehub.enums.HandoverIssueStatus handoverIssueStatus;
     private String handoverIssueReason;
     private LocalDateTime handoverIssueDueAt;
     private LocalDateTime scheduledCheckInTime;
     private String bookingCode;
+    private String customerName;
+    private BigDecimal serviceFee;
     private String facilityName;
     private String facilityAddress;
+    private String facilityManagerName;
+    private String facilityContactPhone;
+    private String facilityContactEmail;
     private String unitCode;
     private boolean unitAssignmentConfirmed;
     private String unitTypeName;
@@ -31,6 +48,8 @@ public class MyUnitResponse {
     private Double areaSqm;
     private LocalDate startDate;
     private LocalDate endDate;
+    private LocalDateTime returnTime;
+    private ReturnSettlementResponse returnSettlement;
     private Integer rentalMonths;
     private BookingStatus status;
     private BigDecimal totalRentalFee;
@@ -53,6 +72,11 @@ public class MyUnitResponse {
 
     // Lịch hẹn trả kho khách đã gửi (null nếu chưa gửi yêu cầu)
     private LocalDateTime scheduledReturnTime;
+    private String checkoutNotes;
+    private String refundBankCode;
+    private String refundAccountNumber;
+    private String refundAccountName;
+    private RentalPolicyResponse rentalPolicy;
 
     // Giờ hoạt động của cơ sở (để hiển thị và ràng buộc giờ hẹn nhận/trả)
     private java.time.LocalTime openTime;

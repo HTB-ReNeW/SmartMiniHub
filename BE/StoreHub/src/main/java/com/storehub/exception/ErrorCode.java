@@ -42,6 +42,7 @@ public enum ErrorCode {
     INVALID_REQUEST(601, "Yêu cầu không hợp lệ hoặc không phù hợp với trạng thái hiện tại", HttpStatus.BAD_REQUEST),
 
     // ========================= BOOKING & ACCESS (700 - 799) =================
+    DEFERRED_PAYMENT_EXISTS(699, "Bạn cần thanh toán đơn đã chọn Thanh toán sau trước đó trước khi tiếp tục dùng tùy chọn này. Hãy mở mục Đơn đang chờ thanh toán.", HttpStatus.CONFLICT),
     BOOKING_NOT_FOUND(700, "Không tìm thấy đơn đặt kho hoặc đơn không thuộc về bạn", HttpStatus.NOT_FOUND),
     BOOKING_NOT_CHECKED_IN(701, "Ngăn kho chưa được bàn giao cho khách", HttpStatus.FORBIDDEN),
     INVALID_PIN_FORMAT(702, "Mã PIN phải gồm đúng 6 chữ số", HttpStatus.BAD_REQUEST),
@@ -120,6 +121,9 @@ public enum ErrorCode {
     TERMS_NOT_AVAILABLE(736, "Cơ sở chưa công bố đầy đủ điều khoản và danh mục hàng cấm. Vui lòng thử lại sau", HttpStatus.CONFLICT),
     TERMS_CHANGED(737, "Điều khoản đã thay đổi hoặc chưa được xác nhận. Vui lòng mở lại và đồng ý điều khoản hiện hành", HttpStatus.CONFLICT),
     TERMS_VERSION_REQUIRED(738, "Khi sửa nội dung điều khoản hoặc danh mục hàng cấm, hãy sử dụng phiên bản điều khoản mới", HttpStatus.BAD_REQUEST),
+
+    CHECKOUT_SCHEDULE_OUT_OF_RANGE(743, "Ngày trả kho vượt khoảng cho phép. Trong hạn: tối đa ngày hết hạn; quá hạn: hôm nay hoặc ngày mai. Vui lòng liên hệ cơ sở hoặc gia hạn nếu cần trả muộn hơn", HttpStatus.BAD_REQUEST),
+    CHECKOUT_TIME_IN_PAST(744, "Lịch hẹn đã qua. Vui lòng chọn giờ trả kho mới ở tương lai", HttpStatus.BAD_REQUEST),
 
     // ========================= FACILITY_POLICY (1100 - 1199) =========================
     FACILITY_POLICY_NOT_FOUND(1100, "Không tìm thấy chính sách của cơ sở", HttpStatus.NOT_FOUND),

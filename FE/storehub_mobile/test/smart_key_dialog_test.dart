@@ -20,8 +20,8 @@ class _MockStorageService extends StorageApiService {
       };
 
   @override
-  Future<Map<String, dynamic>> updatePin(
-      String bookingId, String currentPin, {String? newPin}) async {
+  Future<Map<String, dynamic>> updatePin(String bookingId, String currentPin,
+      {String? newPin}) async {
     lastUpdatedCurrentPin = currentPin;
     lastUpdatedNewPin = newPin;
     return {
@@ -78,7 +78,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Reset PIN with custom PIN shows confirm PIN field and validates matching',
+  testWidgets(
+      'Reset PIN with custom PIN shows confirm PIN field and validates matching',
       (tester) async {
     final service = _MockStorageService();
     await tester.pumpWidget(MaterialApp(
@@ -96,14 +97,16 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-        find.widgetWithText(TextFormField, 'Mật khẩu tài khoản'), 'correctpass');
+        find.widgetWithText(TextFormField, 'Mật khẩu tài khoản'),
+        'correctpass');
 
     // Switch to custom PIN mode
     await tester.tap(find.text('Tự đặt mã'));
     await tester.pumpAndSettle();
 
     // Confirm field should now be visible
-    expect(find.widgetWithText(TextFormField, 'Nhập lại mã PIN'), findsOneWidget);
+    expect(
+        find.widgetWithText(TextFormField, 'Nhập lại mã PIN'), findsOneWidget);
 
     // Mismatched PIN entry
     await tester.enterText(
@@ -123,10 +126,12 @@ void main() {
 
     expect(service.lastResetPassword, equals('correctpass'));
     expect(service.lastResetNewPin, equals('123456'));
-    expect(find.text('Đã đặt lại mã PIN, cửa đã được khóa lại'), findsOneWidget);
+    expect(
+        find.text('Đã đặt lại mã PIN, cửa đã được khóa lại'), findsOneWidget);
   });
 
-  testWidgets('Change PIN allows system-generated option and shows generated PIN dialog',
+  testWidgets(
+      'Change PIN allows system-generated option and shows generated PIN dialog',
       (tester) async {
     final service = _MockStorageService();
     await tester.pumpWidget(MaterialApp(
@@ -160,8 +165,17 @@ void main() {
     expect(find.text('Mã PIN của bạn'), findsOneWidget);
     expect(find.text('8  8  8  9  9  9'), findsOneWidget);
 
-    // Tap "Tôi đã ghi nhớ" button to close dialog without auto-filling
-    await tester.tap(find.text('Tôi đã ghi nhớ'));
+    // The dialog cannot be closed until the user explicitly acknowledges
+    // that this one-time PIN has been saved.
+    final confirmButton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Xác nhận'),
+    );
+    expect(confirmButton.onPressed, isNull);
+
+    await tester.tap(find.text('Tôi chắc chắn đã ghi nhớ mã PIN'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Xác nhận'));
     await tester.pumpAndSettle();
 
     expect(find.text('Mã PIN của bạn'), findsNothing);

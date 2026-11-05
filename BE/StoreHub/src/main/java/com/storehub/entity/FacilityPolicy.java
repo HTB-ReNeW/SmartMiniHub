@@ -13,6 +13,10 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Builder
 public class FacilityPolicy extends BaseEntity {
+    @Builder.Default
+    private Double cancellationWithin24hPercent = 100.0;
+    @Builder.Default
+    private Double cancellationAfter24hPercent = 50.0;
 
     // Updates take effect immediately for new reservations only.
     @Builder.Default
@@ -46,7 +50,7 @@ public class FacilityPolicy extends BaseEntity {
     @Column(name = "cancellation_full_refund_hours", nullable = false)
     @Builder.Default
     // số giờ trước khi checkin ma khách cancel thuê sẽ trả 100% tiền cọc cho khách
-    private Integer cancellationFullRefundHours = 48;
+    private Integer cancellationFullRefundHours = 24;
 
     @Column(name = "cancellation_partial_refund_hours", nullable = false)
     @Builder.Default

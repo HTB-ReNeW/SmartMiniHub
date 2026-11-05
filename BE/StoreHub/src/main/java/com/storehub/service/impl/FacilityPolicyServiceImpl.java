@@ -83,6 +83,8 @@ public class FacilityPolicyServiceImpl implements FacilityPolicyService {
                 .facility(facility)
                 .depositPercentage(request.getDepositPercentage())
                 .renewalWindowDays(request.getRenewalWindowDays())
+                .cancellationWithin24hPercent(request.getCancellationWithin24hPercent() == null ? 100.0 : request.getCancellationWithin24hPercent())
+                .cancellationAfter24hPercent(request.getCancellationAfter24hPercent() == null ? 50.0 : request.getCancellationAfter24hPercent())
                 .cancellationFullRefundHours(request.getCancellationFullRefundHours())
                 .cancellationPartialRefundHours(request.getCancellationPartialRefundHours())
                 .cancellationPartialRefundPercent(request.getCancellationPartialRefundPercent())
@@ -140,7 +142,12 @@ public class FacilityPolicyServiceImpl implements FacilityPolicyService {
             throw new AppException(ErrorCode.FACILITY_POLICY_INVALID_CANCELLATION);
         }
 
-        boolean cancellationChanged = fullHours != policy.getCancellationFullRefundHours()
+        boolean cancellationChanged =
+                (request.getCancellationWithin24hPercent() != null
+                    && !request.getCancellationWithin24hPercent().equals(policy.getCancellationWithin24hPercent()))
+                || (request.getCancellationAfter24hPercent() != null
+                    && !request.getCancellationAfter24hPercent().equals(policy.getCancellationAfter24hPercent()))
+                || fullHours != policy.getCancellationFullRefundHours()
                 || partialHours != policy.getCancellationPartialRefundHours()
                 || (request.getCancellationPartialRefundPercent() != null
                     && !request.getCancellationPartialRefundPercent().equals(policy.getCancellationPartialRefundPercent()));
@@ -170,16 +177,8 @@ public class FacilityPolicyServiceImpl implements FacilityPolicyService {
 
     @Override
     public boolean isWithinRenewalWindow(UUID facilityId, LocalDate currentEndDate) {
-        return facilityPolicyRepository.findByFacility_Id(facilityId)
-                .map(policy -> {
-                    if (policy.getRenewalWindowDays() == null) {
-                        return true;
-                    }
-                    LocalDate windowOpensAt = currentEndDate.minusDays(policy.getRenewalWindowDays());
-                    LocalDate today = LocalDate.now();
-                    return !today.isBefore(windowOpensAt);
-                })
-                .orElse(true);
+        // Cho phép khách hàng gia hạn thuê bất cứ lúc nào trong thời gian thuê còn hiệu lực
+        return true;
     }
 
     @Override

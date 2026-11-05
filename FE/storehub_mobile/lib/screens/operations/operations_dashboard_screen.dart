@@ -195,10 +195,11 @@ class _OperationsDashboardScreenState extends State<OperationsDashboardScreen> {
               onTap: () => _open(const FacilityManagementScreen()),
             ),
             _menuCard(
-              icon: Icons.sell_outlined,
+              icon: Icons.inventory_2_outlined,
               color: AppColors.secondary,
-              title: 'Giá thuê & tiền cọc',
-              subtitle: 'Giá thuê tháng và tiền cọc của từng loại kho.',
+              title: 'Cấu hình loại kho',
+              subtitle:
+                  'Thêm/sửa loại kho: kích thước, diện tích, giá thuê & tiền cọc.',
               onTap: () => _open(const UnitPriceScreen()),
             ),
             _menuCard(

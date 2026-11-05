@@ -165,6 +165,16 @@ public class FacilityManagementController {
         );
     }
 
+    @GetMapping("/{facilityId}/managers")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FACILITY_MANAGER', 'BUSINESS_MANAGER')")
+    public ApiResponse<List<FacilityStaffResponse>> managers(
+            @PathVariable UUID facilityId
+    ) {
+        return ApiResponse.success(
+                service.managers(facilityId)
+        );
+    }
+
     @PutMapping("/{facilityId}/managers/{userId}")
     @PreAuthorize("hasRole('ADMIN') and hasAuthority('STAFF_ASSIGNMENT_CREATE')")
     public ApiResponse<FacilityStaffResponse> assignManager(
@@ -178,6 +188,19 @@ public class FacilityManagementController {
                         "FACILITY_MANAGER",
                         null
                 )
+        );
+    }
+
+    @DeleteMapping("/{facilityId}/managers/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<Void> unassignManager(
+            @PathVariable UUID facilityId,
+            @PathVariable UUID userId
+    ) {
+        service.unassignManager(facilityId, userId);
+        return ApiResponse.success(
+                "Manager unassigned from facility successfully",
+                null
         );
     }
 

@@ -23,7 +23,7 @@ WHERE rp.role_id = r.id
      OR p.name LIKE 'ROLE\_%'
      OR p.name LIKE 'PERMISSION\_%'
      OR p.name IN ('ACTIVITY_LOG_VIEW', 'LOGIN_HISTORY_VIEW',
-                   'STAFF_ASSIGNMENT_CREATE',
+                   'STAFF_ASSIGNMENT_CREATE', 'STAFF_ASSIGNMENT_DELETE', 'STAFF_ASSIGNMENT_VIEW',
                    'FACILITY_VIEW', 'POLICY_VIEW',
                    'PAYMENT_VIEW')
   );
@@ -39,7 +39,7 @@ WHERE r.name = 'ADMIN'
      OR p.name LIKE 'ROLE\_%'
      OR p.name LIKE 'PERMISSION\_%'
      OR p.name IN ('ACTIVITY_LOG_VIEW', 'LOGIN_HISTORY_VIEW',
-                   'STAFF_ASSIGNMENT_CREATE',
+                   'STAFF_ASSIGNMENT_CREATE', 'STAFF_ASSIGNMENT_DELETE', 'STAFF_ASSIGNMENT_VIEW',
                    'FACILITY_VIEW', 'POLICY_VIEW',
                    'PAYMENT_VIEW')
   )
@@ -52,6 +52,6 @@ SELECT gen_random_uuid(), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
        r.id, p.id, TRUE, 'BUSINESS_MANAGER view users and staff assignments'
 FROM roles r, permissions p
 WHERE r.name = 'BUSINESS_MANAGER'
-  AND p.name IN ('USER_VIEW', 'STAFF_ASSIGNMENT_VIEW')
+  AND p.name IN ('USER_VIEW', 'STAFF_ASSIGNMENT_VIEW', 'UNIT_TYPE_CREATE', 'UNIT_TYPE_UPDATE', 'UNIT_TYPE_VIEW')
 ON CONFLICT (role_id, permission_id)
 DO UPDATE SET is_active = TRUE, updated_at = CURRENT_TIMESTAMP;

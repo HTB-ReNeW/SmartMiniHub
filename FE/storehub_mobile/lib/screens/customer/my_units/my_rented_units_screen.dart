@@ -1,3 +1,6 @@
+import '../../../widgets/return_settlement_card.dart';
+import 'refund_account_dialog.dart';
+import '../../../widgets/rental_agreement_screen.dart';
 import 'package:flutter/material.dart';
 import '../../../core/utils/vi_labels.dart';
 import 'package:intl/intl.dart';
@@ -13,16 +16,20 @@ import 'contract_operation_dialog.dart';
 import 'smart_key_screen.dart';
 import '../../../models/facility_operations_models.dart';
 import '../../../widgets/photo_preview_dialog.dart';
+import '../../../widgets/facility_contact_card.dart';
 
 class MyRentedUnitsScreen extends StatefulWidget {
-  const MyRentedUnitsScreen({super.key});
+  final StorageApiService? storageService;
+  const MyRentedUnitsScreen({super.key, this.storageService});
 
   @override
   State<MyRentedUnitsScreen> createState() => _MyRentedUnitsScreenState();
 }
 
-class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
-  final StorageApiService _storageService = StorageApiService();
+class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen>
+    with WidgetsBindingObserver {
+  late final StorageApiService _storageService =
+      widget.storageService ?? StorageApiService();
   final BookingApiService _bookingService = BookingApiService();
   late Future<({List<MyUnitModel> active, List<MyUnitModel> awaiting})>
       _unitsFuture;
@@ -33,16 +40,25 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
   final _dateTimeFmt = DateFormat('dd/MM/yyyy • HH:mm');
 
   // Chỉ gia hạn khi đã nhận kho; nếu đang treo yêu cầu gia hạn thì vẫn cho mở lại
-  // để thanh toán/hủy; nợ phí trễ hạn thì phải trả trước.
-  bool _canExtend(MyUnitModel unit) =>
-      unit.isActive &&
-      (unit.hasPendingExtension ||
-          (!unit.hasLateFeeDue && !unit.renewalNotYetOpen));
+  // để thanh toán/hủy; nợ phí trễ hạn thì phải trả trước. Khách hàng có thể gia hạn bất kỳ lúc nào.
+  bool _canExtend(MyUnitModel unit) => unit.isActive;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadUnits();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _loadUnits();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   void _loadUnits() {
@@ -61,10 +77,48 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
         .map((item) =>
             MyUnitModel.fromJson(Map<String, dynamic>.from(item as Map)))
         .toList();
-    return (active: parse(results[0]), awaiting: parse(results[1]));
+    return (
+      active: parse(results[0]),
+      awaiting: parse(results[1]).where((unit) => !unit.isRefunded).toList()
+    );
+  }
+
+  void _showRentalContract(MyUnitModel unit) {
+    String date(DateTime? value) =>
+        value == null ? 'Chưa có thông tin' : _dateFmt.format(value);
+    final fields = <(String, String)>[
+      ('Mã đơn thuê', unit.bookingCode),
+      ('Khách hàng', unit.customerName),
+      ('Ngăn kho', unit.displayUnit),
+      ('Cơ sở', unit.facilityName),
+      ('Địa chỉ', unit.facilityAddress),
+      ('Loại kho', unit.typeName),
+      ('Kích thước', unit.dimensions),
+      ('Ngày bắt đầu thuê', date(unit.startDate)),
+      ('Ngày hết hạn', date(unit.endDate)),
+      (
+        'Trạng thái',
+        unit.isRefunded ? 'Đã hoàn tiền' : ViLabels.booking(unit.status)
+      ),
+      ('Tổng tiền thuê', _currency.format(unit.totalRentalFee)),
+      if (unit.depositPaid != null)
+        ('Tiền cọc đã thanh toán', _currency.format(unit.depositPaid)),
+      (
+        'Phí dịch vụ',
+        unit.serviceFee == null
+            ? 'Chưa có thông tin'
+            : _currency.format(unit.serviceFee)
+      ),
+    ];
+    Navigator.push(
+        context,
+        MaterialPageRoute<void>(
+            builder: (_) => RentalAgreementScreen(
+                fields: fields, agreement: unit.agreement)));
   }
 
   void _showUnitActions(MyUnitModel unit) {
+    if (unit.isRefunded || unit.hasReturned) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -131,6 +185,26 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                     color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
+                  child: const Icon(Icons.description_outlined,
+                      color: AppColors.primary),
+                ),
+                title: const Text('Hợp đồng & Cam kết lưu kho',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                subtitle: const Text('Xem điều khoản và cam kết đã xác nhận',
+                    style: TextStyle(fontSize: 12)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showRentalContract(unit);
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   child: const Icon(Icons.key, color: AppColors.primary),
                 ),
                 title: const Text('Khóa thông minh ngăn kho',
@@ -160,29 +234,6 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                       }
                     : null,
               ),
-              if (unit.hasLateFeeDue)
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.errorContainer,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.payments_outlined,
-                        color: AppColors.error),
-                  ),
-                  title: const Text('Thanh toán phí trễ hạn',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                  subtitle: Text(
-                      'còn nợ ${_currency.format(unit.overdueFeeOutstanding)}',
-                      style: const TextStyle(fontSize: 12)),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _openContractOperation(unit,
-                        isExtension: false, payOverdue: true);
-                  },
-                ),
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(8),
@@ -202,26 +253,26 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                         style: TextStyle(fontSize: 12))
                     : unit.hasPendingExtension
                         ? const Text(
-                            'Tiếp tục hoặc hủy yêu cầu gia hạn đang chờ',
-                            style: TextStyle(fontSize: 12))
+                            'Tiếp tục hoặc hủy yêu cầu gia hạn đang chờ thanh toán',
+                            style: TextStyle(
+                                fontSize: 12, color: AppColors.primary))
                         : unit.hasLateFeeDue
                             ? const Text(
-                                'Vui lòng thanh toán phí trễ hạn trước',
-                                style: TextStyle(fontSize: 12))
-                            : unit.renewalNotYetOpen
-                                ? Text(
-                                    'Chưa đến thời điểm gia hạn. Gia hạn mở từ '
-                                    '${_dateFmt.format(unit.renewalOpensDate!)} '
-                                    '(trong ${unit.endDate!.difference(unit.renewalOpensDate!).inDays} '
-                                    'ngày cuối trước ngày hết hạn ${_dateFmt.format(unit.endDate!)}).',
-                                    style: const TextStyle(fontSize: 12))
-                                : null,
+                                'Đối soát phí phát sinh trong luồng gia hạn',
+                                style: TextStyle(
+                                    fontSize: 12, color: AppColors.error))
+                            : const Text(
+                                'Gia hạn thêm thời gian thuê bất cứ lúc nào',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.onSurfaceVariant)),
                 onTap: _canExtend(unit)
                     ? () {
                         Navigator.pop(ctx);
                         _openContractOperation(
                           unit,
                           isExtension: true,
+                          payOverdue: unit.hasLateFeeDue,
                           resumePending: unit.hasPendingExtension,
                         );
                       }
@@ -358,6 +409,14 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      tooltip: 'Quay lại',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => Navigator.pop(sheetContext),
+                    ),
+                    const SizedBox(width: 8),
                     const Icon(Icons.history_edu,
                         color: AppColors.primaryContainer),
                     const SizedBox(width: 8),
@@ -370,6 +429,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.close),
+                      tooltip: 'Đóng',
                       onPressed: () => Navigator.pop(sheetContext),
                     ),
                   ],
@@ -530,15 +590,27 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
   }
 
   Future<void> _confirmCancelBooking(MyUnitModel unit) async {
+    Map<String, dynamic> quote;
+    try {
+      quote = await _bookingService.cancellationQuote(unit.bookingId);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Không tải được số tiền hoàn: $e')));
+      return;
+    }
+    if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Hủy đơn đặt kho?'),
         content: Text(
-          unit.hasHandoverIssue
-              ? 'Đơn ${unit.bookingCode} sẽ hủy do lỗi cơ sở. Hệ thống tạo yêu cầu hoàn toàn bộ khoản đã thu, không áp phí hủy của khách.'
-              : 'Đơn ${unit.bookingCode} (${unit.displayUnit}) sẽ bị hủy và ngăn kho được trả lại. Tiền cọc được hoàn theo chính sách hủy của cơ sở.',
-        ),
+            'Tiền cọc hoàn: ${_currency.format(quote['depositRefund'])}\n'
+            'Tiền thuê hoàn: ${_currency.format(quote['rentalRefund'])}\n'
+            'Tổng dự kiến: ${_currency.format(quote['totalRefund'])}\n\n'
+            'Mốc 24 giờ từ lúc đặt: ${DateTime.tryParse(quote['deadline'].toString()) != null ? _dateTimeFmt.format(DateTime.parse(quote['deadline'].toString())) : quote['deadline']}\n'
+            'Máy chủ tính lại khi nhận yêu cầu hủy; tiền hoàn có thể thay đổi nếu vượt mốc 24 giờ. '
+            'Sau khi hủy, đơn không còn được bàn giao.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -552,27 +624,35 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
       ),
     );
 
-    if (confirmed != true) return;
-
-    try {
-      await _bookingService.cancelBooking(unit.bookingId);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã hủy đơn'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-      _loadUnits();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: AppColors.error,
-        ),
-      );
-    }
+    if (confirmed != true || !mounted) return;
+    final finalConfirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+              title: const Text('Xác nhận hủy đơn lần cuối'),
+              content: const Text(
+                  'Bạn chắc chắn muốn hủy đơn này? Sau khi gửi yêu cầu, đơn không còn được bàn giao. Tiếp theo, hãy nhập tài khoản nhận hoàn tiền.'),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Giữ đơn')),
+                FilledButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('Xác nhận & tiếp tục'))
+              ],
+            ));
+    if (finalConfirm != true || !mounted) return;
+    final sent = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => RefundAccountDialog(
+            onSubmit: (account) => _bookingService.cancelWithRefundAccount(
+                unit.bookingId, account)));
+    if (sent != true || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content:
+            Text('Đã gửi yêu cầu hủy và thông tin tài khoản nhận hoàn tiền'),
+        backgroundColor: AppColors.success));
+    _loadUnits();
   }
 
   Future<void> _openContractOperation(
@@ -587,7 +667,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
         unit: unit,
         isExtension: isExtension,
         resumePending: resumePending,
-        payOverdue: payOverdue,
+        payOverdue: payOverdue || unit.isReturnSettlement,
       ),
     );
     if (result == true) {
@@ -626,6 +706,9 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
   }
 
   String _unitBadgeLabel(MyUnitModel unit) {
+    if (unit.hasReturned) return 'Đã trả kho';
+    if (unit.isRefunded) return 'Đã hoàn tiền';
+    if (unit.status == 'CANCELLED') return 'Đã gửi yêu cầu hủy';
     if (unit.overdue) return 'Quá hạn';
     if (unit.isActive && unit.scheduledReturnTime != null) {
       return 'Đã hẹn trả kho';
@@ -634,6 +717,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
   }
 
   Color _unitBadgeColor(MyUnitModel unit) {
+    if (unit.isRefunded) return AppColors.success;
     if (unit.overdue) return AppColors.error;
     if (unit.isActive && unit.scheduledReturnTime != null) {
       return AppColors.warning;
@@ -719,10 +803,12 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
+                            Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
                                 Text(
-                                  '${active.length} đang thuê',
+                                  '${active.where((unit) => unit.isActive).length} đang thuê'
+                                  '${active.any((unit) => unit.hasReturned) ? ' • ${active.where((unit) => unit.hasReturned).length} đã trả' : ''}',
                                   style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
@@ -785,8 +871,11 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                                         ? Colors.white
                                         : AppColors.onSurfaceVariant),
                                 const SizedBox(width: 6),
-                                Text(
-                                  'Đang thuê (${active.length})',
+                                Flexible(
+                                    child: Text(
+                                  active.any((unit) => unit.hasReturned)
+                                      ? 'Đang thuê / Đã trả (${active.length})'
+                                      : 'Đang thuê (${active.length})',
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: !_showAwaiting
@@ -796,7 +885,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                                         ? Colors.white
                                         : AppColors.onSurfaceVariant,
                                   ),
-                                ),
+                                )),
                               ],
                             ),
                           ),
@@ -824,7 +913,8 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                                         ? Colors.white
                                         : AppColors.onSurfaceVariant),
                                 const SizedBox(width: 6),
-                                Text(
+                                Flexible(
+                                    child: Text(
                                   'Chờ nhận (${awaiting.length})',
                                   style: TextStyle(
                                     fontSize: 13,
@@ -835,7 +925,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                                         ? Colors.white
                                         : AppColors.onSurfaceVariant,
                                   ),
-                                ),
+                                )),
                               ],
                             ),
                           ),
@@ -872,7 +962,11 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => _showUnitActions(unit),
+        onTap: (unit.isRefunded || unit.hasReturned)
+            ? null
+            : unit.isReturnSettlement
+                ? () => _openContractOperation(unit, isExtension: false)
+                : () => _showUnitActions(unit),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -935,6 +1029,25 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 10),
+              FacilityContactCard(
+                  managerName: unit.facilityManagerName,
+                  phone: unit.facilityContactPhone,
+                  email: unit.facilityContactEmail),
+              if (unit.isRefunded) ...[
+                const SizedBox(height: 10),
+                const Text('Cơ sở đã hoàn tất hoàn tiền cho đơn này.',
+                    style: TextStyle(
+                        fontSize: 12, color: AppColors.onSurfaceVariant)),
+              ],
+              if (unit.status == 'CANCELLED' && !unit.isRefunded) ...[
+                const SizedBox(height: 10),
+                const Text(
+                    'Đã gửi yêu cầu hủy. Đơn không còn chờ bàn giao. '
+                    'Khoản hoàn tiền (nếu có) được xử lý theo chính sách của cơ sở.',
+                    style: TextStyle(
+                        fontSize: 12, color: AppColors.onSurfaceVariant)),
+              ],
               if (unit.hasHandoverIssue) ...[
                 const SizedBox(height: 10),
                 Text(
@@ -948,7 +1061,7 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                     'Bạn không bị áp phí hủy do lỗi cơ sở. Nếu hủy trước khi nhận kho, hệ thống tạo yêu cầu hoàn toàn bộ tiền đã thu.',
                     style: TextStyle(fontSize: 12)),
               ],
-              if (unit.overdue || unit.accessDisabled) ...[
+              if (unit.overdue) ...[
                 const SizedBox(height: 10),
                 Container(
                   width: double.infinity,
@@ -969,10 +1082,15 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                           [
                             'Hợp đồng đã quá hạn${unit.overdueDays > 0 ? ' ${unit.overdueDays} ngày' : ''}.',
                             if (unit.hasLateFeeDue)
-                              'Phí trễ hạn cần thanh toán: ${_currency.format(unit.overdueFeeOutstanding)}.',
+                              'Phí trễ hạn dự kiến: ${_currency.format(unit.overdueFeeOutstanding)}.',
                             if (unit.accessDisabled)
                               'Khóa thông minh đã bị vô hiệu hóa.',
-                            'Hãy thanh toán phí, sau đó gia hạn hoặc trả kho.',
+                            if (unit.hasLateFeeDue)
+                              'Phí được chốt khi nhân viên nhận lại kho, theo chính sách hợp đồng.',
+                            if (unit.scheduledReturnTime == null)
+                              'Vui lòng gia hạn thuê hoặc gửi yêu cầu trả kho.'
+                            else
+                              'Bạn đã gửi yêu cầu trả kho. Vui lòng bàn giao theo lịch hẹn.',
                           ].join(' '),
                           style: const TextStyle(
                               fontSize: 11, fontWeight: FontWeight.w600),
@@ -1037,6 +1155,21 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                   ),
                 ),
               ],
+              if (unit.status == 'CANCELLED') ...[
+                const SizedBox(height: 12),
+                Text(
+                  'Tổng tiền sẽ hoàn: ${_currency.format(unit.totalRentalFee + (unit.depositPaid ?? 0))}',
+                  style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.success),
+                ),
+              ] else if (monthlyRate != null) ...[
+                const SizedBox(height: 12),
+                Text('${_currency.format(monthlyRate)} / tháng',
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600)),
+              ],
               const SizedBox(height: 12),
               Container(
                 padding:
@@ -1049,29 +1182,25 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                 ),
                 child: Row(
                   children: [
-                    if (monthlyRate != null) ...[
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Giá thuê / tháng',
-                                style: TextStyle(
-                                    fontSize: 10,
-                                    color: AppColors.onSurfaceVariant)),
-                            const SizedBox(height: 2),
-                            Text(_currency.format(monthlyRate),
-                                style: const TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Ngày bắt đầu thuê',
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.onSurfaceVariant)),
+                          const SizedBox(height: 2),
+                          Text(
+                              unit.startDate != null
+                                  ? _dateFmt.format(unit.startDate!)
+                                  : 'Chưa có thông tin',
+                              style: const TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.bold)),
+                        ],
                       ),
-                      Container(
-                        height: 28,
-                        width: 1,
-                        color: AppColors.outline.withValues(alpha: 0.2),
-                        margin: const EdgeInsets.symmetric(horizontal: 12),
-                      ),
-                    ],
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1094,47 +1223,90 @@ class _MyRentedUnitsScreenState extends State<MyRentedUnitsScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: ElevatedButton.icon(
-                      onPressed: unit.hasActiveAccess
-                          ? () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => SmartKeyScreen(
-                                    bookingId: unit.bookingId,
-                                    unitNumber: unit.unitCode,
-                                  ),
-                                ),
-                              );
-                            }
-                          : null,
-                      icon: const Icon(Icons.key, size: 16),
-                      label: const Text('Mở khóa',
-                          style: TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(42)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 2,
-                    child: OutlinedButton.icon(
-                      onPressed: () => _showUnitActions(unit),
-                      icon: const Icon(Icons.more_horiz, size: 16),
-                      label:
-                          const Text('Quản lý', style: TextStyle(fontSize: 13)),
-                      style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(42)),
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: () => _showRentalContract(unit),
+                  icon: const Icon(Icons.description_outlined, size: 18),
+                  label: const Text('Hợp đồng & Cam kết'),
+                ),
               ),
+              if (unit.returnIsDue ||
+                  unit.hasReturned ||
+                  unit.scheduledReturnTime != null) ...[
+                const SizedBox(height: 10),
+                if (unit.hasReturned) ...[
+                  ReturnSettlementCard(settlement: unit.returnSettlement),
+                  const SizedBox(height: 10),
+                ],
+                SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: unit.hasReturned ||
+                              unit.scheduledReturnTime != null
+                          ? null
+                          : () =>
+                              _openContractOperation(unit, isExtension: false),
+                      icon: const Icon(Icons.logout, size: 18),
+                      label: Text(unit.hasReturned
+                          ? 'Đã trả kho'
+                          : unit.scheduledReturnTime != null
+                              ? 'Đã gửi yêu cầu trả kho'
+                              : 'Trả kho'),
+                    )),
+                if (unit.isReturnSettlement)
+                  SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        onPressed: () =>
+                            _openContractOperation(unit, isExtension: false),
+                        child: const Text('Thanh toán phần còn thiếu'),
+                      )),
+              ],
+              if (!unit.isRefunded && !unit.hasReturned) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: ElevatedButton.icon(
+                        onPressed: unit.hasActiveAccess
+                            ? () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => SmartKeyScreen(
+                                      bookingId: unit.bookingId,
+                                      unitNumber: unit.unitCode,
+                                    ),
+                                  ),
+                                );
+                              }
+                            : null,
+                        icon: const Icon(Icons.key, size: 16),
+                        label: const Text('Mở khóa',
+                            style: TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(42)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showUnitActions(unit),
+                        icon: const Icon(Icons.more_horiz, size: 16),
+                        label: const Text('Quản lý',
+                            style: TextStyle(fontSize: 13)),
+                        style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(42)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

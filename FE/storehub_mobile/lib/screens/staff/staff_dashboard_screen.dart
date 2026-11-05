@@ -12,7 +12,6 @@ import '../../widgets/state_views.dart';
 import '../../widgets/photo_preview_dialog.dart';
 import '../../widgets/notification_badge_button.dart';
 import '../common/profile_screen.dart';
-import '../common/transaction_history_screen.dart';
 import '../common/gate_pass_verify_screen.dart';
 
 class StaffDashboardScreen extends StatefulWidget {
@@ -104,8 +103,7 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
 
     try {
       await _scheduleFuture;
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> _pickDate() async {
@@ -143,6 +141,7 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
     final damageFeeController = TextEditingController();
     final damageReasonController = TextEditingController();
     List<File> evidencePhotos = [];
+    List<File> contractPhotos = [];
 
     bool submitting = false;
     bool inspectionConfirmed = false;
@@ -161,8 +160,7 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
         return StatefulBuilder(
           builder: (sheetContext, setSheetState) {
             final bool handoverBlocked = isCheckIn &&
-                (unitCondition != 'GOOD' ||
-                    lockCondition != 'LOCKED_WORKING');
+                (unitCondition != 'GOOD' || lockCondition != 'LOCKED_WORKING');
             return Padding(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(
@@ -174,24 +172,51 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      isCheckIn
-                          ? 'Bàn giao • Ngăn ${item.unitCode}'
-                          : 'Nghiệm thu • Ngăn ${item.unitCode}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item.customerName.isEmpty
-                          ? 'Khách hàng'
-                          : item.customerName,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.onSurfaceVariant,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        IconButton(
+                          onPressed: () => Navigator.pop(sheetContext),
+                          icon: const Icon(Icons.arrow_back),
+                          tooltip: 'Quay lại',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isCheckIn
+                                    ? 'Bàn giao • Ngăn ${item.unitCode}'
+                                    : 'Nghiệm thu • Ngăn ${item.unitCode}',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                item.customerName.isEmpty
+                                    ? 'Khách hàng'
+                                    : item.customerName,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(sheetContext),
+                          icon: const Icon(Icons.close),
+                          tooltip: 'Đóng',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
                     ),
                     if (isCheckIn) ...[
                       const SizedBox(height: 10),
@@ -205,7 +230,8 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.info_outline, size: 16, color: Colors.blue.shade800),
+                            Icon(Icons.info_outline,
+                                size: 16, color: Colors.blue.shade800),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -440,6 +466,22 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                         });
                       },
                     ),
+                    if (isCheckIn && !handoverBlocked) ...[
+                      const SizedBox(height: 16),
+                      const Text('Ảnh hợp đồng đã ký (bắt buộc)',
+                          style: TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 4),
+                      const Text(
+                          'Chụp đầy đủ các trang để khách hàng và quản lý cơ sở xem lại.',
+                          style: TextStyle(fontSize: 12)),
+                      const SizedBox(height: 8),
+                      EvidencePhotoPicker(
+                          selectedFiles: contractPhotos,
+                          enabled: !submitting,
+                          onFilesChanged: (files) =>
+                              setSheetState(() => contractPhotos = files)),
+                    ],
                     const SizedBox(height: 10),
                     CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
@@ -497,11 +539,20 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                                 if (!isCheckIn &&
                                     fee != null &&
                                     fee > 0 &&
-                                    damageReasonController.text.trim().isEmpty) {
+                                    damageReasonController.text
+                                        .trim()
+                                        .isEmpty) {
                                   return 'Vui lòng nhập lý do khấu trừ phí hư hại.';
                                 }
                                 return null;
                               }();
+                              if (isCheckIn &&
+                                  !handoverBlocked &&
+                                  contractPhotos.isEmpty) {
+                                setSheetState(() => sheetError =
+                                    'Vui lòng tải ảnh hợp đồng đã ký trước khi bàn giao.');
+                                return;
+                              }
                               if (validation != null) {
                                 setSheetState(() => sheetError = validation);
                                 return;
@@ -515,11 +566,19 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                               try {
                                 List<String> uploadedPhotos = [];
                                 if (evidencePhotos.isNotEmpty) {
-                                  uploadedPhotos = await _opsService.uploadHandoverPhotos(
+                                  uploadedPhotos =
+                                      await _opsService.uploadHandoverPhotos(
                                     evidencePhotos.map((f) => f.path).toList(),
                                   );
                                 }
 
+                                final uploadedContracts = isCheckIn &&
+                                        !handoverBlocked
+                                    ? await _opsService.uploadHandoverPhotos(
+                                        contractPhotos
+                                            .map((f) => f.path)
+                                            .toList())
+                                    : <String>[];
                                 final HandoverModel result;
 
                                 if (isCheckIn) {
@@ -530,6 +589,7 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                                     lockCondition: lockCondition,
                                     notes: notesController.text,
                                     photos: uploadedPhotos,
+                                    contractPhotos: uploadedContracts,
                                   );
                                 } else {
                                   final num? damageFee = num.tryParse(
@@ -608,6 +668,18 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                                   : 'Xác nhận nghiệm thu',
                             ),
                     ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed:
+                          submitting ? null : () => Navigator.pop(sheetContext),
+                      icon: const Icon(Icons.arrow_back, size: 18),
+                      label: const Text('Quay lại'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        side: BorderSide(color: Colors.grey.shade300),
+                        foregroundColor: AppColors.onSurfaceVariant,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -651,6 +723,14 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                 ),
                 child: Row(
                   children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(sheetContext),
+                      icon: const Icon(Icons.arrow_back),
+                      tooltip: 'Quay lại',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -678,6 +758,7 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                         Navigator.pop(sheetContext);
                       },
                       icon: const Icon(Icons.close),
+                      tooltip: 'Đóng',
                     ),
                   ],
                 ),
@@ -750,7 +831,8 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
           ).format(record.recordedAt!);
 
     final details = <String>[
-      if (record.unitCondition.isNotEmpty) 'Tình trạng: ${record.unitCondition}',
+      if (record.unitCondition.isNotEmpty)
+        'Tình trạng: ${record.unitCondition}',
       if (record.damageFee != null && record.damageFee! > 0)
         'Phí hư hại: ${record.damageFee} ₫${record.damageReason != null ? " (${record.damageReason})" : ""}',
       if (record.notes.isNotEmpty) 'Ghi chú: ${record.notes}',
@@ -772,7 +854,9 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                       : AppColors.secondaryContainer.withValues(alpha: 0.15),
                   child: Icon(
                     isCheckIn ? Icons.login : Icons.logout,
-                    color: isCheckIn ? AppColors.success : AppColors.secondaryContainer,
+                    color: isCheckIn
+                        ? AppColors.success
+                        : AppColors.secondaryContainer,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -797,12 +881,10 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
             ),
             if (details.isNotEmpty) ...[
               const SizedBox(height: 8),
-              ...details
-                  .where((d) => d != recordedTime)
-                  .map((d) => Padding(
-                        padding: const EdgeInsets.only(bottom: 2),
-                        child: Text(d, style: const TextStyle(fontSize: 13)),
-                      )),
+              ...details.where((d) => d != recordedTime).map((d) => Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: Text(d, style: const TextStyle(fontSize: 13)),
+                  )),
             ],
             if (record.photos.isNotEmpty) ...[
               const SizedBox(height: 10),
@@ -942,8 +1024,8 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                       (isCheckIn && !item.unitAssignmentConfirmed)
                   ? null
                   : () {
-                _openHandoverSheet(item);
-              },
+                      _openHandoverSheet(item);
+                    },
               child: Text(
                 isCheckIn ? 'Bàn giao' : 'Nghiệm thu',
                 style: const TextStyle(
@@ -1022,8 +1104,9 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
               icon: const Icon(Icons.vpn_key_outlined),
               onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) =>
-                    GatePassVerifyScreen(facilityId: _facilityId!)),
+                MaterialPageRoute(
+                    builder: (_) =>
+                        GatePassVerifyScreen(facilityId: _facilityId!)),
               ),
             ),
           NotificationBadgeButton(
@@ -1083,7 +1166,8 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
       return const AppEmptyState(
         icon: Icons.storefront_outlined,
         title: 'Chưa được gán cơ sở',
-        message: 'Hãy nhờ Facility Manager thêm bạn vào danh sách nhân viên của cơ sở.',
+        message:
+            'Hãy nhờ Facility Manager thêm bạn vào danh sách nhân viên của cơ sở.',
       );
     }
 
@@ -1119,7 +1203,8 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                       AppEmptyState(
                         icon: Icons.event_available,
                         title: 'Chưa có lịch bàn giao',
-                        message: 'Không có khách nhận hoặc trả kho trong ngày này. Khách chỉ hiện từ ngày bắt đầu thuê '
+                        message:
+                            'Không có khách nhận hoặc trả kho trong ngày này. Khách chỉ hiện từ ngày bắt đầu thuê '
                             '(nhận kho) hoặc theo giờ hẹn/ngày hết hạn (trả kho). Chọn ngày khác để xem.',
                       ),
                     ],
@@ -1170,7 +1255,8 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                   color: Colors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.storefront, color: AppColors.secondary, size: 20),
+                child: const Icon(Icons.storefront,
+                    color: AppColors.secondary, size: 20),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -1188,7 +1274,8 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
           const SizedBox(height: 6),
           const Text(
             'Lịch bàn giao kho cho khách và nghiệm thu kiểm tra khi khách trả kho.',
-            style: TextStyle(color: Colors.white70, fontSize: 11.5, height: 1.3),
+            style:
+                TextStyle(color: Colors.white70, fontSize: 11.5, height: 1.3),
           ),
           const SizedBox(height: 14),
           Row(
@@ -1209,7 +1296,8 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -1257,7 +1345,8 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.outline.withValues(alpha: 0.15)),
+              border:
+                  Border.all(color: AppColors.outline.withValues(alpha: 0.15)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.03),
@@ -1315,18 +1404,6 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
               ),
             );
           }),
-          const SizedBox(width: 8),
-          tile(Icons.receipt_long_outlined, 'Giao dịch', () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => TransactionHistoryScreen(
-                  userRole: widget.user.roleName,
-                  facilityId: facilityId,
-                ),
-              ),
-            );
-          }),
         ],
       ),
     );
@@ -1334,8 +1411,8 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
 
   Widget _dateChip(String label, int offsetDays) {
     final now = DateTime.now();
-    final target = DateTime(now.year, now.month, now.day)
-        .add(Duration(days: offsetDays));
+    final target =
+        DateTime(now.year, now.month, now.day).add(Duration(days: offsetDays));
     final selected = _selectedDate.year == target.year &&
         _selectedDate.month == target.month &&
         _selectedDate.day == target.day;

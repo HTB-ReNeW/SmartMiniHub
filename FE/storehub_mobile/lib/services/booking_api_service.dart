@@ -6,6 +6,24 @@ import '../core/network/http_client.dart';
 /// (Future.delayed + a random booking code); this service actually
 /// creates the booking and payment records on the BE.
 class BookingApiService {
+  Future<void> deferPayment(String bookingId) async {
+    try {
+      await _http.post('/bookings/$bookingId/defer-payment');
+    } on ApiException catch (error) {
+      final data = error.response?.data;
+      throw Exception(data is Map
+          ? data['message'] ?? 'Không thể chọn thanh toán sau.'
+          : 'Không thể chọn thanh toán sau. Vui lòng thử lại.');
+    }
+  }
+
+  Future<Map<String, dynamic>> cancellationQuote(String bookingId) async {
+    final response = await _http.get('/bookings/$bookingId/cancellation-quote');
+    final data = response.data;
+    return Map<String, dynamic>.from(
+        data is Map && data['data'] is Map ? data['data'] : data);
+  }
+
   final HttpClient _http = HttpClient.instance;
 
   Future<List<Map<String, dynamic>>> getPayableBookings() async {
@@ -13,8 +31,12 @@ class BookingApiService {
       final response = await _http.get(ApiEndpoints.myPendingBookings);
       final body = response.data;
       final list = body is Map ? body['data'] : null;
-      if (list is! List) throw const FormatException('Danh sách đơn không hợp lệ');
-      return list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+      if (list is! List) {
+        throw const FormatException('Danh sách đơn không hợp lệ');
+      }
+      return list
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList();
     } on ApiException catch (e) {
       final body = e.response?.data;
       final message = body is Map ? body['message'] : e.message;
@@ -99,6 +121,19 @@ class BookingApiService {
     }
   }
 
+  Future<void> cancelWithRefundAccount(
+      String bookingId, Map<String, String> account) async {
+    try {
+      await _http.post('${ApiEndpoints.bookingDetail(bookingId)}/cancel',
+          data: account);
+    } on ApiException catch (e) {
+      final data = e.response?.data;
+      throw Exception(data is Map
+          ? data['message'] ?? 'Không thể gửi yêu cầu hủy.'
+          : 'Không thể gửi yêu cầu hủy. Vui lòng thử lại.');
+    }
+  }
+
   /// DELETE /bookings/{id} - cancels a PENDING_PAYMENT booking, releasing
   /// the reserved unit back to AVAILABLE and notifying the waitlist.
   Future<void> cancelBooking(String bookingId) async {
@@ -136,8 +171,12 @@ class BookingApiService {
     final response = await _http.get('${ApiEndpoints.waitlist}/mine');
     final data = response.data;
     final entries = data is Map ? data['data'] : null;
-    if (entries is! List) throw const FormatException('Dữ liệu danh sách chờ không hợp lệ');
-    return entries.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+    if (entries is! List) {
+      throw const FormatException('Dữ liệu danh sách chờ không hợp lệ');
+    }
+    return entries
+        .map((item) => Map<String, dynamic>.from(item as Map))
+        .toList();
   }
 
   Future<void> leaveWaitlist(String id) async {

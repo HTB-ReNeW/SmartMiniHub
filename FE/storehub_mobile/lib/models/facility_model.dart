@@ -14,6 +14,7 @@ class FacilityModel {
   final double? minPricePerMonth;
   final int? availableUnits;
   final int? unitTypeCount;
+  final List<FacilityUnitOption> unitTypeOptions;
 
   FacilityModel({
     required this.id,
@@ -30,6 +31,7 @@ class FacilityModel {
     this.minPricePerMonth,
     this.availableUnits,
     this.unitTypeCount,
+    this.unitTypeOptions = const [],
   });
 
   factory FacilityModel.fromJson(Map<String, dynamic> json) {
@@ -39,7 +41,8 @@ class FacilityModel {
           .map((e) => e?.toString() ?? '')
           .where((s) => s.isNotEmpty)
           .toList();
-    } else if (json['images'] is String && (json['images'] as String).isNotEmpty) {
+    } else if (json['images'] is String &&
+        (json['images'] as String).isNotEmpty) {
       parsedImages = (json['images'] as String)
           .split(',')
           .map((s) => s.trim())
@@ -75,6 +78,17 @@ class FacilityModel {
       [address, city].where((s) => s.isNotEmpty).join(', ');
 
   FacilityModel withUnitTypeStats(List<dynamic> unitTypes) {
+    return withUnitOptions(unitTypes
+        .whereType<Map>()
+        .map((raw) => FacilityUnitOption(
+              areaSqm: (raw['areaSqm'] as num?)?.toDouble(),
+              monthlyPrice: (raw['basePricePerMonth'] as num?)?.toDouble(),
+              available: (raw['availableUnitsCount'] as num?)?.toInt() ?? 0,
+            ))
+        .toList());
+  }
+
+  FacilityModel withUnitOptions(List<FacilityUnitOption> unitTypes) {
     if (unitTypes.isEmpty) {
       return FacilityModel(
         id: id,
@@ -95,10 +109,9 @@ class FacilityModel {
     int totalAvailable = 0;
 
     for (final raw in unitTypes) {
-      if (raw is! Map) continue;
-      final area = (raw['areaSqm'] as num?)?.toDouble();
-      final price = (raw['basePricePerMonth'] as num?)?.toDouble();
-      final available = (raw['availableUnitsCount'] as num?)?.toInt() ?? 0;
+      final area = raw.areaSqm;
+      final price = raw.monthlyPrice;
+      final available = raw.available;
 
       if (area != null) {
         minArea = (minArea == null) ? area : (area < minArea ? area : minArea);
@@ -126,6 +139,14 @@ class FacilityModel {
       minPricePerMonth: minPrice,
       availableUnits: totalAvailable,
       unitTypeCount: unitTypes.length,
+      unitTypeOptions: List.unmodifiable(unitTypes),
     );
   }
+}
+
+class FacilityUnitOption {
+  final double? areaSqm, monthlyPrice;
+  final int available;
+  const FacilityUnitOption(
+      {this.areaSqm, this.monthlyPrice, this.available = 0});
 }

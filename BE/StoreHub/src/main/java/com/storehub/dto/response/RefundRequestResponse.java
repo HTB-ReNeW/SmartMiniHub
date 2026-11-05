@@ -21,7 +21,8 @@ public record RefundRequestResponse(
         String bankCode,
         String bankAccountNumber,
         String bankAccountName,
-        String transferReference
+        String transferReference,
+        RefundDetailsResponse details
 ) {
     public RefundRequestResponse(
             UUID id,
@@ -38,6 +39,6 @@ public record RefundRequestResponse(
     ) {
         this(id, bookingId, bookingCode, originalTransactionId, requestId, amount, status,
                 gatewayResponseCode, gatewayTransactionStatus, dueAt, overdue,
-                BigDecimal.ZERO, null, null, null, null);
+                BigDecimal.ZERO, null, null, null, null, null);
     }
 }

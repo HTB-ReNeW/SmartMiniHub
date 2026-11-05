@@ -20,6 +20,8 @@ import com.storehub.repository.StorageUnitRepository;
 import com.storehub.repository.UnitTypeRepository;
 import com.storehub.repository.UserRepository;
 import com.storehub.entity.FacilityAccess;
+import com.storehub.entity.Role;
+import com.storehub.repository.RoleRepository;
 import com.storehub.service.FacilityManagementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -64,6 +66,7 @@ public class FacilityManagementServiceImpl
     private final StaffWorkloadService staffWorkloadService;
     private final com.storehub.repository.DepositDeductionRepository depositDeductions;
     private final com.storehub.service.NotificationService notificationService;
+    private final RoleRepository roleRepository;
 
     @Transactional(readOnly = true)
     public AssignedFacilityResponse myFacility(String email) {
@@ -195,8 +198,8 @@ public class FacilityManagementServiceImpl
             throw new AppException(ErrorCode.BOOKING_NOT_FOUND);
         }
 
-        // Ngăn cũ có thể đang cần kiểm tra/bảo trì (nhân viên từ chối bàn giao vì hư hỏng):
-        // khi đó đơn chưa được xác nhận ngăn và quản lý phải chọn ngăn khác.
+        // NgÄƒn cÅ© cÃ³ thá»ƒ Ä‘ang cáº§n kiá»ƒm tra/báº£o trÃ¬ (nhÃ¢n viÃªn tá»« chá»‘i bÃ n giao vÃ¬ hÆ° há»ng):
+        // khi Ä‘Ã³ Ä‘Æ¡n chÆ°a Ä‘Æ°á»£c xÃ¡c nháº­n ngÄƒn vÃ  quáº£n lÃ½ pháº£i chá»n ngÄƒn khÃ¡c.
         boolean oldUnderMaintenance = oldUnit.getStatus() == UnitStatus.UNDER_MAINTENANCE
                 && !Boolean.TRUE.equals(booking.getUnitAssignmentConfirmed());
 
@@ -272,9 +275,9 @@ public class FacilityManagementServiceImpl
                 emailService.sendUnitAssignmentConfirmedEmail(email, code, facility, unitCode);
                 notificationService.notifyUser(
                         customer,
-                        "Đã xác nhận ngăn kho",
-                        "Đơn " + code + " tại cơ sở " + facility + " đã được gán ngăn " + unitCode
-                                + ". Bạn có thể xem lịch bàn giao trong mục Kho của tôi.",
+                        "ÄÃ£ xÃ¡c nháº­n ngÄƒn kho",
+                        "ÄÆ¡n " + code + " táº¡i cÆ¡ sá»Ÿ " + facility + " Ä‘Ã£ Ä‘Æ°á»£c gÃ¡n ngÄƒn " + unitCode
+                                + ". Báº¡n cÃ³ thá»ƒ xem lá»‹ch bÃ n giao trong má»¥c Kho cá»§a tÃ´i.",
                         com.storehub.enums.NotificationType.UNIT_ASSIGNED,
                         booking.getId(),
                         "BOOKING",
@@ -282,9 +285,9 @@ public class FacilityManagementServiceImpl
                 );
                 notificationService.notifyFacilityStaff(
                         facilityEntity,
-                        "Xác nhận gán ngăn kho",
-                        "Đơn " + code + " đã được xác nhận gán vào ngăn " + unitCode
-                                + ". Vui lòng kiểm tra và chuẩn bị đón tiếp khách hàng.",
+                        "XÃ¡c nháº­n gÃ¡n ngÄƒn kho",
+                        "ÄÆ¡n " + code + " Ä‘Ã£ Ä‘Æ°á»£c xÃ¡c nháº­n gÃ¡n vÃ o ngÄƒn " + unitCode
+                                + ". Vui lÃ²ng kiá»ƒm tra vÃ  chuáº©n bá»‹ Ä‘Ã³n tiáº¿p khÃ¡ch hÃ ng.",
                         com.storehub.enums.NotificationType.UNIT_ASSIGNED,
                         booking.getId(),
                         "BOOKING"
@@ -348,6 +351,7 @@ public class FacilityManagementServiceImpl
                 .subtract(refunded == null ? BigDecimal.ZERO : refunded);
         BigDecimal retained = depositDeductions.sumRetainedByFacility(facilityId);
         revenue = revenue.add(retained == null ? BigDecimal.ZERO : retained);
+        BigDecimal totalRefunded = refunded == null ? BigDecimal.ZERO : refunded;
 
         return new FacilityReportResponse(
                 facilityId,
@@ -358,7 +362,8 @@ public class FacilityManagementServiceImpl
                 maintenance,
                 overdueBookings,
                 occupancyRate,
-                revenue
+                revenue,
+                totalRefunded
         );
     }
 
@@ -378,10 +383,14 @@ public class FacilityManagementServiceImpl
         User user = users.findByIdForUpdate(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (!Boolean.TRUE.equals(user.getIsActive())
-                || user.getRole() == null
-                || !role.equals(user.getRole().getName())) {
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
             throw new AppException(ErrorCode.INVALID_REQUEST);
+        }
+
+        if (user.getRole() == null || !role.equals(user.getRole().getName())) {
+            Role targetRole = roleRepository.findByName(role)
+                    .orElseThrow(() -> new AppException(ErrorCode.INVALID_REQUEST));
+            user.setRole(targetRole);
         }
 
         if (managerEmail != null
@@ -401,19 +410,17 @@ public class FacilityManagementServiceImpl
                     && !facilityId.equals(previousFacility.getId())
                     && previousFacility.getManager() != null
                     && userId.equals(previousFacility.getManager().getId())) {
-                previousFacility.setManager(null);
+                List<User> oldFacilityOtherManagers = users.findByFacility_IdAndRole_Name(previousFacility.getId(), "FACILITY_MANAGER")
+                        .stream()
+                        .filter(u -> !userId.equals(u.getId()) && Boolean.TRUE.equals(u.getIsActive()))
+                        .toList();
+                previousFacility.setManager(oldFacilityOtherManagers.isEmpty() ? null : oldFacilityOtherManagers.get(0));
             }
 
-            User previousManager = facility.getManager();
-
-            if (previousManager != null
-                    && !userId.equals(previousManager.getId())
-                    && previousManager.getFacility() != null
-                    && facilityId.equals(previousManager.getFacility().getId())) {
-                previousManager.setFacility(null);
+            // CÆ¡ sá»Ÿ hiá»‡n táº¡i: khÃ´ng loáº¡i bá» cÃ¡c quáº£n lÃ½ hiá»‡n táº¡i, cho phÃ©p nhiá»u quáº£n lÃ½ cÆ¡ sá»Ÿ
+            if (facility.getManager() == null) {
+                facility.setManager(user);
             }
-
-            facility.setManager(user);
         }
 
         user.setFacility(facility);
@@ -424,6 +431,49 @@ public class FacilityManagementServiceImpl
                 user.getEmail(),
                 role
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FacilityStaffResponse> managers(UUID facilityId) {
+        requireFacility(facilityId);
+
+        return users.findByFacility_IdAndRole_Name(facilityId, "FACILITY_MANAGER")
+                .stream()
+                .filter(user -> Boolean.TRUE.equals(user.getIsActive()))
+                .map(user -> new FacilityStaffResponse(
+                        user.getId(),
+                        user.getFullName(),
+                        user.getEmail(),
+                        "FACILITY_MANAGER"
+                ))
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void unassignManager(UUID facilityId, UUID userId) {
+        Facility facility = requireFacility(facilityId);
+
+        User manager = users.findByIdForUpdate(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if (manager.getRole() == null
+                || !"FACILITY_MANAGER".equals(manager.getRole().getName())
+                || manager.getFacility() == null
+                || !facilityId.equals(manager.getFacility().getId())) {
+            throw new AppException(ErrorCode.INVALID_REQUEST);
+        }
+
+        manager.setFacility(null);
+
+        if (facility.getManager() != null && userId.equals(facility.getManager().getId())) {
+            List<User> remainingManagers = users.findByFacility_IdAndRole_Name(facilityId, "FACILITY_MANAGER")
+                    .stream()
+                    .filter(u -> !userId.equals(u.getId()) && Boolean.TRUE.equals(u.getIsActive()))
+                    .toList();
+            facility.setManager(remainingManagers.isEmpty() ? null : remainingManagers.get(0));
+        }
     }
 
     @Transactional(readOnly = true)
@@ -553,7 +603,16 @@ public class FacilityManagementServiceImpl
                 booking.getSealingPendingAt() != null,
                 booking.getPendingExtensionFee(),
                 booking.getSealingPendingAt() != null && booking.getSealingApprovedAt() != null
-                        && !booking.getSealingApprovedAt().isBefore(booking.getSealingPendingAt())
+                        && !booking.getSealingApprovedAt().isBefore(booking.getSealingPendingAt()),
+                booking.getTermsVersion(),
+                booking.getTermsContentSnapshot(),
+                booking.getProhibitedItemsSnapshot(),
+                booking.getTermsAccepted(),
+                booking.getProhibitedItemsAccepted(),
+                booking.getTermsAcceptedAt(),
+                booking.getContractPhotos(),
+                booking.getQuotedManagementFee(),
+                com.storehub.dto.response.RentalPolicyResponse.from(booking)
         );
     }
 

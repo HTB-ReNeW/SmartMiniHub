@@ -174,6 +174,8 @@ class ApiEndpoints {
   static const String reportExport = '/reports/export';
 
   // ---- Unit type pricing (UnitTypeController) ----
+  static const String unitTypesEndpoint = '/unit-types';
+  static String unitTypeDetail(String unitTypeId) => '/unit-types/$unitTypeId';
   static String unitTypePrice(String unitTypeId) =>
       '/unit-types/$unitTypeId/price';
 
@@ -200,6 +202,10 @@ class ApiEndpoints {
   static String facilityAssignStaff(String facilityId, String userId) =>
       '/facility/management/$facilityId/staff/$userId';
   static String facilityAssignManager(String facilityId, String userId) =>
+      '/facility/management/$facilityId/managers/$userId';
+  static String facilityManagers(String facilityId) =>
+      '/facility/management/$facilityId/managers';
+  static String facilityUnassignManager(String facilityId, String userId) =>
       '/facility/management/$facilityId/managers/$userId';
   static String facilityConfirmedBookings(String facilityId) =>
       '/facility/management/$facilityId/bookings/confirmed';

@@ -5,7 +5,6 @@ import '../../services/auth_api_service.dart';
 import '../../core/navigation/customer_tab_request.dart';
 import '../../widgets/logout_dialog.dart';
 import '../../widgets/notification_badge_button.dart';
-import 'reservation/my_waitlist_screen.dart';
 import '../auth/login_screen.dart';
 import '../common/profile_screen.dart';
 import '../common/transaction_history_screen.dart';
@@ -165,7 +164,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                             ),
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: AppColors.secondaryContainer.withValues(alpha: 0.4),
+                              color: AppColors.secondaryContainer
+                                  .withValues(alpha: 0.4),
                               width: 1.5,
                             ),
                           ),
@@ -273,10 +273,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.secondaryContainer.withValues(alpha: 0.2),
+                        color:
+                            AppColors.secondaryContainer.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: AppColors.secondaryContainer.withValues(alpha: 0.4),
+                          color: AppColors.secondaryContainer
+                              .withValues(alpha: 0.4),
                         ),
                       ),
                       child: const Row(
@@ -399,108 +401,58 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               borderRadius: BorderRadius.circular(16),
               child: Column(
                 children: [
-                ListTile(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  leading: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryContainer.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
+                  ListTile(
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color:
+                            AppColors.primaryContainer.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.receipt_long_rounded,
+                        color: AppColors.primaryContainer,
+                        size: 22,
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.receipt_long_rounded,
-                      color: AppColors.primaryContainer,
-                      size: 22,
+                    title: const Text(
+                      'Lịch sử giao dịch',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
-                  ),
-                  title: const Text(
-                    'Lịch sử giao dịch',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: AppColors.textPrimary,
+                    subtitle: const Text(
+                      'Biên lai tiền thuê, tiền cọc và thanh toán',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
-                  ),
-                  subtitle: const Text(
-                    'Biên lai tiền thuê, tiền cọc và thanh toán',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
+                    trailing: const Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.outline,
+                      size: 20,
                     ),
-                  ),
-                  trailing: const Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.outline,
-                    size: 20,
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => TransactionHistoryScreen(
-                          userRole: widget.user.roleName,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TransactionHistoryScreen(
+                            userRole: widget.user.roleName,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-                Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: AppColors.outlineVariant.withValues(alpha: 0.6),
-                  indent: 64,
-                ),
-                ListTile(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  leading: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.secondary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.notifications_active_rounded,
-                      color: AppColors.secondary,
-                      size: 22,
-                    ),
+                      );
+                    },
                   ),
-                  title: const Text(
-                    'Danh sách chờ của tôi',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  subtitle: const Text(
-                    'Thông báo khi loại kho bạn chờ có chỗ trống',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  trailing: const Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.outline,
-                    size: 20,
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const MyWaitlistScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
         ],
       ),
     );

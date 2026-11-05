@@ -9,6 +9,8 @@ import java.util.UUID;
 import java.util.List;
 
 public interface BookingService {
+    void deferPayment(UUID bookingId, String customerEmail);
+    java.util.Map<String, Object> cancellationQuote(UUID bookingId, String customerEmail);
 
     /**
      * Tạo đơn đặt chỗ kho mới.
@@ -22,6 +24,7 @@ public interface BookingService {
     BookingResponse createBooking(String customerEmail, BookingCreationRequest request);
 
     void cancelBooking(UUID bookingId, String customerEmail);
+    void cancelBooking(UUID bookingId, String customerEmail, com.storehub.dto.request.CancellationRefundAccountRequest account);
 
     List<BookingResponse> getPayableBookings(String customerEmail);
 }

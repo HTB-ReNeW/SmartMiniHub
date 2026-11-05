@@ -11,6 +11,8 @@ class AssignedFacilityModel {
 }
 
 class DailyScheduleModel {
+  final String customerPhone, dimensions, notes;
+  final DateTime? startDate, endDate;
   final String bookingId;
   final String bookingCode;
   final String customerId;
@@ -30,6 +32,11 @@ class DailyScheduleModel {
   final bool unitAssignmentConfirmed;
 
   const DailyScheduleModel({
+    this.customerPhone = '',
+    this.dimensions = '',
+    this.notes = '',
+    this.startDate,
+    this.endDate,
     required this.bookingId,
     required this.bookingCode,
     required this.customerId,

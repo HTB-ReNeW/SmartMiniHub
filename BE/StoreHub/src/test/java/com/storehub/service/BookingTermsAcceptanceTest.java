@@ -41,7 +41,7 @@ class BookingTermsAcceptanceTest {
         facility = Facility.builder().status(FacilityStatus.ACTIVE)
                 .openTime(LocalTime.of(8, 0)).closeTime(LocalTime.of(20, 0)).build();
         facility.setId(facilityId);
-        policy = FacilityPolicyResponse.builder().dailyLateFee(new BigDecimal("50000.00"))
+        policy = FacilityPolicyResponse.builder().returnNoticeDays(1).depositRefundSlaDays(3).dailyLateFee(new BigDecimal("50000.00"))
                 .overdueGraceDays(1).overdueAccessDisableDays(3).overdueSealingDays(7).termsVersion("v1").termsAndConditions("Original terms")
                 .prohibitedItems("Original prohibited items").cancellationFullRefundHours(48)
                 .cancellationPartialRefundHours(24).cancellationPartialRefundPercent(50.0).build();
@@ -80,6 +80,11 @@ class BookingTermsAcceptanceTest {
         policy.setOverdueGraceDays(0);
         policy.setOverdueAccessDisableDays(1);
         policy.setOverdueSealingDays(2);
+        policy.setDepositRefundSlaDays(30);
+        policy.setReturnNoticeDays(10);
+        assertEquals(3, saved.getValue().getRefundSlaDays());
+        assertEquals(1, saved.getValue().getReturnNoticeDays());
+        assertFalse(saved.getValue().getRefundPolicyLegacy());
         assertEquals(new BigDecimal("50000.00"), saved.getValue().getOverdueDailyLateFee());
         assertEquals(1, saved.getValue().getOverdueGraceDays());
         assertEquals(3, saved.getValue().getOverdueAccessDisableDays());

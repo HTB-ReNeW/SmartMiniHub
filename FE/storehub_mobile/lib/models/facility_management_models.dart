@@ -1,3 +1,4 @@
+import 'rental_agreement.dart';
 import '../core/utils/vi_labels.dart';
 
 class FacilityUnitModel {
@@ -50,6 +51,7 @@ class FacilityReportModel {
   final int overdueBookings;
   final double occupancyRate;
   final double revenue;
+  final double totalRefunded;
 
   const FacilityReportModel({
     required this.facilityId,
@@ -61,6 +63,7 @@ class FacilityReportModel {
     required this.overdueBookings,
     required this.occupancyRate,
     this.revenue = 0,
+    this.totalRefunded = 0,
   });
 }
 
@@ -142,6 +145,8 @@ class FacilityBookingModel {
 }
 
 class FacilityContractModel {
+  final double? serviceFee;
+  final RentalAgreement agreement;
   final String bookingId;
   final String bookingCode;
   final String customerName;
@@ -164,6 +169,8 @@ class FacilityContractModel {
   final bool sealingApproved;
 
   const FacilityContractModel({
+    this.serviceFee,
+    this.agreement = const RentalAgreement(),
     required this.bookingId,
     required this.bookingCode,
     required this.customerName,

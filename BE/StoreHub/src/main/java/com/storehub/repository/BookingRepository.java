@@ -42,6 +42,34 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             @Param("staffId") UUID staffId, @Param("bookingId") UUID bookingId,
             @Param("slotStart") LocalDateTime slotStart, @Param("slotEnd") LocalDateTime slotEnd);
 
+    @Query("""
+            SELECT b FROM Booking b
+            JOIN FETCH b.storageUnit su
+            LEFT JOIN FETCH su.facility
+            LEFT JOIN FETCH su.unitType
+            WHERE b.customer.id = :customerId
+            AND (b.status = com.storehub.enums.BookingStatus.CONFIRMED
+                 OR (b.status = com.storehub.enums.BookingStatus.CANCELLED
+                     AND (b.depositPaid > 0 OR EXISTS
+                         (SELECT r.id FROM RefundRequest r WHERE r.booking = b))
+                     AND NOT (EXISTS (SELECT done.id FROM RefundRequest done
+                                      WHERE done.booking = b AND done.status = com.storehub.enums.RefundStatus.COMPLETED)
+                              AND NOT EXISTS (SELECT pending.id FROM RefundRequest pending
+                                      WHERE pending.booking = b AND pending.status <> com.storehub.enums.RefundStatus.COMPLETED))))
+            ORDER BY b.createdAt DESC
+            """)
+    List<Booking> findAwaitingOrCancelledPaidBookingsByCustomerId(@Param("customerId") UUID customerId);
+
+    @Query("""
+            SELECT COUNT(b) > 0 FROM Booking b
+            WHERE b.customer.id = :customerId AND b.id <> :bookingId
+            AND b.paymentDeferred = true
+            AND b.status = com.storehub.enums.BookingStatus.PENDING_PAYMENT
+            AND b.expiresAt > :now
+            """)
+    boolean hasOtherDeferredPayment(@Param("customerId") UUID customerId,
+            @Param("bookingId") UUID bookingId, @Param("now") LocalDateTime now);
+
     boolean existsByBookingCode(String bookingCode);
 
     Optional<Booking> findByBookingCode(String bookingCode);
@@ -82,7 +110,8 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             LEFT JOIN FETCH su.facility
             LEFT JOIN FETCH su.unitType
             WHERE b.customer.id = :customerId
-            AND b.status IN (:statuses)
+              AND (b.status IN (:statuses) OR (b.status = com.storehub.enums.BookingStatus.COMPLETED
+                   AND b.returnTime IS NOT NULL))
             ORDER BY b.startDate DESC
             """)
     List<Booking> findActiveBookingsByCustomerId(
@@ -243,7 +272,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         JOIN FETCH b.storageUnit su
         JOIN FETCH su.facility f
         WHERE b.status = :status
-        AND b.endDate < :today
+          AND b.endDate <= :today
         ORDER BY b.endDate ASC
         """)
     List<Booking> findActiveOverdueBookingsForUpdate(

@@ -70,4 +70,9 @@ public class RefundRequest extends BaseEntity {
 
     @Column(name = "transfer_reference", length = 100)
     private String transferReference;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "confirmed_by_manager_id")
+    private User confirmedByManager;
+    @Column(name = "transfer_notes", columnDefinition = "TEXT")
+    private String transferNotes;
 }

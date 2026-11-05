@@ -4,7 +4,6 @@ import '../../models/user_model.dart';
 import '../../services/auth_api_service.dart';
 import '../../widgets/logout_dialog.dart';
 import '../auth/login_screen.dart';
-import 'transaction_history_screen.dart';
 
 const Map<String, String> _kRoleLabels = {
   'ADMIN': 'Quản trị hệ thống',
@@ -240,57 +239,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 14),
 
-            // Transaction History Shortcut
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.outlineVariant),
-              ),
-              child: ListTile(
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-                leading: Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryContainer.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.receipt_long_rounded,
-                    color: AppColors.primaryContainer,
-                    size: 20,
-                  ),
-                ),
-                title: const Text(
-                  'Lịch sử giao dịch',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                subtitle: const Text(
-                  'Xem lịch sử giao dịch & biên lai thanh toán',
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                ),
-                trailing: const Icon(Icons.chevron_right_rounded,
-                    color: AppColors.outline, size: 20),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => TransactionHistoryScreen(
-                        userRole: user.roleName,
-                        facilityId: widget.facilityId,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
+
 
             // Change Password Section
             const Text(

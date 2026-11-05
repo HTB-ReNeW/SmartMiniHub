@@ -140,12 +140,17 @@ public class BookingServiceImpl implements BookingService {
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(BOOKING_EXPIRY_MINUTES);
 
         Booking booking = Booking.builder()
+                .returnNoticeDays(cancellationPolicy.getReturnNoticeDays() == null ? 0 : cancellationPolicy.getReturnNoticeDays())
+                .refundSlaDays(cancellationPolicy.getDepositRefundSlaDays() == null ? 5 : cancellationPolicy.getDepositRefundSlaDays())
+                .refundPolicyLegacy(false)
                 .overdueDailyLateFee(cancellationPolicy.getDailyLateFee())
                 .overdueGraceDays(cancellationPolicy.getOverdueGraceDays())
                 .overdueAccessDisableDays(cancellationPolicy.getOverdueAccessDisableDays())
                 .overdueSealingDays(cancellationPolicy.getOverdueSealingDays())
                 .overduePolicyCapturedAt(policyCapturedAt)
                 .overduePolicyLegacy(false)
+                .cancellationWithin24hPercent(cancellationPolicy.getCancellationWithin24hPercent())
+                .cancellationAfter24hPercent(cancellationPolicy.getCancellationAfter24hPercent())
                 .cancellationFullRefundHours(cancellationPolicy.getCancellationFullRefundHours())
                 .cancellationPartialRefundHours(cancellationPolicy.getCancellationPartialRefundHours())
                 .cancellationPartialRefundPercent(cancellationPolicy.getCancellationPartialRefundPercent())
@@ -272,7 +277,56 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
+    public void deferPayment(UUID bookingId, String customerEmail) {
+        // Serializing requests for this customer prevents two simultaneous deferrals.
+        User customer = userRepository.findByEmailForUpdate(customerEmail)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        Booking booking = bookingRepository.lockByIdAndCustomerId(bookingId, customer.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+        LocalDateTime now = LocalDateTime.now();
+        if (booking.getStatus() != BookingStatus.PENDING_PAYMENT || booking.getExpiresAt() == null
+                || !booking.getExpiresAt().isAfter(now)) {
+            throw new AppException(ErrorCode.INVALID_REQUEST);
+        }
+        if (bookingRepository.hasOtherDeferredPayment(customer.getId(), bookingId, now)) {
+            throw new AppException(ErrorCode.DEFERRED_PAYMENT_EXISTS);
+        }
+        booking.setPaymentDeferred(true);
+        bookingRepository.save(booking);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Map<String, Object> cancellationQuote(UUID bookingId, String customerEmail) {
+        User customer = userRepository.findByEmail(customerEmail).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        Booking booking = bookingRepository.findById(bookingId).orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+        if (!booking.getCustomer().getId().equals(customer.getId())) throw new AppException(ErrorCode.FORBIDDEN);
+        if (booking.getStatus() != BookingStatus.CONFIRMED || booking.getHandoverTime() != null) {
+            throw new AppException(ErrorCode.BOOKING_CANCEL_NOT_ALLOWED);
+        }
+        LocalDateTime now = LocalDateTime.now();
+        BigDecimal deposit = booking.getDepositPaid() == null ? BigDecimal.ZERO : booking.getDepositPaid();
+        BigDecimal rental = paymentRepository.findFirstByBooking_IdAndPaymentTypeAndStatusOrderByPaymentTimeDesc(
+                bookingId, com.storehub.enums.PaymentType.RENTAL_FEE, com.storehub.enums.PaymentStatus.PAID)
+                .map(com.storehub.entity.Payment::getAmount).orElse(BigDecimal.ZERO);
+        BigDecimal refundDeposit = booking.getHandoverIssueReportedAt() != null ? deposit
+                : pricingService.calculateCancellationRefund(booking, deposit,
+                    booking.getScheduledCheckInTime() != null ? booking.getScheduledCheckInTime() : booking.getStartDate().atStartOfDay(), now);
+        return java.util.Map.of("depositRefund", refundDeposit, "rentalRefund", rental,
+                "totalRefund", refundDeposit.add(rental), "evaluatedAt", now,
+                "createdAt", booking.getCreatedAt(), "deadline", booking.getCreatedAt().plusHours(24));
+    }
+
+    @Override
+    @Transactional
     public void cancelBooking(UUID bookingId, String customerEmail) {
+        cancelBooking(bookingId, customerEmail, null);
+    }
+
+    @Override
+    @Transactional
+    public void cancelBooking(UUID bookingId, String customerEmail,
+            com.storehub.dto.request.CancellationRefundAccountRequest account) {
         User customer = userRepository.findByEmail(customerEmail)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
@@ -285,7 +339,23 @@ public class BookingServiceImpl implements BookingService {
             throw new AppException(ErrorCode.BOOKING_CANCEL_NOT_ALLOWED);
         }
 
-        // Đơn đã đặt cọc (CONFIRMED): hoàn cọc theo bậc chính sách huỷ của cơ sở
+        if (previousStatus == BookingStatus.CONFIRMED && booking.getHandoverTime() != null) {
+            throw new AppException(ErrorCode.BOOKING_CANCEL_NOT_ALLOWED);
+        }
+        if (previousStatus == BookingStatus.CONFIRMED) {
+            if (account == null || account.getBankCode() == null || account.getBankCode().isBlank()
+                    || account.getBankCode().trim().length() > 100
+                    || account.getBankAccountNumber() == null || !account.getBankAccountNumber().trim().matches("[0-9]{4,34}")
+                    || account.getBankAccountName() == null || account.getBankAccountName().trim().length() < 2
+                    || account.getBankAccountName().trim().length() > 100) {
+                throw new AppException(ErrorCode.INVALID_REQUEST);
+            }
+            // Set the beneficiary before creating the refund: RefundRequest snapshots these exact values.
+            booking.setRefundBankCode(account.getBankCode().trim());
+            booking.setRefundAccountNumber(account.getBankAccountNumber().trim());
+            booking.setRefundAccountName(account.getBankAccountName().trim());
+        }
+        // Before handover: tiered deposit refund plus all paid rent.
         BigDecimal requestedRefund = BigDecimal.ZERO;
         if (previousStatus == BookingStatus.CONFIRMED
                 && booking.getStorageUnit() != null

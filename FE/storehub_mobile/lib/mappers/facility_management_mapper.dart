@@ -1,3 +1,4 @@
+import '../models/rental_agreement.dart';
 import '../models/facility_management_models.dart';
 
 class FacilityManagementMapper {
@@ -40,6 +41,7 @@ class FacilityManagementMapper {
       overdueBookings: _integer(json['overdueBookings']),
       occupancyRate: _decimal(json['occupancyRate']),
       revenue: _decimal(json['revenue']),
+      totalRefunded: _decimal(json['totalRefunded']),
     );
   }
 
@@ -134,6 +136,8 @@ class FacilityManagementMapper {
 
   static FacilityContractModel contractFromJson(Map<String, dynamic> json) {
     return FacilityContractModel(
+      serviceFee: (json['serviceFee'] as num?)?.toDouble(),
+      agreement: RentalAgreement.fromJson(json),
       bookingId: _text(json['bookingId']),
       bookingCode: _text(json['bookingCode']),
       customerName: _text(json['customerName']),

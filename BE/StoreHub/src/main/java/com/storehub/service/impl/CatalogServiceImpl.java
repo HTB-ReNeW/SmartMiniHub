@@ -35,7 +35,13 @@ public class CatalogServiceImpl implements CatalogService {
     @Override
     @Transactional(readOnly = true)
     public List<UnitTypeCatalogResponse> getUnitTypes(UUID facilityId) {
-        List<Object[]> results = unitTypeRepository.findCatalogUnitTypesWithAvailableCount(facilityId);
+        return getUnitTypes(facilityId, false);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UnitTypeCatalogResponse> getUnitTypes(UUID facilityId, boolean stockedOnly) {
+        List<Object[]> results = unitTypeRepository.findCatalogUnitTypesWithAvailableCount(facilityId, stockedOnly);
         return results.stream().map(row -> {
             UnitType ut = (UnitType) row[0];
             Long count = ((Number) row[1]).longValue();

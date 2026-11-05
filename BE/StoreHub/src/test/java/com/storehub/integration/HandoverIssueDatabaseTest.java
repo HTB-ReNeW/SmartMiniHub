@@ -37,7 +37,8 @@ class HandoverIssueDatabaseTest {
         jdbc.update("UPDATE bookings SET end_date = CURRENT_DATE WHERE id = ?", f.id());
         expiry.expireUnclaimedBookings();
         assertEquals("CONFIRMED", status(f));
-        bookingService.cancelBooking(f.id(), f.customerEmail());
+        bookingService.cancelBooking(f.id(), f.customerEmail(),
+                new com.storehub.dto.request.CancellationRefundAccountRequest("Vietcombank", "0012345678", "NGUYEN VAN AN"));
         assertFullRefund(f);
     }
 

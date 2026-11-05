@@ -32,4 +32,5 @@ public class HandoverRequest {
     private String damageReason;
 
     private List<String> photos;
+    private List<String> contractPhotos;
 }

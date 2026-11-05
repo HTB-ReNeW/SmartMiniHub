@@ -12,6 +12,9 @@ import com.storehub.repository.BookingRepository;
 import com.storehub.common.OverduePolicySnapshot;
 import com.storehub.repository.PaymentRepository;
 import com.storehub.service.ActivityLogService;
+import com.storehub.service.NotificationService;
+import com.storehub.repository.NotificationRepository;
+import com.storehub.enums.NotificationType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -40,9 +43,11 @@ public class OverdueScheduler {
     private final BookingRepository bookingRepository;
     private final PaymentRepository paymentRepository;
     private final ActivityLogService activityLogService;
+    private final NotificationService notificationService;
+    private final NotificationRepository notificationRepository;
 
     @Scheduled(
-            cron = "${app.overdue.scheduler-cron:0 5 0 * * *}",
+            cron = "${app.overdue.scheduler-cron:0 * * * * *}",
             zone = "Asia/Ho_Chi_Minh"
     )
     @Transactional
@@ -80,12 +85,14 @@ public class OverdueScheduler {
 
     /**
      * Bring the late-fee ledger up to the current date while the caller holds the
-     * booking lock. Both checkout and extension must account for missed nightly
+     * booking lock. Both checkout and extension must account for missed scheduled
      * runs; callers that reject a transition commit the newly accrued debt.
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public boolean accrueOutstandingForCheckout(Booking booking, LocalDateTime now) {
+        if (booking.getReturnTime() != null) now = booking.getReturnTime();
         long overdueDays = ChronoUnit.DAYS.between(booking.getEndDate(), now.toLocalDate());
+        if (overdueDays <= 0) clearUnpaidFeesBeforeExpiry(booking, now);
         if (overdueDays > 0) {
             OverdueConfigResponse config = OverduePolicySnapshot.read(booking);
             long chargeableDays = Math.max(0, overdueDays - config.graceDays());
@@ -108,6 +115,24 @@ public class OverdueScheduler {
                         && p.getAmount() != null && p.getAmount().signum() > 0);
     }
 
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void clearUnpaidFeesBeforeExpiry(Booking booking, LocalDateTime now) {
+        if (booking.getStatus() != BookingStatus.ACTIVE || booking.getEndDate() == null
+                || booking.getEndDate().isBefore(now.toLocalDate())) return;
+        for (Payment payment : paymentRepository.findByBooking_IdAndPaymentTypeAndNoteAndStatusIn(
+                booking.getId(), PaymentType.EXTRA_CHARGE, OVERDUE_LATE_FEE,
+                List.of(PaymentStatus.PENDING, PaymentStatus.FAILED))) {
+            if (payment.getVoidedAt() != null) continue;
+            payment.setVoidedAt(now);
+            payment.setStatus(PaymentStatus.FAILED);
+            paymentRepository.save(payment);
+            activityLogService.recordSystem(ActivityAction.OVERDUE_RESOLVED, "BOOKING", booking.getId(),
+                    "Voided unpaid premature late-fee attempt " + payment.getTransactionId()
+                            + "; rental end date is " + booking.getEndDate());
+        }
+        booking.setOverdueFeeAccrued(BigDecimal.ZERO);
+    }
+
     private void processOneBooking(
             Booking booking,
             LocalDate today,
@@ -125,9 +150,12 @@ public class OverdueScheduler {
                 overdueDays - config.graceDays()
         );
 
-        if (overdueDays <= 0) {
+        if (overdueDays < 0) {
             return;
         }
+        // Notify even on the first overdue day, while late fees are still in the grace period.
+        remindCustomerToReturnOrRenew(booking);
+        if (overdueDays == 0) return;
         boolean accessDue = overdueDays >= config.accessDisableDays();
         boolean sealingDue = overdueDays >= config.sealingDays();
         if (chargeableDays <= 0 && !accessDue && !sealingDue) {
@@ -189,6 +217,22 @@ public class OverdueScheduler {
         }
 
         bookingRepository.save(booking);
+    }
+
+    private void remindCustomerToReturnOrRenew(Booking booking) {
+        if (booking.getCustomer() == null || booking.getCustomer().getId() == null) return;
+        String date = booking.getEndDate().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        String title = "Hết hạn thuê kho ngày " + date;
+        // The booking lock serializes concurrent runs; a new rental end date allows a new reminder.
+        if (notificationRepository.existsByRecipient_IdAndReferenceIdAndTitle(
+                booking.getCustomer().getId(), booking.getId(), title)) return;
+        String action = booking.getScheduledReturnTime() == null
+                ? "Vui lòng gia hạn thuê hoặc gửi yêu cầu trả kho trong mục Kho của tôi."
+                : "Bạn đã có lịch trả kho. Vui lòng phối hợp với nhân viên để hoàn tất bàn giao.";
+        notificationService.notifyUser(booking.getCustomer(), title,
+                "Hợp đồng " + booking.getBookingCode() + " đến hạn trả kho ngày " + date + ". "
+                        + action + " Phí trễ hạn (nếu có) được tính theo chính sách hợp đồng.",
+                NotificationType.SYSTEM, booking.getId(), "BOOKING", booking.getStorageUnit().getFacility());
     }
 
     private void updateLateFee(
